@@ -2618,7 +2618,7 @@ function renderTable(){
     const impTxt=isImprove?`📈 שיפור ${imp}%`:isDecline?'📉 ירידה':'';
     const bonB=`<div class="${isDecline?'impr-decline':'impr-big'}" style="${(isImprove||isDecline)?'':'opacity:0;height:0;padding:0;margin:0;border:none;overflow:hidden;'}">${impTxt}</div>`;
     return `<tr data-idx="${idx}"${!hasResult&&testHasAnyResult(CUR.gid,CUR.test)?' class="no-result"':hasResult?' class="has-result"':''}>
-      
+      <td style="font-size:11px;color:var(--ink3);font-weight:700;width:28px;text-align:center;">${idx+1}</td>
       <td class="tn" style="cursor:pointer;" onclick="openStudentReport(${idx})" title="לחץ לדוח תלמיד">${s.name}${!hasResult?'<span style="font-size:10px;color:#fbbf24;margin-right:5px;"> ⚠</span>':d._ts?`<div style="font-size:9px;color:var(--ink3);font-weight:400;">${new Date(d._ts).toLocaleDateString('he-IL',{day:'2-digit',month:'2-digit',year:'2-digit'})}</div>`:''}
       </td><td>${gb}</td>
       <td style="font-size:11px;color:var(--ink3);">${s.grade}${s.cls}</td>
