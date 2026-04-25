@@ -550,7 +550,7 @@ async function sbLoadUserData() {
 
   if (error) {
     console.error('Error loading data:', error);
-    showToast && showToast('שגיאה בטעינת נתונים');
+    toast('שגיאה בטעינת נתונים');
     return;
   }
 
@@ -575,7 +575,7 @@ async function sbLoadUserData() {
 
   // Update UI after loading
   renderGroupGrid && renderGroupGrid();
-  showToast && showToast('✓ נתונים נטענו בהצלחה');
+  toast('✓ נתונים נטענו בהצלחה');
 }
 
 // ── Save group to Supabase ───────────────────────────────────
@@ -1798,7 +1798,7 @@ function calcFinal(base,bonusPct,bonusPts){
 // ── STATE ───────────────────────────────────────────────────
 const LS='sportgrade_v6';
 let S={groups:{},nextId:1,customTests:{}};
-function loadState(){try{const d=localStorage.getItem(LS);if(d)S=JSON.parse(d);}catch(e){}}
+function loadState(){ /* data loaded from Supabase via sbLoadUserData */ }
 function saveState(){
   try{
     localStorage.setItem(LS,JSON.stringify(S));
@@ -1871,7 +1871,14 @@ function parseXLSX(data,fileName){
     if(!students.length){toast('לא נמצאו תלמידים');return;}
     const classes=[...new Set(students.map(s=>s.grade+s.cls))].sort((a,b)=>a.localeCompare(b,'he')).join(', ');
     const gid=S.nextId++;
-    S.groups[gid]={name:fileName,classes,students,results:{}};setTimeout(()=>sbSaveGroup&&sbSaveGroup(gid),100);
+    S.groups[gid]={name:fileName,classes,students,results:{}};
+  // Save to Supabase
+  if(typeof sbSaveGroup === 'function' && SG_USER){
+    sbSaveGroup(gid).then(()=>{ toast('✓ הקבוצה נשמרה'); renderGroupGrid(); }).catch(e=>console.error('Save failed:',e));
+  } else {
+    toast('✓ הקבוצה נטענה');
+    renderGroupGrid();
+  }
     saveState();renderGroupGrid();toast(`"${fileName}" נטענה — ${students.length} תלמידים ✓`);
   }catch(err){toast('שגיאה: '+err.message);}
 }
