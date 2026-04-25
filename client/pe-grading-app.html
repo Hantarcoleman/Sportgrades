@@ -239,8 +239,8 @@ tr.highlighted td{background:rgba(200,64,26,.06)!important;transition:background
 .entered-check{display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;border-radius:50%;border:2px solid var(--bd2);cursor:pointer;font-size:13px;transition:all .15s;flex-shrink:0;background:var(--bg);}
 .entered-check.checked{background:var(--gn);border-color:var(--gn);color:#fff;}
 .entered-check:hover{border-color:var(--gn);}
-.entered-row{opacity:.55;}
-.entered-row td{text-decoration:line-through;text-decoration-color:rgba(0,0,0,.2);}
+.entered-row{background:rgba(21,128,61,.04);}
+.entered-row .tn{text-decoration:line-through;text-decoration-color:rgba(21,128,61,.4);}
 .sv-entered{font-size:11px;color:var(--gn);font-weight:700;}
 .rec-row{display:grid;grid-template-columns:40px 1fr 90px 60px;gap:8px;align-items:center;padding:10px 14px;border-bottom:1px solid var(--bd);font-size:13px;}
 .rec-row:last-child{border-bottom:none;}
@@ -928,7 +928,7 @@ history.pushState(null,'',location.href);
       style="padding:6px 12px;border:1.5px solid var(--bd2);border-radius:var(--rs);font-family:'Heebo',sans-serif;font-size:13px;background:var(--bg);cursor:pointer;">
     </select>
   </div>
-  <div style="font-size:12px;color:var(--ink3);margin-bottom:16px;" id="records-subtitle">ממוינת לפי ביצוע — ללא ציונים</div>
+  <div style="font-size:14px;color:var(--ink3);margin-bottom:16px;" id="records-subtitle">שיאי הכיתות שלך</div>
   <!-- Grade filter -->
   <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px;align-items:center;">
     <span style="font-size:12px;color:var(--ink3);">שכבה:</span>
@@ -1168,11 +1168,12 @@ history.pushState(null,'',location.href);
         <button class="btn bs bsm" id="edit-custom-btn" onclick="editCurrentCustom()" style="display:none;">✏ ערוך</button>
         <button class="btn bs bsm" onclick="openRecords()" title="טבלת שיאים">🏆 שיאים</button>
         <button class="btn bs bsm" onclick="openDistribution()" title="התפלגות ציונים" style="background:rgba(79,128,255,.1);border-color:rgba(79,128,255,.3);color:#4f80ff;">📊 התפלגות</button>
+        <button class="btn bs bsm" onclick="markAllCurrentTestEntered()" title="סמן את כל הציונים שהוזנו כתועדו במערכת בי"ס" style="background:rgba(21,128,61,.1);border-color:rgba(21,128,61,.3);color:#15803d;">✓ הכל הוזן למערכת</button>
         <button class="btn bs bsm" onclick="openLiveTest2()" title="מבחן חי 2" style="background:rgba(16,185,129,.1);border-color:rgba(16,185,129,.3);color:#059669;">⚡ מבחן חי</button>
       </div>
     </div>
     <div class="tw"><table><thead><tr>
-      <th style="width:32px;"></th><th>#</th><th>שם תלמיד</th><th>מין</th><th>כיתה</th>
+      <th style="width:36px;font-size:9px;color:var(--ink3);font-weight:700;text-align:center;">הוזן</th><th>#</th><th>שם תלמיד</th><th>מין</th><th>כיתה</th>
       <th id="ahd">תוצאה מועד א׳</th><th>ציון מועד א׳</th>
       <th id="bhd">תוצאה מועד ב׳</th><th>ציון מועד ב׳</th>
       <th id="sem-a-ref-hd" style="display:none;font-size:9px;color:#7c3aed;">מחצית א׳ (לצפייה)</th>
@@ -2336,8 +2337,14 @@ function loadDemo(){
 // ── GROUP VIEW ──────────────────────────────────────────────
 let _pendingGid=null;
 function openGroup(gid){
+  // If tournament panel is open, close it first
+  const tmPanel=document.getElementById('tm-panel');
+  if(tmPanel&&tmPanel.style.display!=='none'){
+    closeTournamentPanel();
+  }
   _pendingGid=gid;
   const g=S.groups[gid];
+  if(!g)return;
   document.getElementById('sem-modal-title').textContent=g.name;
   document.getElementById('sem-modal-sub').textContent='לאיזו מחצית להזין ציונים?';
   openModal('semester-modal');
@@ -2617,7 +2624,9 @@ function renderTable(){
     const isEntered=d._entered===true;
     return `<tr data-idx="${idx}"${!hasResult&&testHasAnyResult(CUR.gid,CUR.test)?' class="no-result"':hasResult?' class="has-result"':''}${isEntered?' class="entered-row"':''}>
       <td style="text-align:center;padding:4px 2px;">
-        ${hasResult?`<span class="entered-check${isEntered?' checked':''}" onclick="toggleEntered(${idx})" title="${isEntered?'מסומן כהוזן במערכת — לחץ לביטול':'סמן כהוזן במערכת'}">${isEntered?'✓':''}</span>`:''}
+        ${hasResult?`<span class="entered-check${isEntered?' checked':''}" onclick="toggleEntered(${idx})"
+          title="${isEntered?'✓ הוזן במערכת בי"ס — לחץ לביטול':'לחץ לסמן כהוזן במערכת בי"ס'}"
+          style="cursor:pointer;">${isEntered?'✓':''}</span>`:''}
       </td>
       <td style="font-size:11px;color:var(--ink3);font-weight:700;width:28px;text-align:center;">${idx+1}</td>
       <td class="tn" style="cursor:pointer;" onclick="openStudentReport(${idx})" title="לחץ לדוח תלמיד">${s.name}${!hasResult?'<span style="font-size:10px;color:#fbbf24;margin-right:5px;"> ⚠</span>':d._ts?`<div style="font-size:9px;color:var(--ink3);font-weight:400;">${new Date(d._ts).toLocaleDateString('he-IL',{day:'2-digit',month:'2-digit',year:'2-digit'})}</div>`:''}
@@ -5306,6 +5315,24 @@ function blRestartSession(){
 }
 
 // ── ENTERED IN SCHOOL SYSTEM ─────────────────────────────────
+// Mark all students with a result in the current test as entered in school system
+function markAllCurrentTestEntered(){
+  const g=S.groups[CUR.gid];if(!g)return;
+  const res=g[resKey()]?.[CUR.test]||{};
+  const pending=Object.entries(res).filter(([,d])=>d&&d.a!==''&&!d._entered);
+  if(!pending.length){
+    toast('כל הציונים כבר מסומנים כהוזנו');
+    return;
+  }
+  const testLabel=S.customTests?.[CUR.test]?.name||(TEST_LIST.find(t=>t.id===CUR.test)?.label||'');
+  if(!confirm(`סמן ${pending.length} ציונים כהוזנו במערכת בית הספר?
+(${testLabel})`))return;
+  pending.forEach(([,d])=>{ d._entered=true; });
+  saveState();
+  renderTable();
+  toast(`✓ ${pending.length} ציונים סומנו כהוזנו במערכת`);
+}
+
 function toggleEntered(idx){
   const d=r(idx);
   if(!d.a)return; // can't mark if no result
@@ -7001,11 +7028,14 @@ function renderSbTournamentList(){
 }
 function sbOpenTournament(id){
   closeSidebar();
+  // Set the target tournament before opening panel so init_tm picks it up
+  const all=getAllTournaments();
+  const found=all.find(t=>String(t.id)===String(id));
+  if(found){
+    T=found;
+    localStorage.setItem(LS_CUR_TM,String(T.id));
+  }
   openTournamentPanel();
-  // Wait for panel to open and init_tm to run, then switch
-  setTimeout(()=>{
-    if(typeof switchTournament === 'function') switchTournament(String(id));
-  }, 300);
 }
 function openSidebar(){
   document.getElementById('sidebar').classList.add('open'); renderSbTournamentList();
@@ -7074,7 +7104,7 @@ const RG_FIXED_STUDENTS = (function(){
   grades.forEach(g => {
     for(let i=1;i<=5;i++){
       list.push({
-        name: 'תלמיד '+g+i,
+        name: `תלמיד כיתה ${g}׳ #${i}`,
         grade: g,
         gender: 'ז',
         cls: i.toString()
@@ -9727,9 +9757,21 @@ function switchTournament(id){
   if(!found){ toast('לא נמצא'); return; }
   T=found;
   localStorage.setItem(LS_CUR_TM,String(T.id));
-  loadTournament();
-  tmShowView('dashboard');
-  toast('✓ עבר לטורניר: '+T.name);
+  // Make sure tm-panel is open
+  const panel=document.getElementById('tm-panel');
+  if(!panel||panel.style.display==='none'){
+    // Open panel then load
+    openTournamentPanel();
+    setTimeout(()=>{
+      loadTournament();
+      tmShowView('dashboard');
+      toast('✓ '+T.name);
+    }, 200);
+  } else {
+    loadTournament();
+    tmShowView('dashboard');
+    toast('✓ עבר לטורניר: '+T.name);
+  }
 }
 
 function deleteTournamentById(id){
