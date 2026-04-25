@@ -469,7 +469,7 @@ async function showForgot() {
 // עזרה
 // ══════════════════════════════════════════════════════
 async function getUserCount() {
-  const { count } = await supabase
+  const { count } = await sbClient
     .from('profiles')
     .select('*', { count: 'exact', head: true });
   return count || 0;
