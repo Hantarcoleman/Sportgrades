@@ -4164,56 +4164,6 @@ function renderRecords(gradeFilter){
     </div>`;
 }
 
-// ── GROUP SHARING ────────────────────────────────────────────
-async function shareGroup(){
-  if(!SG_USER){ toast('יש להתחבר כדי לשתף'); return; }
-  const gid=CUR.gid;
-  const g=S.groups[gid];if(!g){ toast('אין קבוצה פתוחה'); return; }
-
-  // Generate or reuse a share token
-  let token=g._shareToken;
-  if(!token){
-    token=Math.random().toString(36).slice(2)+Math.random().toString(36).slice(2);
-    g._shareToken=token;
-    saveState();
-  }
-
-  // Save share token to Supabase shares table
-  try{
-    await sbApp.from('shared_groups').upsert({
-      token,
-      teacher_id:SG_USER.id,
-      group_id:g._sbId,
-      group_name:g.name,
-      created_at:new Date().toISOString()
-    },{onConflict:'token'});
-    const url=`${location.origin}${location.pathname.replace('pe-grading-app.html','share.html')}?token=${token}`;
-    // Copy to clipboard
-    try{ await navigator.clipboard.writeText(url); toast('✓ קישור הועתק: '+url); }
-    catch(e){ prompt('העתק קישור שיתוף:',url); }
-  }catch(e){
-    // Supabase table might not exist — show read-only code instead
-    const code=btoa(JSON.stringify({name:g.name,students:g.students,results:g.results})).slice(0,40)+'...';
-    toast('⚠ שיתוף דרך Supabase לא זמין — צריך יצירת טבלה');
-    console.warn('Sharing requires shared_groups table in Supabase. Run:
-CREATE TABLE shared_groups (token text PRIMARY KEY, teacher_id uuid, group_id uuid, group_name text, created_at timestamptz);
-ALTER TABLE shared_groups ENABLE ROW LEVEL SECURITY;
-CREATE POLICY "public_read" ON shared_groups FOR SELECT USING (true);
-CREATE POLICY "owner_write" ON shared_groups FOR ALL USING (auth.uid()=teacher_id);');
-  }
-}
-
-async function unshareGroup(){
-  const g=S.groups[CUR.gid];
-  if(!g||!g._shareToken){ toast('הקבוצה לא משותפת'); return; }
-  try{
-    await sbApp.from('shared_groups').delete().eq('token',g._shareToken);
-    delete g._shareToken;
-    saveState();
-    toast('✓ השיתוף בוטל');
-  }catch(e){ toast('שגיאה בביטול השיתוף'); }
-}
-
 function recSwitchGroup(gid){
   CUR.gid=gid;
   // Reload test selector
