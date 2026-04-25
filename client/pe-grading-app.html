@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="he" dir="rtl">
+<html lang="he" dir="rtl" style="color-scheme:light;">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -442,8 +442,8 @@ tr.has-result td:first-child{border-right:3px solid var(--gn);}
 .grade-pick-btn:hover:not(.active){border-color:var(--ac);color:var(--ac);}
 
 /* ── SIDEBAR ──────────────────────────────────────────────── */
-.sb-toggle{background:none;border:none;cursor:pointer;padding:6px 8px;border-radius:8px;color:rgba(255,255,255,.7);font-size:20px;line-height:1;transition:background .15s;}
-.sb-toggle:hover{background:rgba(255,255,255,.1);color:#fff;}
+.sb-toggle{background:none;border:none;cursor:pointer;padding:6px 8px;border-radius:8px;color:var(--ink);font-size:20px;line-height:1;transition:background .15s;}
+.sb-toggle:hover{background:var(--abg);color:var(--ac);}
 #sidebar{position:fixed;top:0;right:0;width:260px;height:100vh;background:var(--ink);z-index:500;display:flex;flex-direction:column;transform:translateX(100%);transition:transform .25s cubic-bezier(.4,0,.2,1);box-shadow:-4px 0 30px rgba(0,0,0,.3);}
 #sidebar.open{transform:translateX(0);}
 .sb-backdrop{display:none;position:fixed;inset:0;background:rgba(0,0,0,.35);z-index:499;backdrop-filter:blur(2px);}
@@ -484,10 +484,137 @@ body.sb-pinned .app{margin-right:260px;}
 body.sb-pinned .sb-backdrop{display:none!important;}
 #sb-pin-btn.active{color:var(--ac);}
 </style>
+
+<!-- ══ SUPABASE SYNC LAYER ══════════════════════════════════ -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<script>
+// ── Supabase Config ──────────────────────────────────────────
+const SB_URL = 'https://pqotkdtvccfwuephxjsk.supabase.co';
+const SB_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBxb3RrZHR2Y2Nmd3VlcGh4anNrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzcwNjYwNDYsImV4cCI6MjA5MjY0MjA0Nn0.mivFnmb4hqee4OvpAFZR7Yi3AKkcaQn5CNno2OtYGy8';
+
+let sbApp; // Supabase client
+let SG_USER = null; // logged in user
+
+// ── Init ─────────────────────────────────────────────────────
+async function sbInit() {
+  // Wait for supabase library to load
+  if (!window.supabase || !window.supabase.createClient) {
+    setTimeout(sbInit, 100);
+    return;
+  }
+  sbApp = window.supabase.createClient(SB_URL, SB_ANON);
+  
+  // Check if user is logged in
+  const { data: { session } } = await sbApp.auth.getSession();
+  
+  if (!session) {
+    // Not logged in → redirect to login page
+    window.location.href = 'login.html';
+    return;
+  }
+  
+  SG_USER = session.user;
+  
+  // Load user's data from Supabase
+  await sbLoadUserData();
+  
+  // Listen for auth changes
+  sbApp.auth.onAuthStateChange((event, session) => {
+    if (event === 'SIGNED_OUT') {
+      window.location.href = 'login.html';
+    }
+  });
+}
+
+// ── Load user data from Supabase ─────────────────────────────
+async function sbLoadUserData() {
+  if (!sbApp || !SG_USER) return;
+  
+  const { data: groups, error } = await sbApp
+    .from('groups')
+    .select('*')
+    .eq('teacher_id', SG_USER.id);
+  
+  if (error) {
+    console.error('Error loading data:', error);
+    return;
+  }
+  
+  if (groups && groups.length > 0) {
+    // Merge Supabase data into S.groups
+    S.groups = {};
+    groups.forEach(g => {
+      S.groups[g.id] = {
+        _sbId: g.id,
+        name: g.name,
+        classes: g.grade || '',
+        students: (g.semester_a?.students) || [],
+        results: (g.semester_a?.results) || {},
+        results_b: (g.semester_b?.results) || {},
+      };
+    });
+    S.nextId = groups.length + 1;
+    // Update UI
+    renderGroupGrid && renderGroupGrid();
+  }
+}
+
+// ── Save group to Supabase ───────────────────────────────────
+async function sbSaveGroup(gid) {
+  if (!sbApp || !SG_USER) return;
+  const g = S.groups[gid];
+  if (!g) return;
+  
+  const payload = {
+    teacher_id: SG_USER.id,
+    name: g.name,
+    grade: g.classes || '',
+    semester_a: {
+      students: g.students || [],
+      results: g.results || {},
+    },
+    semester_b: {
+      results: g.results_b || {},
+    },
+  };
+  
+  if (g._sbId) {
+    // Update existing
+    await sbApp.from('groups').update(payload).eq('id', g._sbId);
+  } else {
+    // Insert new
+    const { data, error } = await sbApp.from('groups').insert(payload).select().single();
+    if (data) {
+      S.groups[gid]._sbId = data.id;
+    }
+  }
+}
+
+// ── Delete group from Supabase ───────────────────────────────
+async function sbDeleteGroup(gid) {
+  if (!sbApp || !SG_USER) return;
+  const g = S.groups[gid];
+  if (g && g._sbId) {
+    await sbApp.from('groups').delete().eq('id', g._sbId);
+  }
+}
+
+// ── Sign out ─────────────────────────────────────────────────
+async function sbSignOut() {
+  if (sbApp) {
+    await sbApp.auth.signOut();
+    window.location.href = 'login.html';
+  }
+}
+
+// ── Start ────────────────────────────────────────────────────
+window.addEventListener('DOMContentLoaded', sbInit);
+</script>
 </head>
 <body>
 <header>
   <button class="sb-toggle" onclick="openSidebar()" title="תפריט" style="order:-1;margin-left:0;margin-right:0;">☰</button>
+  <button onclick="sbSignOut()" style="background:none;border:1px solid var(--bd);color:var(--ink2);border-radius:6px;padding:5px 12px;cursor:pointer;font-family:'Heebo',sans-serif;font-size:12px;margin-right:auto;" title="יציאה">יציאה</button>
   <div class="logo" style="margin-right:8px;">Sport<em>Grade</em></div>
   <div class="hpill" id="hpill">הערכה בחינוך גופני · תשפ"ו</div>
 </header>
@@ -1647,6 +1774,10 @@ function loadState(){try{const d=localStorage.getItem(LS);if(d)S=JSON.parse(d);}
 function saveState(){
   try{
     localStorage.setItem(LS,JSON.stringify(S));
+    // Sync to Supabase in background
+    if(typeof sbSaveGroup === 'function' && SG_USER && CUR.gid !== undefined && CUR.gid !== null){
+      sbSaveGroup(CUR.gid);
+    }
     const today=new Date().toDateString();
     const lastBk=localStorage.getItem('sg_last_backup');
     if(lastBk!==today&&Object.keys(S.groups).length>0){
@@ -1743,7 +1874,7 @@ function renameGroup(gid){
   S.groups[gid].name=name;saveState();renderGroupGrid();
   if(CUR.gid==gid){document.getElementById('bc-g').textContent=name;document.getElementById('ig').textContent=name;document.getElementById('hpill').textContent=name;}
 }
-function deleteGroup(gid){if(!confirm(`למחוק "${S.groups[gid]?.name}"?`))return;delete S.groups[gid];saveState();renderGroupGrid();}
+function deleteGroup(gid){if(!confirm(`למחוק "${S.groups[gid]?.name}"?`))return;sbDeleteGroup&&sbDeleteGroup(gid);delete S.groups[gid];saveState();renderGroupGrid();}
 function loadDemo(){
   const d=[
     {name:'אברמוביץ גל',gender:'ז',grade:'ט',cls:'1'},{name:'בן-דוד נועה',gender:'נ',grade:'ט',cls:'1'},
