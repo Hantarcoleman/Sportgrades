@@ -538,34 +538,44 @@ async function sbInit() {
 // ── Load user data from Supabase ─────────────────────────────
 async function sbLoadUserData() {
   if (!sbApp || !SG_USER) return;
-  
+
+  // Always start fresh from Supabase (ignore localStorage)
+  S = {groups:{}, nextId:1, customTests:{}};
+
   const { data: groups, error } = await sbApp
     .from('groups')
     .select('*')
-    .eq('teacher_id', SG_USER.id);
-  
+    .eq('teacher_id', SG_USER.id)
+    .order('created_at', {ascending: true});
+
   if (error) {
     console.error('Error loading data:', error);
+    showToast && showToast('שגיאה בטעינת נתונים');
     return;
   }
-  
+
   if (groups && groups.length > 0) {
-    // Merge Supabase data into S.groups
     S.groups = {};
-    groups.forEach(g => {
-      S.groups[g.id] = {
+    let nextId = 0;
+    groups.forEach((g, i) => {
+      const gid = i + 1;
+      S.groups[gid] = {
         _sbId: g.id,
         name: g.name,
         classes: g.grade || '',
-        students: (g.semester_a?.students) || [],
-        results: (g.semester_a?.results) || {},
-        results_b: (g.semester_b?.results) || {},
+        students: g.semester_a?.students || [],
+        results:   g.semester_a?.results  || {},
+        results_b: g.semester_b?.results  || {},
+        customTests: g.semester_a?.customTests || {},
       };
+      nextId = gid + 1;
     });
-    S.nextId = groups.length + 1;
-    // Update UI
-    renderGroupGrid && renderGroupGrid();
+    S.nextId = nextId;
   }
+
+  // Update UI after loading
+  renderGroupGrid && renderGroupGrid();
+  showToast && showToast('✓ נתונים נטענו בהצלחה');
 }
 
 // ── Save group to Supabase ───────────────────────────────────
@@ -573,29 +583,38 @@ async function sbSaveGroup(gid) {
   if (!sbApp || !SG_USER) return;
   const g = S.groups[gid];
   if (!g) return;
-  
+
   const payload = {
     teacher_id: SG_USER.id,
     name: g.name,
     grade: g.classes || '',
     semester_a: {
       students: g.students || [],
-      results: g.results || {},
+      results:  g.results  || {},
+      customTests: g.customTests || {},
     },
     semester_b: {
       results: g.results_b || {},
     },
   };
-  
+
   if (g._sbId) {
-    // Update existing
-    await sbApp.from('groups').update(payload).eq('id', g._sbId);
+    // Update existing group
+    const { error } = await sbApp.from('groups').update(payload).eq('id', g._sbId);
+    if (error) console.error('Save error:', error);
   } else {
-    // Insert new
+    // New group - insert
     const { data, error } = await sbApp.from('groups').insert(payload).select().single();
-    if (data) {
-      S.groups[gid]._sbId = data.id;
-    }
+    if (error) { console.error('Insert error:', error); return; }
+    if (data) S.groups[gid]._sbId = data.id;
+  }
+}
+
+// ── Save ALL groups to Supabase ──────────────────────────────
+async function sbSaveAll() {
+  const gids = Object.keys(S.groups);
+  for (const gid of gids) {
+    await sbSaveGroup(parseInt(gid));
   }
 }
 
@@ -1785,7 +1804,7 @@ function saveState(){
     localStorage.setItem(LS,JSON.stringify(S));
     // Sync to Supabase in background
     if(typeof sbSaveGroup === 'function' && SG_USER && CUR.gid !== undefined && CUR.gid !== null){
-      sbSaveGroup(CUR.gid);
+      sbSaveGroup(CUR.gid).catch(e=>console.error(e));
     }
     const today=new Date().toDateString();
     const lastBk=localStorage.getItem('sg_last_backup');
@@ -1852,7 +1871,7 @@ function parseXLSX(data,fileName){
     if(!students.length){toast('לא נמצאו תלמידים');return;}
     const classes=[...new Set(students.map(s=>s.grade+s.cls))].sort((a,b)=>a.localeCompare(b,'he')).join(', ');
     const gid=S.nextId++;
-    S.groups[gid]={name:fileName,classes,students,results:{}};
+    S.groups[gid]={name:fileName,classes,students,results:{}};setTimeout(()=>sbSaveGroup&&sbSaveGroup(gid),100);
     saveState();renderGroupGrid();toast(`"${fileName}" נטענה — ${students.length} תלמידים ✓`);
   }catch(err){toast('שגיאה: '+err.message);}
 }
