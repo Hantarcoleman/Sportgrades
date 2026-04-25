@@ -239,8 +239,7 @@ tr.highlighted td{background:rgba(200,64,26,.06)!important;transition:background
 .entered-check{display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;border-radius:50%;border:2px solid var(--bd2);cursor:pointer;font-size:13px;transition:all .15s;flex-shrink:0;background:var(--bg);}
 .entered-check.checked{background:var(--gn);border-color:var(--gn);color:#fff;}
 .entered-check:hover{border-color:var(--gn);}
-.entered-row{background:rgba(21,128,61,.04);}
-.entered-row .tn{text-decoration:line-through;text-decoration-color:rgba(21,128,61,.4);}
+
 .sv-entered{font-size:11px;color:var(--gn);font-weight:700;}
 .rec-row{display:grid;grid-template-columns:40px 1fr 90px 60px;gap:8px;align-items:center;padding:10px 14px;border-bottom:1px solid var(--bd);font-size:13px;}
 .rec-row:last-child{border-bottom:none;}
@@ -1129,9 +1128,6 @@ history.pushState(null,'',location.href);
   </div>
 
   <!-- Stats -->
-  <div class="sr" id="entered-stats-bar" style="display:none;cursor:pointer;" onclick="selectEntered()" title="לחץ לדף הזנה למערכת">
-    <div class="sc"><div class="sv sv-entered" id="s-entered">0</div><div class="sl">הוזנו למערכת ✓</div></div>
-  </div>
   <div class="sr">
     <div class="sc"><div class="sv" id="s-avg">—</div><div class="sl">ממוצע</div></div>
     <div class="sc"><div class="sv" id="s-max">—</div><div class="sl">מקסימום</div></div>
@@ -1173,7 +1169,7 @@ history.pushState(null,'',location.href);
       </div>
     </div>
     <div class="tw"><table><thead><tr>
-      <th style="width:36px;font-size:9px;color:var(--ink3);font-weight:700;text-align:center;">הוזן</th><th>#</th><th>שם תלמיד</th><th>מין</th><th>כיתה</th>
+      <th>#</th><th>שם תלמיד</th><th>מין</th><th>כיתה</th>
       <th id="ahd">תוצאה מועד א׳</th><th>ציון מועד א׳</th>
       <th id="bhd">תוצאה מועד ב׳</th><th>ציון מועד ב׳</th>
       <th id="sem-a-ref-hd" style="display:none;font-size:9px;color:#7c3aed;">מחצית א׳ (לצפייה)</th>
@@ -2621,8 +2617,7 @@ function renderTable(){
     const isDecline=sB!==null&&sA!==null&&sB<sA&&d.b&&!isImprove;
     const impTxt=isImprove?`📈 שיפור ${imp}%`:isDecline?'📉 ירידה':'';
     const bonB=`<div class="${isDecline?'impr-decline':'impr-big'}" style="${(isImprove||isDecline)?'':'opacity:0;height:0;padding:0;margin:0;border:none;overflow:hidden;'}">${impTxt}</div>`;
-    const isEntered=d._entered===true;
-    return `<tr data-idx="${idx}"${!hasResult&&testHasAnyResult(CUR.gid,CUR.test)?' class="no-result"':hasResult?' class="has-result"':''}${isEntered?' class="entered-row"':''}>
+    return `<tr data-idx="${idx}"${!hasResult&&testHasAnyResult(CUR.gid,CUR.test)?' class="no-result"':hasResult?' class="has-result"':''}>
       <td style="text-align:center;padding:4px 2px;">
         ${hasResult?`<span class="entered-check${isEntered?' checked':''}" onclick="toggleEntered(${idx})"
           title="${isEntered?'✓ הוזן במערכת בי"ס — לחץ לביטול':'לחץ לסמן כהוזן במערכת בי"ס'}"
@@ -2763,13 +2758,6 @@ function updateStats(){
   document.getElementById('s-max').textContent=Math.max(...finals);
   document.getElementById('s-min').textContent=Math.min(...finals);
   document.getElementById('s-100').textContent=finals.filter(f=>f===100).length;
-  // Entered count
-  const g2=S.groups[CUR.gid];
-  const enteredCount=Object.values(g2?.[resKey()]?.[CUR.test]||{}).filter(d=>d&&d._entered).length;
-  const entBar=document.getElementById('entered-stats-bar');
-  const entEl=document.getElementById('s-entered');
-  if(entEl) entEl.textContent=enteredCount;
-  if(entBar) entBar.style.display=entered>0?'':'none';
 }
 function setSemester(sem){
   CUR.semester=sem;
