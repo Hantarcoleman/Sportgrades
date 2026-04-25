@@ -1,0 +1,21 @@
+# קבצים שלא שומרים ב-Git
+
+# Windows
+Thumbs.db
+desktop.ini
+$RECYCLE.BIN/
+
+# Mac
+.DS_Store
+.AppleDouble
+
+# קבצים זמניים
+*.tmp
+*.bak
+*~
+
+# סביבת פיתוח (בעתיד)
+node_modules/
+.env
+.env.local
+*.log

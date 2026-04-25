@@ -1,0 +1,3309 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TourneyGrade ⚽ ניהול טורניר</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Heebo:wght@300;400;500;600;700;800;900&family=Bebas+Neue&family=DM+Serif+Display:ital@0;1&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#0d0f14;--bg2:#141720;--bg3:#1c2030;--sf:#1a1e2e;
+  --bd:rgba(255,255,255,.08);--bd2:rgba(255,255,255,.14);
+  --ink:#f0f2ff;--ink2:rgba(240,242,255,.6);--ink3:rgba(240,242,255,.3);
+  --gr:#00e676;--grbg:rgba(0,230,118,.1);--grbd:rgba(0,230,118,.25);
+  --ye:#ffd600;--yebg:rgba(255,214,0,.1);--yebd:rgba(255,214,0,.25);
+  --re:#ff4444;--rebg:rgba(255,68,68,.1);--rebd:rgba(255,68,68,.25);
+  --bl:#4fc3f7;--blbg:rgba(79,195,247,.1);
+  --pu:#b388ff;--pubg:rgba(179,136,255,.1);
+  --or:#ff9800;--orbg:rgba(255,152,0,.1);
+  --ac:#00e676;
+  --sh:0 4px 24px rgba(0,0,0,.4);
+  --shl:0 8px 48px rgba(0,0,0,.6);
+  --r:14px;--rs:8px;--t:.18s ease;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+html{scroll-behavior:smooth;}
+body{font-family:'Heebo',sans-serif;background:var(--bg);color:var(--ink);min-height:100vh;font-size:14px;line-height:1.6;}
+
+/* ── NOISE TEXTURE ─────────────────────────── */
+body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;opacity:.4;
+  background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.7' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='200' height='200' filter='url(%23n)' opacity='.04'/%3E%3C/svg%3E");}
+
+/* ── PITCH LINES BG ────────────────────────── */
+body::after{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;
+  background:radial-gradient(ellipse 120% 60% at 50% 100%,rgba(0,230,118,.04) 0%,transparent 60%);}
+
+/* ── LAYOUT ────────────────────────────────── */
+.app{position:relative;z-index:1;display:flex;flex-direction:column;min-height:100vh;}
+header{background:linear-gradient(135deg,var(--bg2) 0%,var(--bg3) 100%);border-bottom:1px solid var(--bd);padding:0 24px;height:64px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:200;backdrop-filter:blur(12px);}
+.logo{font-family:'Bebas Neue',cursive;font-size:26px;letter-spacing:2px;color:var(--ink);display:flex;align-items:center;gap:10px;}
+.logo-badge{background:var(--ac);color:#000;padding:2px 8px;border-radius:4px;font-size:14px;font-weight:900;letter-spacing:1px;}
+.header-actions{display:flex;align-items:center;gap:10px;}
+.hbtn{background:rgba(255,255,255,.06);border:1px solid var(--bd);color:var(--ink2);border-radius:var(--rs);padding:7px 14px;cursor:pointer;font-family:'Heebo',sans-serif;font-size:13px;font-weight:600;transition:all var(--t);}
+.hbtn:hover{background:rgba(255,255,255,.1);color:var(--ink);border-color:var(--bd2);}
+.hbtn.active,.hbtn.primary{background:var(--ac);color:#000;border-color:var(--ac);}
+
+/* ── MAIN CONTENT ──────────────────────────── */
+.main{flex:1;display:flex;}
+.sidebar{width:220px;background:var(--bg2);border-left:1px solid var(--bd);padding:20px 0;flex-shrink:0;display:flex;flex-direction:column;gap:4px;}
+.sb-section{padding:4px 0 12px;}
+.sb-label{padding:6px 20px 4px;font-size:10px;font-weight:700;letter-spacing:1.5px;color:var(--ink3);text-transform:uppercase;}
+.sb-item{display:flex;align-items:center;gap:10px;padding:10px 20px;cursor:pointer;color:var(--ink2);font-size:13px;font-weight:500;transition:all var(--t);border-right:3px solid transparent;}
+.sb-item:hover{background:rgba(255,255,255,.05);color:var(--ink);}
+.sb-item.active{background:rgba(0,230,118,.08);color:var(--ac);border-right-color:var(--ac);}
+.sb-item-icon{font-size:16px;width:20px;text-align:center;flex-shrink:0;}
+.content{flex:1;overflow-x:hidden;}
+
+/* ── VIEWS ─────────────────────────────────── */
+.view{display:none;padding:28px 32px;max-width:1100px;margin:0 auto;}
+.view.active{display:block;animation:fadeUp .2s ease;}
+@keyframes fadeUp{from{opacity:0;transform:translateY(8px);}to{opacity:1;transform:none;}}
+
+/* ── PAGE HEADER ───────────────────────────── */
+.pg-head{margin-bottom:28px;}
+.pg-title{font-family:'DM Serif Display',serif;font-size:30px;letter-spacing:-.3px;margin-bottom:4px;}
+.pg-sub{color:var(--ink3);font-size:14px;}
+
+/* ── CARDS ─────────────────────────────────── */
+.card{background:var(--sf);border:1px solid var(--bd);border-radius:var(--r);overflow:hidden;margin-bottom:16px;box-shadow:var(--sh);}
+.card-head{padding:16px 22px;border-bottom:1px solid var(--bd);display:flex;align-items:center;justify-content:space-between;gap:10px;background:rgba(255,255,255,.02);}
+.card-title{font-family:'DM Serif Display',serif;font-size:17px;}
+.card-body{padding:20px 22px;}
+
+/* ── BUTTONS ───────────────────────────────── */
+.btn{display:inline-flex;align-items:center;gap:6px;padding:8px 16px;border-radius:var(--rs);border:none;cursor:pointer;font-family:'Heebo',sans-serif;font-size:13px;font-weight:700;transition:all var(--t);}
+.btn-primary{background:var(--gr);color:#000;}
+.btn-primary:hover{background:#00ff88;box-shadow:0 0 20px rgba(0,230,118,.3);}
+.btn-secondary{background:rgba(255,255,255,.07);color:var(--ink2);border:1px solid var(--bd);}
+.btn-secondary:hover{background:rgba(255,255,255,.12);color:var(--ink);}
+.btn-danger{background:var(--rebg);color:var(--re);border:1px solid var(--rebd);}
+.btn-danger:hover{background:var(--re);color:#fff;}
+.btn-sm{padding:5px 12px;font-size:12px;}
+.btn-icon{padding:7px;border-radius:8px;}
+
+/* ── FORMS ─────────────────────────────────── */
+.form-row{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px;}
+.form-row.triple{grid-template-columns:1fr 1fr 1fr;}
+.form-row.single{grid-template-columns:1fr;}
+.form-group{display:flex;flex-direction:column;gap:6px;}
+.form-label{font-size:12px;font-weight:700;color:var(--ink2);text-transform:uppercase;letter-spacing:.5px;}
+.form-input{background:var(--bg3);border:1px solid var(--bd2);border-radius:var(--rs);color:var(--ink);font-family:'Heebo',sans-serif;font-size:14px;padding:9px 12px;transition:border-color var(--t);}
+.form-input:focus{outline:none;border-color:var(--ac);}
+.form-input::placeholder{color:var(--ink3);}
+select.form-input option{background:var(--bg2);color:var(--ink);}
+
+/* ── TOAST ─────────────────────────────────── */
+#toast{position:fixed;bottom:28px;left:50%;transform:translateX(-50%) translateY(20px);background:var(--bg2);border:1px solid var(--bd2);color:var(--ink);padding:10px 22px;border-radius:40px;font-size:13px;font-weight:600;z-index:9999;opacity:0;transition:all .3s ease;pointer-events:none;backdrop-filter:blur(12px);}
+#toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+
+/* ── BADGE / PILL ──────────────────────────── */
+.badge{display:inline-block;padding:2px 10px;border-radius:20px;font-size:11px;font-weight:700;}
+.badge-green{background:var(--grbg);color:var(--gr);border:1px solid var(--grbd);}
+.badge-yellow{background:var(--yebg);color:var(--ye);border:1px solid var(--yebd);}
+.badge-red{background:var(--rebg);color:var(--re);border:1px solid var(--rebd);}
+.badge-blue{background:var(--blbg);color:var(--bl);}
+.badge-gray{background:rgba(255,255,255,.06);color:var(--ink3);}
+
+/* ── EMPTY STATE ───────────────────────────── */
+.empty-state{text-align:center;padding:60px 20px;color:var(--ink3);}
+.empty-state-icon{font-size:52px;margin-bottom:14px;}
+.empty-state-title{font-size:18px;font-weight:700;color:var(--ink2);margin-bottom:6px;}
+.empty-state-sub{font-size:13px;}
+
+/* ── TABLE ─────────────────────────────────── */
+.tbl{width:100%;border-collapse:collapse;font-size:13px;}
+.tbl th{padding:10px 14px;text-align:right;font-size:10px;font-weight:800;letter-spacing:.8px;text-transform:uppercase;color:var(--ink3);border-bottom:1px solid var(--bd);}
+.tbl td{padding:12px 14px;border-bottom:1px solid rgba(255,255,255,.04);vertical-align:middle;}
+.tbl tbody tr:hover{background:rgba(255,255,255,.03);}
+.tbl .rank{font-family:'Bebas Neue',cursive;font-size:18px;color:var(--ink3);width:32px;text-align:center;}
+.tbl .team-name{font-weight:700;font-size:14px;}
+.tbl .pts{font-family:'Bebas Neue',cursive;font-size:20px;color:var(--gr);}
+.tbl .num{font-weight:600;text-align:center;}
+.tbl .gd-pos{color:var(--gr);}
+.tbl .gd-neg{color:var(--re);}
+.tbl tr.top-1 td:first-child{border-right:3px solid #ffd600;}
+.tbl tr.top-2 td:first-child{border-right:3px solid #aaa;}
+.tbl tr.top-3 td:first-child{border-right:3px solid #cd7f32;}
+
+/* ── MATCH CARD ────────────────────────────── */
+.match-card{background:var(--bg3);border:1px solid var(--bd);border-radius:12px;padding:16px;margin-bottom:10px;transition:border-color var(--t);cursor:pointer;}
+.match-card:hover{border-color:var(--bd2);}
+.match-card.completed{border-color:var(--grbd);}
+.match-card.pending{border-color:var(--yebd);}
+.match-card-top{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:10px;}
+.match-teams{display:flex;align-items:center;gap:12px;flex:1;}
+.match-team{display:flex;align-items:center;gap:8px;flex:1;}
+.match-team.right{justify-content:flex-end;text-align:right;}
+.match-team-name{font-weight:700;font-size:15px;}
+.match-team-crest{width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:900;flex-shrink:0;}
+.match-score{background:var(--bg2);border:1px solid var(--bd2);border-radius:8px;padding:6px 16px;font-family:'Bebas Neue',cursive;font-size:26px;letter-spacing:2px;min-width:72px;text-align:center;}
+.match-score.completed{color:var(--ac);}
+.match-meta{font-size:11px;color:var(--ink3);display:flex;align-items:center;gap:10px;}
+
+/* ── STANDINGS LEADER ──────────────────────── */
+.leader-card{background:linear-gradient(135deg,rgba(0,230,118,.12) 0%,rgba(0,230,118,.04) 100%);border:1px solid var(--grbd);border-radius:var(--r);padding:20px;margin-bottom:14px;}
+.leader-title{font-size:10px;font-weight:800;letter-spacing:1.5px;text-transform:uppercase;color:var(--gr);margin-bottom:8px;}
+.leader-name{font-family:'Bebas Neue',cursive;font-size:28px;color:var(--ink);letter-spacing:1px;}
+.leader-stat{font-size:13px;color:var(--ink2);}
+
+/* ── CALENDAR ──────────────────────────────── */
+.cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:3px;margin-top:12px;}
+.cal-day-name{text-align:center;font-size:11px;font-weight:700;color:var(--ink3);padding:4px 0;}
+.cal-day{background:var(--bg3);border:1px solid transparent;border-radius:8px;padding:8px 4px;text-align:center;cursor:pointer;min-height:52px;transition:all var(--t);position:relative;}
+.cal-day:hover{border-color:var(--bd2);}
+.cal-day.today{border-color:var(--ac);color:var(--ac);}
+.cal-day.blocked{background:var(--rebg);border-color:var(--rebd);color:var(--re);}
+.cal-day.has-match{border-color:var(--yebd);}
+.cal-day.other-month{opacity:.3;}
+.cal-day-num{font-weight:700;font-size:14px;}
+.cal-dots{display:flex;flex-wrap:wrap;gap:2px;justify-content:center;margin-top:3px;}
+.cal-dot{width:5px;height:5px;border-radius:50%;background:var(--ye);}
+.cal-dot.done{background:var(--gr);}
+.cal-nav{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;}
+.cal-nav-title{font-family:'DM Serif Display',serif;font-size:18px;}
+
+/* ── MODAL ─────────────────────────────────── */
+.modal-bg{display:none;position:fixed;inset:0;background:rgba(0,0,0,.7);backdrop-filter:blur(8px);z-index:800;align-items:center;justify-content:center;padding:20px;}
+.modal-bg.open{display:flex;animation:fadeIn .2s ease;}
+@keyframes fadeIn{from{opacity:0;}to{opacity:1;}}
+.modal{background:var(--sf);border:1px solid var(--bd2);border-radius:var(--r);padding:28px;max-width:520px;width:100%;box-shadow:var(--shl);max-height:90vh;overflow-y:auto;}
+.modal-title{font-family:'DM Serif Display',serif;font-size:22px;margin-bottom:4px;}
+.modal-sub{color:var(--ink3);font-size:13px;margin-bottom:22px;}
+.modal-actions{display:flex;gap:10px;justify-content:flex-end;margin-top:22px;}
+
+/* ── STATS CARDS ───────────────────────────── */
+.stats-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:20px;}
+.stat-card{background:var(--sf);border:1px solid var(--bd);border-radius:12px;padding:18px;text-align:center;}
+.stat-val{font-family:'Bebas Neue',cursive;font-size:32px;color:var(--ac);letter-spacing:1px;}
+.stat-label{font-size:11px;color:var(--ink3);font-weight:700;text-transform:uppercase;letter-spacing:.5px;margin-top:2px;}
+
+/* ── TEAM COLOR CRESTS ─────────────────────── */
+.crest-0{background:rgba(0,230,118,.2);color:#00e676;}
+.crest-1{background:rgba(79,195,247,.2);color:#4fc3f7;}
+.crest-2{background:rgba(255,214,0,.2);color:#ffd600;}
+.crest-3{background:rgba(255,68,68,.2);color:#ff4444;}
+.crest-4{background:rgba(179,136,255,.2);color:#b388ff;}
+.crest-5{background:rgba(255,152,0,.2);color:#ff9800;}
+.crest-6{background:rgba(240,98,146,.2);color:#f06292;}
+.crest-7{background:rgba(77,208,225,.2);color:#4dd0e1;}
+.crest-8{background:rgba(174,213,129,.2);color:#aed581;}
+.crest-9{background:rgba(255,183,77,.2);color:#ffb74d;}
+
+/* ── KNOCKOUT BRACKET ──────────────────────── */
+.bracket{display:flex;gap:0;align-items:stretch;overflow-x:auto;padding:20px 0;}
+.bracket-round{display:flex;flex-direction:column;justify-content:space-around;min-width:180px;position:relative;}
+.bracket-round-title{font-size:11px;font-weight:800;letter-spacing:1px;text-transform:uppercase;color:var(--ink3);text-align:center;padding:0 10px 12px;}
+.bracket-match{background:var(--bg3);border:1px solid var(--bd);border-radius:8px;margin:8px 10px;overflow:hidden;}
+.bracket-team{padding:8px 12px;display:flex;align-items:center;justify-content:space-between;font-size:13px;font-weight:600;}
+.bracket-team:first-child{border-bottom:1px solid var(--bd);}
+.bracket-team.winner{color:var(--ac);}
+.bracket-score{font-family:'Bebas Neue',cursive;font-size:18px;}
+.bracket-connector{display:flex;flex-direction:column;justify-content:space-around;width:20px;}
+
+/* ── MOBILE ────────────────────────────────── */
+@media(max-width:768px){
+  .sidebar{display:none;}
+  .form-row{grid-template-columns:1fr;}
+  .stats-grid{grid-template-columns:1fr 1fr;}
+  .view{padding:16px;}
+}
+
+/* ── SCORERS LIST ──────────────────────────── */
+.scorer-row{display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid rgba(255,255,255,.05);}
+.scorer-rank{font-family:'Bebas Neue',cursify;font-size:20px;width:28px;text-align:center;color:var(--ink3);}
+.scorer-rank.gold{color:#ffd600;}
+.scorer-rank.silver{color:#aaa;}
+.scorer-rank.bronze{color:#cd7f32;}
+.scorer-info{flex:1;}
+.scorer-name{font-weight:700;font-size:14px;}
+.scorer-team{font-size:12px;color:var(--ink3);}
+.scorer-count{font-family:'Bebas Neue',cursive;font-size:24px;color:var(--ac);}
+.scorer-bar{height:4px;background:var(--grbg);border-radius:2px;margin-top:4px;overflow:hidden;}
+.scorer-bar-fill{height:100%;background:var(--gr);border-radius:2px;transition:width .5s ease;}
+
+/* ── LIVE BADGE ────────────────────────────── */
+@keyframes pulse{0%,100%{opacity:1;}50%{opacity:.4;}}
+.live-dot{width:8px;height:8px;border-radius:50%;background:var(--re);display:inline-block;margin-left:6px;animation:pulse 1.5s infinite;}
+
+/* ── COLOR PICKER FOR TEAMS ────────────────── */
+.color-picker-row{display:flex;gap:8px;flex-wrap:wrap;margin-top:6px;}
+.cp-swatch{width:28px;height:28px;border-radius:50%;cursor:pointer;border:2px solid transparent;transition:border-color var(--t);}
+.cp-swatch.selected{border-color:#fff;}
+
+/* ── SECTION DIVIDER ───────────────────────── */
+.divider{height:1px;background:var(--bd);margin:20px 0;}
+
+/* ── BLOCKED DAY CHIP ──────────────────────── */
+.blocked-chip{display:inline-flex;align-items:center;gap:6px;background:var(--rebg);border:1px solid var(--rebd);border-radius:20px;padding:4px 12px;font-size:12px;color:var(--re);margin:4px;}
+.blocked-chip button{background:none;border:none;cursor:pointer;color:var(--re);font-size:14px;padding:0 2px;line-height:1;}
+
+/* ── ROUND TABS ────────────────────────────── */
+.round-tabs{display:flex;gap:4px;margin-bottom:16px;overflow-x:auto;padding-bottom:4px;}
+.round-tab{padding:6px 16px;border-radius:20px;border:1px solid var(--bd);cursor:pointer;font-size:12px;font-weight:700;color:var(--ink2);background:transparent;transition:all var(--t);white-space:nowrap;}
+.round-tab.active,.round-tab:hover{background:rgba(0,230,118,.1);color:var(--ac);border-color:var(--grbd);}
+
+/* ── GOAL ENTRY ────────────────────────────── */
+.goal-entry{display:flex;align-items:center;gap:8px;padding:8px;background:var(--bg3);border-radius:8px;margin-bottom:6px;}
+.goal-entry input{flex:1;background:var(--bg2);border:1px solid var(--bd2);border-radius:6px;color:var(--ink);font-family:'Heebo',sans-serif;padding:6px 10px;font-size:13px;}
+.goal-entry input:focus{outline:none;border-color:var(--ac);}
+
+/* ── SHARE BUTTON ──────────────────────────── */
+.share-banner{background:linear-gradient(135deg,rgba(0,230,118,.15) 0%,rgba(0,230,118,.05) 100%);border:1px solid var(--grbd);border-radius:var(--r);padding:16px 20px;display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:20px;}
+.share-text{font-size:13px;color:var(--ink2);}
+.share-url{font-size:12px;color:var(--ink3);font-family:monospace;margin-top:2px;}
+
+/* ── STANDINGS TABS (like the image) ──────────── */
+.standings-tabs{display:flex;gap:0;border-bottom:2px solid var(--bd);margin-bottom:20px;overflow-x:auto;}
+.stab{background:none;border:none;cursor:pointer;font-family:'Heebo',sans-serif;font-size:13px;font-weight:700;color:var(--ink3);padding:12px 20px;letter-spacing:.5px;text-transform:uppercase;position:relative;transition:color var(--t);white-space:nowrap;}
+.stab::after{content:'';position:absolute;bottom:-2px;left:0;right:0;height:3px;background:transparent;border-radius:2px 2px 0 0;transition:background var(--t);}
+.stab:hover{color:var(--ink2);}
+.stab.active{color:#e91e8c;}
+.stab.active::after{background:#e91e8c;}
+
+/* ── SCORE ADJ BUTTONS ─────────────────────── */
+.score-adj-btn{width:36px;height:36px;border-radius:50%;border:2px solid var(--grbd);background:var(--grbg);color:var(--gr);font-size:20px;font-weight:700;cursor:pointer;transition:all var(--t);display:flex;align-items:center;justify-content:center;line-height:1;}
+.score-adj-btn:hover{background:var(--gr);color:#000;transform:scale(1.1);}
+.score-adj-btn:active{transform:scale(.95);}
+.score-adj-minus{border-color:var(--rebd);background:var(--rebg);color:var(--re);}
+.score-adj-minus:hover{background:var(--re);color:#fff;}
+
+/* ── AUTOCOMPLETE ──────────────────────────── */
+.ac-wrap{position:relative;}
+.goal-ac-input{width:100%;background:var(--bg3);border:1px solid var(--bd2);border-radius:var(--rs);color:var(--ink);font-family:'Heebo',sans-serif;font-size:13px;padding:8px 12px;transition:border-color var(--t);}
+.goal-ac-input:focus{outline:none;border-color:var(--ac);}
+.goal-ac-input::placeholder{color:var(--ink3);}
+.ac-list{position:absolute;top:100%;right:0;left:0;background:var(--bg2);border:1px solid var(--bd2);border-radius:var(--rs);z-index:100;max-height:180px;overflow-y:auto;display:none;box-shadow:var(--shl);}
+.ac-list.open{display:block;}
+.ac-item{padding:9px 14px;cursor:pointer;font-size:13px;font-weight:500;transition:background var(--t);}
+.ac-item:hover,.ac-item.focused{background:rgba(0,230,118,.1);color:var(--ac);}
+.ac-row{display:flex;gap:8px;}
+
+/* ── GOAL CHIP (added player) ─────────────── */
+.goal-chip{display:inline-flex;align-items:center;gap:6px;background:var(--grbg);border:1px solid var(--grbd);border-radius:20px;padding:3px 10px 3px 4px;font-size:12px;font-weight:600;color:var(--gr);margin:3px;}
+.goal-chip button{background:none;border:none;cursor:pointer;color:var(--gr);font-size:14px;padding:0 2px;line-height:1;border-radius:50%;}
+.goal-chip button:hover{color:#fff;}
+.assist-chip{background:var(--blbg);border-color:rgba(79,195,247,.25);color:var(--bl);}
+.assist-chip button{color:var(--bl);}
+
+/* ── GOAL BALANCE BAR ─────────────────────── */
+.gbal-bar-wrap{position:relative;height:8px;background:var(--bg3);border-radius:4px;overflow:hidden;width:180px;}
+.gbal-bar-gf{position:absolute;left:0;top:0;bottom:0;background:var(--gr);border-radius:4px;}
+.gbal-bar-ga{position:absolute;right:0;top:0;bottom:0;background:var(--re);border-radius:4px;}
+
+/* ── SCORER TABLE ROW ─────────────────────── */
+.scorer-tbl-row{display:grid;grid-template-columns:40px 1fr auto;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid rgba(255,255,255,.05);}
+.scorer-tbl-rank{font-family:'Bebas Neue',cursive;font-size:22px;text-align:center;color:var(--ink3);}
+.scorer-tbl-rank.g{color:#ffd600;}
+.scorer-tbl-rank.s{color:#aaa;}
+.scorer-tbl-rank.b{color:#cd7f32;}
+.scorer-tbl-num{font-family:'Bebas Neue',cursive;font-size:28px;color:var(--ac);min-width:36px;text-align:center;}
+
+/* ── GOAL ENTRY ROWS ──────────────────────────────────────── */
+.goal-row{background:var(--bg3);border:1px solid var(--bd);border-radius:10px;padding:10px 12px;margin-bottom:8px;position:relative;}
+.goal-row-num{font-family:'Bebas Neue',cursive;font-size:18px;color:var(--ac);margin-bottom:6px;display:flex;align-items:center;gap:8px;}
+.goal-row-num-badge{background:var(--ac);color:#000;width:22px;height:22px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:900;flex-shrink:0;}
+.goal-row-fields{display:grid;gap:6px;}
+.goal-row-field{position:relative;}
+.goal-row-label{font-size:10px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;color:var(--ink3);margin-bottom:3px;}
+.goal-row-input{width:100%;background:var(--bg2);border:1px solid var(--bd2);border-radius:6px;color:var(--ink);font-family:'Heebo',sans-serif;font-size:13px;padding:7px 10px;transition:border-color var(--t);}
+.goal-row-input:focus{outline:none;border-color:var(--ac);}
+.goal-row-input::placeholder{color:var(--ink3);}
+.goal-row-og{display:flex;align-items:center;gap:6px;margin-top:4px;}
+.goal-row-og input[type=checkbox]{accent-color:var(--re);}
+.goal-row-og label{font-size:12px;color:var(--ink3);cursor:pointer;}
+.goal-row-del{position:absolute;top:8px;left:8px;background:none;border:none;cursor:pointer;color:var(--ink3);font-size:16px;padding:2px 5px;border-radius:4px;transition:color var(--t);}
+.goal-row-del:hover{color:var(--re);}
+.goal-row-input.og-active{border-color:var(--rebd);color:var(--re);}
+/* Autocomplete inside goal row */
+.goal-ac-list{position:absolute;top:100%;right:0;left:0;background:var(--bg2);border:1px solid var(--bd2);border-radius:var(--rs);z-index:300;max-height:160px;overflow-y:auto;display:none;box-shadow:var(--shl);}
+.goal-ac-list.open{display:block;}
+/* Roster upload area */
+.roster-upload-zone{border:2px dashed var(--bd2);border-radius:var(--r);padding:20px;text-align:center;cursor:pointer;transition:border-color var(--t);margin-bottom:12px;}
+.roster-upload-zone:hover,.roster-upload-zone.drag{border-color:var(--ac);}
+.team-roster-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:10px;margin-top:12px;}
+.team-roster-card{background:var(--bg3);border:1px solid var(--bd);border-radius:10px;padding:12px;}
+.team-roster-title{font-size:11px;font-weight:800;letter-spacing:.5px;text-transform:uppercase;color:var(--ink3);margin-bottom:8px;display:flex;align-items:center;gap:6px;}
+.gender-badge{display:inline-flex;align-items:center;gap:4px;background:var(--pubg);border:1px solid var(--pubd);border-radius:20px;padding:2px 10px;font-size:11px;color:var(--pu);font-weight:700;}
+
+/* ── PRINT STYLES ─────────────────────────────────────────── */
+@media print{
+  header,#app-sidebar,.hbtn,button:not(.print-keep),.modal-bg{display:none!important;}
+  body{background:#fff;color:#000;font-size:12px;}
+  .view{display:block!important;padding:0;}
+  .card{box-shadow:none;border:1px solid #ddd;break-inside:avoid;}
+  .print-section{page-break-before:always;}
+  .tbl th,.tbl td{color:#000;border-color:#ddd;}
+  .pts,.gd-pos{color:#1a7a4a;}
+  .gd-neg{color:#c0392b;}
+}
+.print-preview{background:#fff;color:#000;border-radius:var(--r);padding:24px;border:1px solid var(--bd);}
+.print-preview h1{font-family:'Bebas Neue',cursive;font-size:28px;letter-spacing:2px;color:#111;margin-bottom:4px;}
+.print-preview .subtitle{font-size:12px;color:#666;margin-bottom:20px;}
+
+/* ── QR ───────────────────────────────────────────────────── */
+#qr-canvas-wrap canvas{display:block;}
+.qr-print-sheet{text-align:center;padding:40px;font-family:'Heebo',sans-serif;}
+.qr-print-title{font-size:32px;font-weight:900;margin-bottom:6px;color:#111;}
+.qr-print-sub{font-size:14px;color:#555;margin-bottom:24px;}
+.qr-print-instr{font-size:13px;color:#333;margin-top:20px;line-height:2;}
+
+/* ── H2H ──────────────────────────────────────────────────── */
+.h2h-summary{display:grid;grid-template-columns:1fr auto 1fr;gap:0;background:var(--bg3);border-radius:12px;overflow:hidden;margin-bottom:14px;}
+.h2h-team-box{padding:20px;text-align:center;}
+.h2h-team-box.home{background:rgba(0,230,118,.06);}
+.h2h-team-box.away{background:rgba(79,195,247,.06);}
+.h2h-vs{display:flex;align-items:center;justify-content:center;padding:20px;font-family:'Bebas Neue',cursive;font-size:28px;color:var(--ink3);}
+.h2h-team-name{font-weight:700;font-size:16px;margin-bottom:4px;}
+.h2h-wins{font-family:'Bebas Neue',cursive;font-size:42px;}
+.h2h-wins.green{color:var(--gr);}
+.h2h-wins.blue{color:var(--bl);}
+.h2h-wins.gray{color:var(--ink3);}
+.h2h-stat-row{display:flex;gap:20px;margin-bottom:14px;flex-wrap:wrap;}
+.h2h-stat{background:var(--sf);border:1px solid var(--bd);border-radius:10px;padding:12px 16px;flex:1;min-width:100px;text-align:center;}
+.h2h-stat-val{font-family:'Bebas Neue',cursive;font-size:24px;color:var(--ac);}
+.h2h-stat-lbl{font-size:11px;color:var(--ink3);font-weight:700;text-transform:uppercase;letter-spacing:.5px;}
+
+/* ── FORM GUIDE (W/D/L) ───────────────────────────────────── */
+.form-guide{display:flex;gap:3px;}
+.fg-w{background:var(--grbg);color:var(--gr);border:1px solid var(--grbd);}
+.fg-d{background:var(--yebg);color:var(--ye);border:1px solid var(--yebd);}
+.fg-l{background:var(--rebg);color:var(--re);border:1px solid var(--rebd);}
+.fg-w,.fg-d,.fg-l{width:22px;height:22px;border-radius:4px;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:800;}
+
+/* ── PROTOCOL / MATCH SUMMARY ─────────────────────────────── */
+.protocol-card{background:linear-gradient(135deg,var(--grbg) 0%,rgba(0,230,118,.02) 100%);border:1px solid var(--grbd);border-radius:var(--r);padding:20px;margin-top:12px;}
+.protocol-score{font-family:'Bebas Neue',cursive;font-size:52px;letter-spacing:4px;color:var(--ac);text-align:center;margin-bottom:8px;}
+.protocol-teams{display:flex;justify-content:space-between;font-size:13px;color:var(--ink2);margin-bottom:12px;}
+.protocol-table-impact{background:var(--bg3);border-radius:var(--rs);padding:12px 16px;margin-top:10px;}
+.protocol-table-row{display:flex;justify-content:space-between;font-size:12px;padding:4px 0;border-bottom:1px solid rgba(255,255,255,.05);}
+.protocol-table-row:last-child{border:none;}
+
+/* ── ADMIN LOGIN ──────────────────────────────────────────── */
+.admin-lock-overlay{position:fixed;inset:0;background:var(--bg);z-index:999;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:20px;}
+.admin-lock-icon{font-size:52px;}
+.admin-lock-title{font-family:'DM Serif Display',serif;font-size:28px;}
+
+/* ── OVERDUE MATCH ────────────────────────────────────────── */
+.match-card.overdue{border-color:var(--rebd);background:linear-gradient(135deg,rgba(255,68,68,.06) 0%,transparent 60%);}
+.match-card.overdue .match-score{color:var(--re);}
+/* ── 3-DOT MENU ──────────────────────────────────────────── */
+.match-menu-btn{position:absolute;top:10px;left:10px;background:rgba(255,255,255,.06);border:1px solid var(--bd);border-radius:6px;color:var(--ink3);cursor:pointer;width:28px;height:28px;display:flex;align-items:center;justify-content:center;font-size:16px;transition:all var(--t);z-index:10;}
+.match-menu-btn:hover{background:rgba(255,255,255,.12);color:var(--ink);}
+.match-dropdown{position:absolute;top:42px;left:10px;background:var(--bg2);border:1px solid var(--bd2);border-radius:10px;box-shadow:var(--shl);z-index:200;min-width:160px;overflow:hidden;display:none;}
+.match-dropdown.open{display:block;animation:fadeUp .15s ease;}
+.match-dd-item{padding:10px 16px;cursor:pointer;font-size:13px;font-weight:500;color:var(--ink2);transition:background var(--t);display:flex;align-items:center;gap:8px;}
+.match-dd-item:hover{background:rgba(255,255,255,.07);color:var(--ink);}
+.match-dd-item.danger{color:var(--re);}
+.match-dd-item.danger:hover{background:var(--rebg);}
+/* Overdue banner */
+.overdue-banner{background:linear-gradient(135deg,rgba(255,68,68,.15) 0%,rgba(255,68,68,.05) 100%);border:1px solid var(--rebd);border-radius:10px;padding:12px 16px;margin-bottom:14px;display:flex;align-items:center;gap:12px;}
+.overdue-banner-icon{font-size:24px;}
+.overdue-banner-text{font-size:13px;color:var(--re);font-weight:600;}
+</style>
+</head>
+<body>
+<div class="app">
+
+<!-- ══ TOAST ══ -->
+<div id="toast"></div>
+
+<!-- ══ HEADER ══ -->
+<header>
+  <div class="logo">
+    <span>⚽</span>
+    <span>TOURNEY<span class="logo-badge">GRADE</span></span>
+  </div>
+  <div class="header-actions">
+    <div style="display:flex;align-items:center;gap:8px;">
+      <div id="hdr-tournament-name" style="font-size:14px;font-weight:600;color:var(--ink2);"></div>
+      <div id="hdr-gender-badge"></div>
+    </div>
+    <button class="hbtn" id="btn-viewer" onclick="openViewer()" title="דף צפייה לתלמידים">👁 דף תלמידים</button>
+    <button class="hbtn primary" id="btn-new-tournament" onclick="openNewTournament()">+ טורניר חדש</button>
+  </div>
+</header>
+
+<!-- ══ MAIN ══ -->
+<div class="main">
+
+  <!-- Sidebar -->
+  <div class="sidebar" id="app-sidebar">
+    <div class="sb-section">
+      <div class="sb-label">ניווט</div>
+      <div class="sb-item" id="sb-home" onclick="showView('home')">
+        <span class="sb-item-icon">🏟️</span><span>כל הטורנירים</span>
+      </div>
+      <div class="sb-item active" id="sb-dashboard" onclick="showView('dashboard')">
+        <span class="sb-item-icon">🏠</span><span>לוח בקרה</span>
+      </div>
+    </div>
+    <div class="sb-section" id="sb-tournament-section" style="display:none;">
+      <div class="sb-label">טורניר פעיל</div>
+      <div class="sb-item" id="sb-standings" onclick="showView('standings')">
+        <span class="sb-item-icon">📊</span><span>טבלת ליגה</span>
+      </div>
+      <div class="sb-item" id="sb-matches" onclick="showView('matches')">
+        <span class="sb-item-icon">⚽</span><span>משחקים</span>
+      </div>
+      <div class="sb-item" id="sb-calendar" onclick="showView('calendar')">
+        <span class="sb-item-icon">📅</span><span>לוח שנה</span>
+      </div>
+      <div class="sb-item" id="sb-scorers" onclick="showView('scorers')">
+        <span class="sb-item-icon">🥇</span><span>מלכי שערים</span>
+      </div>
+      <div class="sb-item" id="sb-blocked" onclick="showView('blocked')">
+        <span class="sb-item-icon">🚫</span><span>ימים חסומים</span>
+      </div>
+      <div class="sb-item" id="sb-settings" onclick="showView('settings')">
+        <span class="sb-item-icon">⚙️</span><span>הגדרות</span>
+      </div>
+    </div>
+    <div class="sb-section">
+      <div class="sb-label">כלים</div>
+      <div class="sb-item" id="sb-export" onclick="showView('export')">
+        <span class="sb-item-icon">🖨️</span><span>ייצוא והדפסה</span>
+      </div>
+      <div class="sb-item" id="sb-qr" onclick="showView('qr')">
+        <span class="sb-item-icon">📲</span><span>QR לתלמידים</span>
+      </div>
+      <div class="sb-item" id="sb-h2h" onclick="showView('h2h')">
+        <span class="sb-item-icon">⚔️</span><span>מפגשים ישירים</span>
+      </div>
+      <div class="sb-item" id="sb-admin" onclick="showView('admin')">
+        <span class="sb-item-icon">🔒</span><span>ניהול גישה</span>
+      </div>
+      <div class="sb-item" id="sb-guide" onclick="showView('guide')">
+        <span class="sb-item-icon">📖</span><span>מדריך למורה</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Content -->
+  <div class="content">
+
+    <!-- ══ HOME ══ -->
+    <div class="view" id="view-home">
+      <div class="pg-head">
+        <div class="pg-title">🏟️ הטורנירים שלי</div>
+        <div class="pg-sub">בחר טורניר קיים או צור חדש</div>
+      </div>
+      <div style="margin-bottom:18px;">
+        <button class="btn btn-primary" style="font-size:15px;padding:12px 24px;" onclick="openNewTournament()">+ טורניר חדש</button>
+      </div>
+      <div id="home-tournaments-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:14px;"></div>
+      <div id="home-empty-state" style="display:none;">
+        <div class="empty-state">
+          <div class="empty-state-icon">🏟️</div>
+          <div class="empty-state-title">אין טורנירים עדיין</div>
+          <div class="empty-state-sub">לחץ על "טורניר חדש" להתחיל</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══ DASHBOARD ══ -->
+    <div class="view active" id="view-dashboard">
+      <div class="pg-head">
+        <div class="pg-title">ניהול טורנירים ⚽</div>
+        <div class="pg-sub">ניהול טורנירי כדורגל בית-ספריים — ליגה ונוקאאוט</div>
+      </div>
+
+      <!-- No tournament state -->
+      <div id="no-tournament-state">
+        <div class="empty-state">
+          <div class="empty-state-icon">🏟️</div>
+          <div class="empty-state-title">אין טורניר פעיל</div>
+          <div class="empty-state-sub">צור טורניר חדש כדי להתחיל</div>
+          <div style="margin-top:20px;">
+            <button class="btn btn-primary" onclick="openNewTournament()">+ צור טורניר חדש</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Active tournament dashboard -->
+      <div id="tournament-dashboard" style="display:none;">
+        <!-- Stats row -->
+        <div class="stats-grid" id="dash-stats"></div>
+        <!-- Date range strip -->
+        <div id="dash-date-strip" style="display:flex;gap:16px;align-items:center;background:var(--sf);border:1px solid var(--bd);border-radius:10px;padding:12px 18px;margin-bottom:14px;font-size:13px;flex-wrap:wrap;"></div>
+
+        <!-- Next match -->
+        <div class="card" id="dash-next-card">
+          <div class="card-head"><div class="card-title">⚽ המשחק הבא</div></div>
+          <div class="card-body" id="dash-next-body"></div>
+        </div>
+        <!-- Recent results -->
+        <div class="card">
+          <div class="card-head">
+            <div class="card-title">תוצאות אחרונות</div>
+            <button class="btn btn-secondary btn-sm" onclick="showView('matches')">כל המשחקים</button>
+          </div>
+          <div class="card-body" id="dash-recent-body"></div>
+        </div>
+        <!-- Mini standings -->
+        <div class="card">
+          <div class="card-head">
+            <div class="card-title">טבלה מקוצרת</div>
+            <button class="btn btn-secondary btn-sm" onclick="showView('standings')">טבלה מלאה</button>
+          </div>
+          <div class="card-body" id="dash-standings-mini"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══ STANDINGS ══ -->
+    <div class="view" id="view-standings">
+      <div class="pg-head">
+        <div class="pg-title">📊 טבלאות</div>
+      </div>
+      <!-- Tab bar like the image -->
+      <div class="standings-tabs" id="standings-tabs">
+        <button class="stab active" onclick="setStandingsTab('overall')" id="stab-overall">OVERALL</button>
+        <button class="stab" onclick="setStandingsTab('scorers')" id="stab-scorers">TOP SCORERS</button>
+        <button class="stab" onclick="setStandingsTab('assists')" id="stab-assists">TOP ASSISTS</button>
+        <button class="stab" onclick="setStandingsTab('goals')" id="stab-goals">מאזן שערים</button>
+      </div>
+
+      <!-- OVERALL TABLE -->
+      <div id="stab-content-overall">
+        <div class="card">
+          <div class="card-body" style="padding:0;">
+            <table class="tbl">
+              <thead>
+                <tr>
+                  <th style="width:40px;">#</th><th>TEAM</th>
+                  <th style="text-align:center;">MP</th>
+                  <th style="text-align:center;">W</th><th style="text-align:center;">D</th><th style="text-align:center;">L</th>
+                  <th style="text-align:center;">G</th>
+                  <th style="text-align:center;">FORM</th>
+                  <th style="text-align:center;">PTS</th>
+                </tr>
+              </thead>
+              <tbody id="standings-body"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- TOP SCORERS TABLE -->
+      <div id="stab-content-scorers" style="display:none;">
+        <div class="card"><div class="card-body" id="st-scorers-body"></div></div>
+      </div>
+
+      <!-- TOP ASSISTS TABLE -->
+      <div id="stab-content-assists" style="display:none;">
+        <div class="card"><div class="card-body" id="st-assists-body"></div></div>
+      </div>
+
+      <!-- GOAL BALANCE -->
+      <div id="stab-content-goals" style="display:none;">
+        <div class="card">
+          <div class="card-body" style="padding:0;">
+            <table class="tbl">
+              <thead><tr>
+                <th style="width:40px;">#</th><th>קבוצה</th>
+                <th style="text-align:center;">שערי זכות</th>
+                <th style="text-align:center;">שערי חובה</th>
+                <th style="text-align:center;">הפרש</th>
+                <th style="text-align:center;width:220px;">מאזן</th>
+              </tr></thead>
+              <tbody id="goals-balance-body"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══ MATCHES ══ -->
+    <div class="view" id="view-matches">
+      <div class="pg-head" style="display:flex;align-items:flex-start;justify-content:space-between;">
+        <div>
+          <div class="pg-title">⚽ לוח משחקים</div>
+          <div class="pg-sub" id="matches-count-sub">לחץ על משחק להזנת תוצאה</div>
+        </div>
+        <div style="display:flex;gap:8px;">
+          <button class="btn btn-secondary btn-sm" onclick="filterMatches('all')" id="filter-all">הכל</button>
+          <button class="btn btn-secondary btn-sm" onclick="filterMatches('pending')" id="filter-pending">ממתינים</button>
+          <button class="btn btn-secondary btn-sm" onclick="filterMatches('done')" id="filter-done">הושלמו</button>
+        </div>
+      </div>
+      <div id="matches-overdue-banner" class="overdue-banner" style="display:none;" onclick="filterMatches('pending')">
+        <span class="overdue-banner-icon">🔴</span>
+        <span class="overdue-banner-text"></span>
+      </div>
+      <div id="matches-rounds-tabs" class="round-tabs"></div>
+      <div id="matches-list"></div>
+    </div>
+
+    <!-- ══ CALENDAR ══ -->
+    <div class="view" id="view-calendar">
+      <div class="pg-head">
+        <div class="pg-title">📅 לוח שנה</div>
+        <div class="pg-sub">סקירה חזותית של לוח המשחקים</div>
+      </div>
+      <div class="card">
+        <div class="card-body">
+          <div class="cal-nav">
+            <button class="btn btn-secondary btn-sm" onclick="calPrev()">← חודש קודם</button>
+            <div class="cal-nav-title" id="cal-title"></div>
+            <button class="btn btn-secondary btn-sm" onclick="calNext()">חודש הבא →</button>
+          </div>
+          <div class="cal-grid" id="cal-grid">
+            <div class="cal-day-name">א׳</div>
+            <div class="cal-day-name">ב׳</div>
+            <div class="cal-day-name">ג׳</div>
+            <div class="cal-day-name">ד׳</div>
+            <div class="cal-day-name">ה׳</div>
+            <div class="cal-day-name">ו׳</div>
+            <div class="cal-day-name">ש׳</div>
+          </div>
+        </div>
+      </div>
+      <div class="card" style="margin-top:0;">
+        <div class="card-head"><div class="card-title">אגדה</div></div>
+        <div class="card-body" style="display:flex;gap:16px;flex-wrap:wrap;">
+          <span><span style="background:var(--yebd);display:inline-block;width:12px;height:12px;border-radius:2px;vertical-align:middle;margin-left:4px;"></span>משחק מתוכנן</span>
+          <span><span style="background:var(--grbd);display:inline-block;width:12px;height:12px;border-radius:2px;vertical-align:middle;margin-left:4px;"></span>משחק שהסתיים</span>
+          <span><span style="background:var(--rebd);display:inline-block;width:12px;height:12px;border-radius:2px;vertical-align:middle;margin-left:4px;"></span>יום חסום</span>
+          <span><span style="border:2px solid var(--ac);display:inline-block;width:12px;height:12px;border-radius:2px;vertical-align:middle;margin-left:4px;"></span>היום</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══ SCORERS (now embedded in standings tabs) ══ -->
+    <div class="view" id="view-scorers" style="display:none!important;"></div>
+
+    <!-- ══ BLOCKED DAYS ══ -->
+    <div class="view" id="view-blocked">
+      <div class="pg-head">
+        <div class="pg-title">🚫 ימים חסומים</div>
+        <div class="pg-sub">הגדר תאריכים בהם אין לשבץ משחקים</div>
+      </div>
+      <div class="card">
+        <div class="card-head">
+          <div class="card-title">הוסף יום חסום</div>
+        </div>
+        <div class="card-body">
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">תאריך התחלה</label>
+              <input type="date" class="form-input" id="block-start">
+            </div>
+            <div class="form-group">
+              <label class="form-label">תאריך סיום (לטווח)</label>
+              <input type="date" class="form-input" id="block-end">
+            </div>
+          </div>
+          <div class="form-group" style="margin-bottom:14px;">
+            <label class="form-label">תיאור (אופציונלי)</label>
+            <input type="text" class="form-input" id="block-reason" placeholder="למשל: חג פסח, טיול שנתי...">
+          </div>
+          <button class="btn btn-primary" onclick="addBlockedDay()">+ הוסף</button>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-head"><div class="card-title">ימים חסומים שהוגדרו</div></div>
+        <div class="card-body" id="blocked-list"></div>
+      </div>
+    </div>
+
+    <!-- ══ SETTINGS ══ -->
+    <div class="view" id="view-settings">
+      <div class="pg-head">
+        <div class="pg-title">⚙️ הגדרות טורניר</div>
+      </div>
+      <div class="card" id="settings-card">
+        <div class="card-body" id="settings-body"></div>
+      </div>
+      <div class="divider"></div>
+      <!-- Global roster -->
+      <div class="card" style="margin-top:16px;">
+        <div class="card-head">
+          <div class="card-title">👥 רשימת שחקנים כללית</div>
+          <div style="font-size:12px;color:var(--ink3);">ה-fallback כשאין רשתרת ייעודית לקבוצה</div>
+        </div>
+        <div class="card-body">
+          <div class="form-group" style="margin-bottom:12px;">
+            <label class="form-label">שמות — שם אחד בשורה</label>
+            <textarea class="form-input" id="roster-input" rows="5" placeholder="אחמד כהן
+מוחמד לוי
+יוסי עזרא..." style="resize:vertical;font-size:13px;"></textarea>
+          </div>
+          <div style="display:flex;gap:8px;align-items:center;">
+            <button class="btn btn-secondary btn-sm" onclick="saveRoster()">✓ שמור כללי</button>
+            <span id="roster-count" style="font-size:12px;color:var(--ink3);"></span>
+          </div>
+        </div>
+      </div>
+      <!-- Per-team rosters -->
+      <div class="card" style="margin-top:12px;">
+        <div class="card-head">
+          <div class="card-title">👕 רשתרות לפי קבוצה</div>
+          <div style="font-size:12px;color:var(--ink3);">לאוטו-קומפליט חכם לפי קבוצה</div>
+        </div>
+        <div class="card-body">
+          <div id="team-rosters-area"></div>
+        </div>
+      </div>
+
+      <div style="margin-top:16px;text-align:left;">
+        <button class="btn btn-danger" onclick="deleteTournament()">🗑 מחק טורניר</button>
+      </div>
+    </div>
+
+    <!-- ══ GUIDE ══ -->
+    <div class="view" id="view-guide">
+      <div class="pg-head">
+        <div class="pg-title">📖 מדריך למורה</div>
+        <div class="pg-sub">כל מה שצריך לדעת לניהול הטורניר</div>
+      </div>
+      <div class="card">
+        <div class="card-body" style="font-size:14px;line-height:1.9;">
+          <div style="display:grid;gap:20px;">
+            <div>
+              <h3 style="color:var(--ac);margin-bottom:8px;font-family:'Bebas Neue',cursive;font-size:18px;letter-spacing:1px;">1. יצירת טורניר</h3>
+              <p style="color:var(--ink2);">לחץ על <strong style="color:var(--ink);">"+ טורניר חדש"</strong> בכותרת. הגדר שם, שכבה, שמות הקבוצות, ימי משחק ושעות. המערכת תיצור את לוח המשחקים אוטומטית.</p>
+            </div>
+            <div class="divider"></div>
+            <div>
+              <h3 style="color:var(--ac);margin-bottom:8px;font-family:'Bebas Neue',cursive;font-size:18px;letter-spacing:1px;">2. קביעת ימי משחק</h3>
+              <p style="color:var(--ink2);">בעת יצירת הטורניר בחר את ימי השבוע שבהם תתקיימנה המשחקים ואת שעת תחילתם. לוח המשחקים ייוצר בהתאם.</p>
+            </div>
+            <div class="divider"></div>
+            <div>
+              <h3 style="color:var(--ac);margin-bottom:8px;font-family:'Bebas Neue',cursive;font-size:18px;letter-spacing:1px;">3. הגדרת ימים חסומים</h3>
+              <p style="color:var(--ink2);">עבור ל<strong style="color:var(--ink);">"ימים חסומים"</strong> בתפריט. הוסף תאריכים כגון חגים וחופשות. המשחקים לא ישובצו בתאריכים אלו. ניתן להוסיף טווח תאריכים.</p>
+            </div>
+            <div class="divider"></div>
+            <div>
+              <h3 style="color:var(--ac);margin-bottom:8px;font-family:'Bebas Neue',cursive;font-size:18px;letter-spacing:1px;">4. הזנת תוצאות</h3>
+              <p style="color:var(--ink2);">לחץ על משחק ב<strong style="color:var(--ink);">"לוח משחקים"</strong>. הזן את התוצאה ואת שמות הכובשים והמבשלים. הטבלה מתעדכנת אוטומטית.</p>
+            </div>
+            <div class="divider"></div>
+            <div>
+              <h3 style="color:var(--ac);margin-bottom:8px;font-family:'Bebas Neue',cursive;font-size:18px;letter-spacing:1px;">5. דחיית משחק</h3>
+              <p style="color:var(--ink2);">לחץ על המשחק בלוח ובחר <strong style="color:var(--ink);">"דחה משחק"</strong>. בחר תאריך חלופי — הלוח יתעדכן.</p>
+            </div>
+            <div class="divider"></div>
+            <div>
+              <h3 style="color:var(--ac);margin-bottom:8px;font-family:'Bebas Neue',cursive;font-size:18px;letter-spacing:1px;">6. שיתוף עם תלמידים</h3>
+              <p style="color:var(--ink2);">לחץ <strong style="color:var(--ink);">"👁 דף תלמידים"</strong> — ייפתח חלון חדש עם דף נקי ומהיר, ללא אפשרות עריכה. שתף את ה-URL עם הכיתה.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+
+    <!-- ══ EXPORT / PRINT ══ -->
+    <div class="view" id="view-export">
+      <div class="pg-head">
+        <div class="pg-title">🖨️ ייצוא והדפסה</div>
+        <div class="pg-sub">צור PDF או הדפס לוח משחקים, טבלת ליגה ומלכי שערים</div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:20px;">
+        <div class="card" style="cursor:pointer;" onclick="printSchedule()">
+          <div class="card-body" style="text-align:center;padding:28px;">
+            <div style="font-size:40px;margin-bottom:10px;">📋</div>
+            <div style="font-family:'DM Serif Display',serif;font-size:18px;margin-bottom:6px;">לוח משחקים</div>
+            <div style="font-size:12px;color:var(--ink3);">כל המשחקים לפי תאריך עם תוצאות</div>
+            <button class="btn btn-primary" style="margin-top:14px;">🖨️ הדפס / PDF</button>
+          </div>
+        </div>
+        <div class="card" style="cursor:pointer;" onclick="printStandings()">
+          <div class="card-body" style="text-align:center;padding:28px;">
+            <div style="font-size:40px;margin-bottom:10px;">📊</div>
+            <div style="font-family:'DM Serif Display',serif;font-size:18px;margin-bottom:6px;">טבלת ליגה</div>
+            <div style="font-size:12px;color:var(--ink3);">טבלה + מלכי שערים</div>
+            <button class="btn btn-primary" style="margin-top:14px;">🖨️ הדפס / PDF</button>
+          </div>
+        </div>
+        <div class="card" style="cursor:pointer;" onclick="exportCSV()">
+          <div class="card-body" style="text-align:center;padding:28px;">
+            <div style="font-size:40px;margin-bottom:10px;">📄</div>
+            <div style="font-family:'DM Serif Display',serif;font-size:18px;margin-bottom:6px;">ייצוא CSV</div>
+            <div style="font-size:12px;color:var(--ink3);">תוצאות וסטטיסטיקות לאקסל</div>
+            <button class="btn btn-secondary" style="margin-top:14px;">⬇ הורד CSV</button>
+          </div>
+        </div>
+        <div class="card" style="cursor:pointer;" onclick="printFull()">
+          <div class="card-body" style="text-align:center;padding:28px;">
+            <div style="font-size:40px;margin-bottom:10px;">📰</div>
+            <div style="font-family:'DM Serif Display',serif;font-size:18px;margin-bottom:6px;">כל המידע</div>
+            <div style="font-size:12px;color:var(--ink3);">לוח + טבלה + כובשים — להדבקה על לוח מודעות</div>
+            <button class="btn btn-primary" style="margin-top:14px;">🖨️ הדפס הכל</button>
+          </div>
+        </div>
+      </div>
+      <!-- iCal export -->
+      <div class="card">
+        <div class="card-head"><div class="card-title">📅 ייצוא ליומן</div></div>
+        <div class="card-body" style="display:flex;align-items:center;gap:14px;flex-wrap:wrap;">
+          <div style="flex:1;font-size:13px;color:var(--ink2);">הורד קובץ .ics לייבוא ל-Google Calendar, Apple Calendar או Outlook. כל משחק יופיע כאירוע עם שמות הקבוצות.</div>
+          <button class="btn btn-primary" onclick="exportICal()">📅 הורד .ics</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══ QR CODE ══ -->
+    <div class="view" id="view-qr">
+      <div class="pg-head">
+        <div class="pg-title">📲 QR לתלמידים</div>
+        <div class="pg-sub">תנו לתלמידים לסרוק ולעקוב אחר הטורניר בזמן אמת</div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;align-items:start;">
+        <div class="card">
+          <div class="card-head"><div class="card-title">QR Code</div></div>
+          <div class="card-body" style="text-align:center;padding:30px;">
+            <div id="qr-canvas-wrap" style="display:inline-block;background:#fff;padding:16px;border-radius:12px;"></div>
+            <div style="margin-top:14px;font-size:12px;color:var(--ink3);" id="qr-sub">פותח את דף הצפייה לתלמידים</div>
+            <div style="margin-top:12px;display:flex;gap:8px;justify-content:center;flex-wrap:wrap;">
+              <button class="btn btn-primary" onclick="downloadQR()">⬇ הורד תמונה</button>
+              <button class="btn btn-secondary" onclick="openViewer()">👁 פתח דף</button>
+            </div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-head"><div class="card-title">🖨️ גיליון QR להדפסה</div></div>
+          <div class="card-body">
+            <div style="font-size:13px;color:var(--ink2);margin-bottom:14px;">הדפס גיליון עם ה-QR code + שם הטורניר לתלייה על הלוח.</div>
+            <button class="btn btn-primary" onclick="printQRSheet()">🖨️ הדפס גיליון</button>
+          </div>
+          <div class="card-head" style="margin-top:0;"><div class="card-title">📋 הוראות לתלמידים</div></div>
+          <div class="card-body" style="font-size:13px;color:var(--ink2);">
+            <ol style="padding-right:18px;line-height:2.2;">
+              <li>פתחו את מצלמת הטלפון</li>
+              <li>כוונו לקוד ה-QR</li>
+              <li>לחצו על הקישור שמופיע</li>
+              <li>הוסיפו לבית המסך לגישה מהירה</li>
+            </ol>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══ HEAD TO HEAD ══ -->
+    <div class="view" id="view-h2h">
+      <div class="pg-head">
+        <div class="pg-title">⚔️ מפגשים ישירים</div>
+        <div class="pg-sub">בחר שתי קבוצות לבדיקת ההיסטוריה ביניהן</div>
+      </div>
+      <div class="card">
+        <div class="card-body">
+          <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
+            <select class="form-input" id="h2h-team-a" onchange="renderH2H()" style="flex:1;min-width:140px;"></select>
+            <span style="font-family:'Bebas Neue',cursive;font-size:22px;color:var(--ink3);">VS</span>
+            <select class="form-input" id="h2h-team-b" onchange="renderH2H()" style="flex:1;min-width:140px;"></select>
+          </div>
+        </div>
+      </div>
+      <div id="h2h-result"></div>
+    </div>
+
+    <!-- ══ ADMIN / ACCESS CONTROL ══ -->
+    <div class="view" id="view-admin">
+      <div class="pg-head">
+        <div class="pg-title">🔒 ניהול גישה</div>
+        <div class="pg-sub">הגן על הנתונים עם סיסמת מנהל · תלמידים רואים בלבד</div>
+      </div>
+      <div class="card" id="admin-setup-card">
+        <div class="card-head"><div class="card-title">הגדרת סיסמת מנהל</div></div>
+        <div class="card-body">
+          <div id="admin-status-banner" style="margin-bottom:16px;"></div>
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">סיסמה חדשה</label>
+              <input type="password" class="form-input" id="admin-pass-new" placeholder="הזן סיסמה (4+ תווים)">
+            </div>
+            <div class="form-group">
+              <label class="form-label">אמת סיסמה</label>
+              <input type="password" class="form-input" id="admin-pass-confirm" placeholder="חזור על הסיסמה">
+            </div>
+          </div>
+          <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
+            <button class="btn btn-primary" onclick="setAdminPass()">🔒 הפעל הגנה</button>
+            <button class="btn btn-danger btn-sm" id="admin-remove-btn" onclick="removeAdminPass()" style="display:none;">🔓 הסר הגנה</button>
+          </div>
+          <div style="margin-top:16px;padding:14px;background:var(--bg3);border-radius:var(--rs);font-size:13px;color:var(--ink2);">
+            <b>איך זה עובד:</b><br>
+            • <b>קישור מנהל</b> — דף זה (tournament-manager.html) מוגן בסיסמה<br>
+            • <b>קישור תלמידים</b> — דף הצפייה (נפתח מ-"👁 דף תלמידים") ללא סיסמה<br>
+            • הסיסמה נשמרת מוצפנת ב-localStorage — לא נשלחת לשרת
+          </div>
+        </div>
+      </div>
+
+      <!-- Login form (shown when locked) -->
+      <div id="admin-login-card" style="display:none;">
+        <div class="card" style="max-width:380px;margin:60px auto;">
+          <div class="card-head"><div class="card-title">🔒 כניסת מנהל</div></div>
+          <div class="card-body">
+            <div class="form-group" style="margin-bottom:14px;">
+              <label class="form-label">סיסמה</label>
+              <input type="password" class="form-input" id="admin-login-pass" placeholder="הזן סיסמה" onkeydown="if(event.key==='Enter')adminLogin()">
+            </div>
+            <button class="btn btn-primary" style="width:100%;" onclick="adminLogin()">כנס</button>
+            <div id="admin-login-err" style="color:var(--re);font-size:12px;margin-top:8px;text-align:center;"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /content -->
+</div><!-- /main -->
+</div><!-- /app -->
+
+<!-- ══ NEW TOURNAMENT MODAL ══ -->
+<div class="modal-bg" id="new-tournament-modal">
+<div class="modal" style="max-width:600px;">
+  <div class="modal-title">⚽ טורניר חדש</div>
+  <div class="modal-sub">הגדר את פרטי הטורניר — הלוח ייוצר אוטומטית</div>
+
+  <div class="form-row triple">
+    <div class="form-group">
+      <label class="form-label">שם הטורניר</label>
+      <input type="text" class="form-input" id="nt-name" placeholder="ליגת כיתות ח׳ — תשפ״ו">
+    </div>
+    <div class="form-group">
+      <label class="form-label">שכבה</label>
+      <select class="form-input" id="nt-grade">
+        <option value="ז">כיתות ז׳</option>
+        <option value="ח" selected>כיתות ח׳</option>
+        <option value="ט">כיתות ט׳</option>
+        <option value="י">כיתות י׳</option>
+        <option value="יא">כיתות י״א</option>
+        <option value="יב">כיתות י״ב</option>
+      </select>
+    </div>
+    <div class="form-group">
+      <label class="form-label">מין השחקנים</label>
+      <select class="form-input" id="nt-gender">
+        <option value="boys">בנים (ז׳)</option>
+        <option value="girls">בנות (נ׳)</option>
+        <option value="mixed">מעורב</option>
+      </select>
+    </div>
+  </div>
+
+  <div class="form-row triple">
+    <div class="form-group">
+      <label class="form-label">סוג טורניר</label>
+      <select class="form-input" id="nt-type" onchange="onTournamentTypeChange()">
+        <option value="league">ליגה (Round Robin)</option>
+        <option value="knockout">נוקאאוט</option>
+      </select>
+    </div>
+    <div class="form-group" id="nt-legs-group">
+      <label class="form-label">מספר מפגשים בין קבוצות</label>
+      <select class="form-input" id="nt-legs">
+        <option value="1">1× — כל קבוצה פוגשת כל יריבה פעם אחת</option>
+        <option value="2">2× — הלוך וחזור (בית + חוץ)</option>
+        <option value="3">3× — שלוש סבבים</option>
+      </select>
+    </div>
+    <div class="form-group">
+      <label class="form-label">מספר קבוצות: <span id="nt-teams-count-label" style="color:var(--ac);font-size:16px;font-weight:900;">6</span></label>
+      <div style="display:flex;align-items:center;gap:10px;margin-top:4px;">
+        <button type="button" style="width:32px;height:32px;border-radius:50%;border:2px solid var(--grbd);background:var(--grbg);color:var(--gr);font-size:20px;cursor:pointer;display:flex;align-items:center;justify-content:center;line-height:1;" onclick="adjTeamCount(-1)">−</button>
+        <input type="hidden" id="nt-teams-count" value="6">
+        <div style="flex:1;height:4px;background:var(--bg3);border-radius:2px;position:relative;">
+          <div id="nt-teams-bar" style="height:100%;background:var(--ac);border-radius:2px;width:27%;transition:width .15s;"></div>
+        </div>
+        <button type="button" style="width:32px;height:32px;border-radius:50%;border:2px solid var(--grbd);background:var(--grbg);color:var(--gr);font-size:20px;cursor:pointer;display:flex;align-items:center;justify-content:center;line-height:1;" onclick="adjTeamCount(1)">+</button>
+      </div>
+      <div style="font-size:11px;color:var(--ink3);margin-top:4px;">3 עד 16 קבוצות</div>
+    </div>
+  </div>
+
+  <div class="form-group" style="margin-bottom:16px;">
+    <label class="form-label">שמות קבוצות (ניתן לערוך)</label>
+    <div id="team-names-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(110px,1fr));gap:8px;margin-top:6px;"></div>
+  </div>
+
+  <div class="form-row">
+    <div class="form-group">
+      <label class="form-label">תאריך פתיחה</label>
+      <input type="date" class="form-input" id="nt-start-date">
+    </div>
+    <div class="form-group">
+      <label class="form-label">שעת משחקים</label>
+      <input type="time" class="form-input" id="nt-match-time" value="10:00">
+    </div>
+  </div>
+
+  <div class="form-group" style="margin-bottom:16px;">
+    <label class="form-label">ימי משחק</label>
+    <div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap;" id="nt-days">
+      <label style="display:flex;align-items:center;gap:4px;cursor:pointer;"><input type="checkbox" value="0"> ראשון</label>
+      <label style="display:flex;align-items:center;gap:4px;cursor:pointer;"><input type="checkbox" value="1" checked> שני</label>
+      <label style="display:flex;align-items:center;gap:4px;cursor:pointer;"><input type="checkbox" value="2"> שלישי</label>
+      <label style="display:flex;align-items:center;gap:4px;cursor:pointer;"><input type="checkbox" value="3" checked> רביעי</label>
+      <label style="display:flex;align-items:center;gap:4px;cursor:pointer;"><input type="checkbox" value="4"> חמישי</label>
+      <label style="display:flex;align-items:center;gap:4px;cursor:pointer;"><input type="checkbox" value="5"> שישי</label>
+    </div>
+  </div>
+
+  <div class="modal-actions">
+    <button class="btn btn-secondary" onclick="closeModal('new-tournament-modal')">ביטול</button>
+    <button class="btn btn-primary" onclick="createTournament()">⚽ צור טורניר</button>
+  </div>
+</div>
+</div>
+
+<!-- ══ MATCH RESULT MODAL ══ -->
+<div class="modal-bg" id="match-modal">
+<div class="modal" style="max-width:560px;">
+  <div class="modal-title" id="mm-title">תוצאת משחק</div>
+  <div class="modal-sub" id="mm-sub"></div>
+
+  <div style="background:var(--bg3);border-radius:var(--r);padding:16px;margin-bottom:22px;">
+    <div style="display:flex;align-items:center;gap:12px;">
+      <div style="flex:1;text-align:right;">
+        <div style="font-weight:700;font-size:16px;" id="mm-home-name"></div>
+        <div style="font-size:11px;color:var(--ink3);">בית</div>
+      </div>
+      <div style="display:flex;gap:6px;align-items:center;">
+        <div style="display:flex;flex-direction:column;align-items:center;gap:4px;">
+          <button class="score-adj-btn" onclick="adjScore('home',1)">+</button>
+          <div style="font-family:'Bebas Neue',cursive;font-size:38px;min-width:48px;text-align:center;color:var(--ac);" id="mm-home-score-display">0</div>
+          <button class="score-adj-btn score-adj-minus" onclick="adjScore('home',-1)">−</button>
+        </div>
+        <span style="font-family:'Bebas Neue',cursive;font-size:24px;color:var(--ink3);padding:0 4px;">:</span>
+        <div style="display:flex;flex-direction:column;align-items:center;gap:4px;">
+          <button class="score-adj-btn" onclick="adjScore('away',1)">+</button>
+          <div style="font-family:'Bebas Neue',cursive;font-size:38px;min-width:48px;text-align:center;color:var(--ac);" id="mm-away-score-display">0</div>
+          <button class="score-adj-btn score-adj-minus" onclick="adjScore('away',-1)">−</button>
+        </div>
+      </div>
+      <div style="flex:1;text-align:left;">
+        <div style="font-weight:700;font-size:16px;" id="mm-away-name"></div>
+        <div style="font-size:11px;color:var(--ink3);">חוץ</div>
+      </div>
+    </div>
+    <input type="hidden" id="mm-home-score" value="0">
+    <input type="hidden" id="mm-away-score" value="0">
+  </div>
+
+  <!-- Date override -->
+  <div class="form-group" style="margin-bottom:16px;">
+    <label class="form-label">תאריך משחק</label>
+    <input type="date" class="form-input" id="mm-date">
+  </div>
+
+  <!-- Goals rows: one row per goal, scorer + assister side by side -->
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:0 20px;margin-bottom:4px;">
+    <div class="form-label" style="padding-bottom:6px;border-bottom:1px solid var(--bd);margin-bottom:8px;">
+      ⚽ שערי <span id="mm-home-name-small" style="color:var(--ac);"></span>
+      <span id="mm-home-goal-count" style="color:var(--ink3);margin-right:4px;"></span>
+    </div>
+    <div class="form-label" style="padding-bottom:6px;border-bottom:1px solid var(--bd);margin-bottom:8px;">
+      ⚽ שערי <span id="mm-away-name-small" style="color:var(--ac);"></span>
+      <span id="mm-away-goal-count" style="color:var(--ink3);margin-right:4px;"></span>
+    </div>
+  </div>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:0 20px;margin-bottom:16px;">
+    <div id="mm-home-goals-rows"></div>
+    <div id="mm-away-goals-rows"></div>
+  </div>
+
+  <!-- hidden containers kept for backward compat -->
+  <div id="mm-home-goals" style="display:none;"></div>
+  <div id="mm-away-goals" style="display:none;"></div>
+  <div id="mm-home-assists" style="display:none;"></div>
+  <div id="mm-away-assists" style="display:none;"></div>
+
+  <!-- Reschedule -->
+  <div class="form-group" style="margin-bottom:6px;">
+    <label style="display:flex;align-items:center;gap:8px;cursor:pointer;">
+      <input type="checkbox" id="mm-reschedule-chk" onchange="toggleReschedule()"> דחה משחק לתאריך אחר
+    </label>
+  </div>
+  <div id="mm-reschedule-row" style="display:none;margin-bottom:12px;">
+    <div class="form-group">
+      <label class="form-label">תאריך חדש</label>
+      <input type="date" class="form-input" id="mm-new-date">
+    </div>
+  </div>
+
+  <div class="modal-actions">
+    <button class="btn btn-secondary" onclick="closeModal('match-modal')">סגור</button>
+    <button class="btn btn-danger btn-sm" id="mm-clear-btn" onclick="clearMatchResult()" style="margin-left:auto;">מחק תוצאה</button>
+    <button class="btn btn-primary" onclick="saveMatchResult()">✓ שמור תוצאה</button>
+  </div>
+</div>
+</div>
+
+<script>
+// ══════════════════════════════════════════════════════════════
+// DATA & STATE
+// ══════════════════════════════════════════════════════════════
+const LS_KEY = 'tourneygrade_v1';   // legacy single
+const LS_ALL = 'tourneygrade_all_v1'; // array of all tournaments
+const LS_CUR = 'tourneygrade_cur_v1'; // id of current tournament
+const TEAM_COLORS = ['crest-0','crest-1','crest-2','crest-3','crest-4','crest-5','crest-6','crest-7','crest-8','crest-9'];
+
+let T = null; // current tournament
+let _currentMatchId = null;
+let _calYear = new Date().getFullYear();
+let _calMonth = new Date().getMonth();
+let _matchFilter = 'all';
+let _matchRoundFilter = null;
+
+// ── Persistence ──────────────────────────────────────────────
+function getAllTournaments(){
+  try{
+    const all = JSON.parse(localStorage.getItem(LS_ALL)||'null');
+    if(all && Array.isArray(all)) return all;
+    // Migrate legacy single tournament
+    const legacy = JSON.parse(localStorage.getItem(LS_KEY)||'null');
+    if(legacy){ const arr=[legacy]; localStorage.setItem(LS_ALL,JSON.stringify(arr)); return arr; }
+    return [];
+  } catch(e){ return []; }
+}
+function loadData(){
+  try{
+    const all = getAllTournaments();
+    const curId = localStorage.getItem(LS_CUR);
+    if(curId){ const t=all.find(t=>String(t.id)===String(curId)); if(t) return t; }
+    if(all.length) return all[0];
+    return null;
+  } catch(e){ return null; }
+}
+function saveData(){
+  if(!T) return;
+  const all = getAllTournaments();
+  const idx = all.findIndex(t=>t.id===T.id);
+  if(idx>=0) all[idx]=T; else all.push(T);
+  localStorage.setItem(LS_ALL, JSON.stringify(all));
+  localStorage.setItem(LS_CUR, String(T.id));
+  try{ localStorage.setItem(LS_KEY+'_ts', Date.now()); }catch(e){}
+}
+
+// ── Init ─────────────────────────────────────────────────────
+function init(){
+  T = loadData();
+  // Default start date to today
+  document.getElementById('nt-start-date').valueAsDate = new Date();
+  generateTeamNames();
+  if(T){
+    loadTournament();
+    showView('dashboard');
+  } else {
+    showView('home');
+  }
+  renderBlockedDays();
+  renderHomeView();
+}
+
+// ══════════════════════════════════════════════════════════════
+// TOURNAMENT CREATION
+// ══════════════════════════════════════════════════════════════
+function generateTeamNames(){
+  const grade = document.getElementById('nt-grade').value;
+  const count = parseInt(document.getElementById('nt-teams-count').value)||6;
+  const grid = document.getElementById('team-names-grid');
+  // Preserve existing values
+  const existing = {};
+  grid.querySelectorAll('input').forEach((inp,i)=>{ existing[i]=inp.value; });
+  grid.innerHTML = '';
+  for(let i=0;i<count;i++){
+    const inp = document.createElement('input');
+    inp.className = 'form-input';
+    // Only auto-set if value looks like old grade (e.g. "ח1") or is empty
+    const prev = existing[i]||'';
+    const autoVal = grade + (i+1);
+    // Replace if empty or matches any grade pattern
+    inp.value = (!prev || /^[א-ת]{1,2}\d+$/.test(prev)) ? autoVal : prev;
+    inp.placeholder = 'שם קבוצה '+(i+1);
+    inp.id = 'nt-team-'+i;
+    grid.appendChild(inp);
+  }
+  // Update bar
+  const bar = document.getElementById('nt-teams-bar');
+  const lbl = document.getElementById('nt-teams-count-label');
+  if(bar) bar.style.width = Math.round((count-3)/(16-3)*100)+'%';
+  if(lbl) lbl.textContent = count;
+}
+
+function adjTeamCount(delta){
+  const inp = document.getElementById('nt-teams-count');
+  if(!inp) return;
+  const cur = parseInt(inp.value)||6;
+  const next = Math.max(3, Math.min(16, cur+delta));
+  inp.value = next;
+  generateTeamNames();
+}
+
+function onTournamentTypeChange(){
+  const type = document.getElementById('nt-type').value;
+  const legsGroup = document.getElementById('nt-legs-group');
+  if(legsGroup) legsGroup.style.display = type==='league' ? '' : 'none';
+}
+
+function getSelectedDays(){
+  const days = [];
+  document.querySelectorAll('#nt-days input:checked').forEach(cb=>days.push(parseInt(cb.value)));
+  return days;
+}
+
+function createTournament(){
+  const name = document.getElementById('nt-name').value.trim();
+  if(!name){ toast('נא להזין שם לטורניר'); return; }
+  const count = parseInt(document.getElementById('nt-teams-count').value);
+  const teams = [];
+  for(let i=0;i<count;i++){
+    const nm = document.getElementById('nt-team-'+i)?.value?.trim()||('קבוצה '+(i+1));
+    teams.push({ id: i, name: nm, color: TEAM_COLORS[i%TEAM_COLORS.length] });
+  }
+  const type = document.getElementById('nt-type').value;
+  const startDate = document.getElementById('nt-start-date').value;
+  const matchTime = document.getElementById('nt-match-time').value;
+  const days = getSelectedDays();
+  if(!days.length){ toast('בחר לפחות יום משחק אחד'); return; }
+  if(!startDate){ toast('נא לבחור תאריך פתיחה'); return; }
+
+  const legs = type==='league' ? (parseInt(document.getElementById('nt-legs')?.value)||1) : 1;
+  const gender = document.getElementById('nt-gender')?.value||'boys';
+  T = {
+    id: Date.now(),
+    name, grade: document.getElementById('nt-grade').value,
+    gender,
+    type, teams, matchTime, days,
+    startDate,
+    legs,
+    matches: [],
+    blockedDays: [],
+    scorers: {},
+    teamRosters: {}, // { teamId: ['שם1','שם2',...] }
+  };
+
+  // Generate schedule
+  generateSchedule();
+  saveData();
+  closeModal('new-tournament-modal');
+  saveData(); // ensure saved to all-tournaments store
+  loadTournament();
+  showView('dashboard');
+  toast('✓ הטורניר נוצר! '+T.matches.length+' משחקים שובצו');
+}
+
+// ══════════════════════════════════════════════════════════════
+// SCHEDULE GENERATION
+// ══════════════════════════════════════════════════════════════
+function generateSchedule(){
+  T.matches = [];
+  const pairs = (T.type === 'league') ? generateLeaguePairs() : generateKnockoutPairs();
+  let slotDate = new Date(T.startDate);
+  let matchId = 1;
+  let roundIdx = 0;
+  const rounds = groupByRounds(pairs, T.teams.length);
+  rounds.forEach((roundPairs, ri) => {
+    roundPairs.forEach(([h,a]) => {
+      // Find next valid match day
+      const d = getNextMatchDay(slotDate);
+      T.matches.push({
+        id: matchId++,
+        round: ri+1,
+        home: h, away: a,
+        date: dateStr(d),
+        time: T.matchTime,
+        status: 'pending',
+        homeScore: null, awayScore: null,
+        goals: [], assists: [],
+      });
+      slotDate = new Date(d);
+      slotDate.setDate(slotDate.getDate()+1);
+    });
+    // Advance to next match day after each round
+    slotDate = getNextMatchDay(slotDate);
+    slotDate = new Date(slotDate);
+    slotDate.setDate(slotDate.getDate()+1);
+  });
+}
+
+function generateLeaguePairs(){
+  const ids = T.teams.map(t=>t.id);
+  const legs = T.legs||1;
+  const basePairs = [];
+  for(let i=0;i<ids.length;i++)
+    for(let j=i+1;j<ids.length;j++)
+      basePairs.push([ids[i],ids[j]]);
+  // For each additional leg, add reverse fixtures
+  const allPairs = [...basePairs];
+  for(let leg=1;leg<legs;leg++){
+    basePairs.forEach(([h,a])=>{
+      // Odd leg: reverse (away becomes home), even leg: same direction
+      allPairs.push(leg%2===1?[a,h]:[h,a]);
+    });
+  }
+  return allPairs;
+}
+
+function generateKnockoutPairs(){
+  const ids = [...T.teams.map(t=>t.id)];
+  // Shuffle for random bracket
+  for(let i=ids.length-1;i>0;i--){
+    const j=Math.floor(Math.random()*(i+1));
+    [ids[i],ids[j]]=[ids[j],ids[i]];
+  }
+  const pairs = [];
+  for(let i=0;i<ids.length;i+=2)
+    if(i+1<ids.length) pairs.push([ids[i],ids[i+1]]);
+  return pairs;
+}
+
+function groupByRounds(pairs, teamCount){
+  if(T.type==='knockout') return [pairs];
+  const legs = T.legs||1;
+  const allRounds = [];
+
+  // Build one round-robin cycle (teamCount-1 rounds or teamCount rounds if odd)
+  function buildOneLegRounds(pairsSubset, flip){
+    const legRounds = [];
+    const ids = T.teams.map(t=>t.id);
+    if(ids.length%2!==0) ids.push(-1);
+    const r = ids.length;
+    const fixed = ids[0];
+    const rotating = [...ids.slice(1)];
+    for(let round=0;round<r-1;round++){
+      const rnd = [];
+      const all = [fixed,...rotating];
+      for(let i=0;i<r/2;i++){
+        const h=all[i], a=all[r-1-i];
+        if(h!==-1&&a!==-1){
+          // flip alternates home/away for return legs
+          rnd.push(flip?[a,h]:[h,a]);
+        }
+      }
+      legRounds.push(rnd);
+      rotating.unshift(rotating.pop());
+    }
+    return legRounds;
+  }
+
+  for(let leg=0;leg<legs;leg++){
+    const flip = leg%2===1; // every 2nd leg flips home/away
+    buildOneLegRounds(pairs, flip).forEach(r=>allRounds.push(r));
+  }
+  return allRounds;
+}
+
+function getNextMatchDay(fromDate){
+  const d = new Date(fromDate);
+  let tries = 0;
+  while(tries < 365){
+    const dow = d.getDay(); // 0=Sun in JS, but our days are Sun=0 too
+    if(T.days.includes(dow) && !isBlocked(dateStr(d))) return d;
+    d.setDate(d.getDate()+1);
+    tries++;
+  }
+  return d;
+}
+
+function isBlocked(dateString){
+  return (T.blockedDays||[]).some(b=>{
+    if(b.end) return dateString>=b.start && dateString<=b.end;
+    return b.start===dateString;
+  });
+}
+
+function dateStr(d){ return d.toISOString().slice(0,10); }
+
+// ══════════════════════════════════════════════════════════════
+// LOAD & RENDER TOURNAMENT
+// ══════════════════════════════════════════════════════════════
+function loadTournament(){
+  if(!T) return;
+  renderHomeView(); // update home grid
+  document.getElementById('hdr-tournament-name').textContent = T.name;
+  const genderBadge = document.getElementById('hdr-gender-badge');
+  if(genderBadge){
+    const gMap={boys:'⚽ בנים',girls:'⚽ בנות',mixed:'⚽ מעורב'};
+    genderBadge.innerHTML = T.gender?`<span class="gender-badge">${gMap[T.gender]||T.gender}</span>`:'';
+  }
+  document.getElementById('sb-tournament-section').style.display = '';
+  document.getElementById('no-tournament-state').style.display = 'none';
+  document.getElementById('tournament-dashboard').style.display = '';
+  renderDashboard();
+  renderStandings();
+  renderMatches();
+  renderCalendar();
+  renderScorers();
+  renderBlockedDays();
+}
+
+// ══════════════════════════════════════════════════════════════
+// DASHBOARD
+// ══════════════════════════════════════════════════════════════
+function renderDashboard(){
+  const done = T.matches.filter(m=>m.status==='done').length;
+  const total = T.matches.length;
+  const pending = T.matches.filter(m=>m.status==='pending').length;
+
+  // Date range strip
+  const scheduledDates = T.matches.map(m=>m.date).filter(Boolean).sort();
+  const tourneyStart = scheduledDates[0]||T.startDate||null;
+  const tourneyEnd   = scheduledDates[scheduledDates.length-1]||null;
+  const pct = total>0?Math.round(done/total*100):0;
+  const strip = document.getElementById('dash-date-strip');
+  if(strip){
+    strip.innerHTML = `
+      <span>📅 פתיחה: <strong style="color:var(--ac);">${tourneyStart?formatDate(tourneyStart):'—'}</strong></span>
+      <span style="color:var(--ink3);">→</span>
+      <span>🏁 סיום: <strong style="color:${pending===0?'var(--gr)':'var(--ye)'};">${tourneyEnd?formatDate(tourneyEnd):'—'}</strong></span>
+      <span style="flex:1;"></span>
+      <span style="display:flex;align-items:center;gap:8px;">
+        <div style="width:120px;height:6px;background:var(--bg3);border-radius:3px;overflow:hidden;">
+          <div style="height:100%;width:${pct}%;background:var(--ac);border-radius:3px;transition:width .5s;"></div>
+        </div>
+        <span style="font-size:12px;color:var(--ink2);font-weight:700;">${done}/${total} (${pct}%)</span>
+      </span>
+    `;
+  }
+  // Stats (scheduledDates, tourneyStart, tourneyEnd, pct already defined above)
+  const legsLabel = (T.legs&&T.legs>1) ? ` · ${T.legs}× (הלוך וחזור)` : '';
+
+  document.getElementById('dash-stats').innerHTML = `
+    <div class="stat-card">
+      <div class="stat-val">${T.teams.length}</div>
+      <div class="stat-label">קבוצות${legsLabel}</div>
+    </div>
+    <div class="stat-card" style="position:relative;overflow:hidden;">
+      <div style="position:absolute;bottom:0;left:0;height:3px;width:${pct}%;background:var(--ac);transition:width .5s;border-radius:0 2px 0 0;"></div>
+      <div class="stat-val">${done}<span style="font-size:16px;color:var(--ink3);">/${total}</span></div>
+      <div class="stat-label">משחקים שוחקו</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-val" style="color:${pending>0?'var(--ye)':'var(--gr)'};">${pending}</div>
+      <div class="stat-label">נותרו</div>
+    </div>
+    <div class="stat-card" style="grid-column:span 1;">
+      <div style="font-size:11px;color:var(--ink3);font-weight:700;text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px;">📅 תאריכים</div>
+      <div style="font-size:13px;font-weight:700;color:var(--ink2);">
+        <div>פתיחה: <span style="color:var(--ac);">${formatDate(tourneyStart)}</span></div>
+        <div style="margin-top:3px;">סיום: <span style="color:${pending===0?'var(--gr)':'var(--ye)'};">${formatDate(tourneyEnd)}</span></div>
+      </div>
+    </div>
+  `;
+  // Next match
+  const next = T.matches.filter(m=>m.status==='pending').sort((a,b)=>a.date.localeCompare(b.date))[0];
+  const nextBody = document.getElementById('dash-next-body');
+  if(next){
+    const h = teamById(next.home), a = teamById(next.away);
+    nextBody.innerHTML = `
+      <div style="display:flex;align-items:center;gap:16px;padding:8px 0;">
+        <div class="match-team-crest ${h?.color||'crest-0'}">${(h?.name||'?')[0]}</div>
+        <div style="font-weight:700;font-size:16px;">${h?.name||'?'}</div>
+        <div style="flex:1;text-align:center;font-size:12px;color:var(--ink3);">
+          ${formatDate(next.date)}<br><strong style="color:var(--ye);">${next.time}</strong>
+          ${next.date===dateStr(new Date())?'<span class="badge badge-green" style="margin-right:6px;">היום</span>':''}
+        </div>
+        <div style="font-weight:700;font-size:16px;">${a?.name||'?'}</div>
+        <div class="match-team-crest ${a?.color||'crest-1'}">${(a?.name||'?')[0]}</div>
+      </div>
+      <div style="text-align:center;margin-top:10px;">
+        <button class="btn btn-primary btn-sm" onclick="openMatchModal(${next.id})">⚽ הזן תוצאה</button>
+      </div>
+    `;
+  } else {
+    nextBody.innerHTML = '<div style="color:var(--ink3);font-size:13px;">כל המשחקים הושלמו! 🎉</div>';
+  }
+  // Recent results
+  const recent = T.matches.filter(m=>m.status==='done').sort((a,b)=>b.date.localeCompare(a.date)).slice(0,3);
+  document.getElementById('dash-recent-body').innerHTML = recent.length
+    ? recent.map(m=>matchCardHtml(m,true)).join('')
+    : '<div style="color:var(--ink3);font-size:13px;">אין תוצאות עדיין</div>';
+  // Mini standings (top 4)
+  const st = calcStandings().slice(0,4);
+  document.getElementById('dash-standings-mini').innerHTML = `
+    <table class="tbl"><thead><tr><th>#</th><th>קבוצה</th><th>מש׳</th><th>נק׳</th><th>הפרש</th></tr></thead>
+    <tbody>${st.map((s,i)=>`<tr class="${i===0?'top-1':i===1?'top-2':i===2?'top-3':''}">
+      <td class="rank">${i+1}</td>
+      <td class="team-name"><span class="match-team-crest ${s.team.color}" style="width:22px;height:22px;font-size:11px;display:inline-flex;margin-left:6px;">${s.team.name[0]}</span>${s.team.name}</td>
+      <td class="num">${s.played}</td>
+      <td class="pts">${s.pts}</td>
+      <td class="num ${s.gd>0?'gd-pos':s.gd<0?'gd-neg':''}">${s.gd>0?'+':''}${s.gd}</td>
+    </tr>`).join('')}</tbody></table>
+  `;
+}
+
+// ══════════════════════════════════════════════════════════════
+// STANDINGS
+// ══════════════════════════════════════════════════════════════
+function calcStandings(){
+  const stats = {};
+  T.teams.forEach(t=>{
+    stats[t.id] = {team:t,played:0,won:0,drawn:0,lost:0,gf:0,ga:0,pts:0};
+  });
+  T.matches.filter(m=>m.status==='done').forEach(m=>{
+    const h=stats[m.home], a=stats[m.away];
+    if(!h||!a)return;
+    const hs=m.homeScore||0, as=m.awayScore||0;
+    h.played++;a.played++;h.gf+=hs;h.ga+=as;a.gf+=as;a.ga+=hs;
+    if(hs>as){ h.won++;h.pts+=3;a.lost++; }
+    else if(hs<as){ a.won++;a.pts+=3;h.lost++; }
+    else{ h.drawn++;a.drawn++;h.pts++;a.pts++; }
+  });
+  return Object.values(stats).sort((a,b)=>{
+    if(b.pts!==a.pts)return b.pts-a.pts;
+    const gda=(a.gf-a.ga), gdb=(b.gf-b.ga);
+    if(gdb!==gda)return gdb-gda;
+    return b.gf-a.gf;
+  }).map(s=>({...s,gd:s.gf-s.ga}));
+}
+
+function renderStandings(){
+  const st = calcStandings();
+  // Leaders
+  const topGoals = getTopScorer('goals');
+  const topAssists = getTopScorer('assists');
+  document.getElementById('standings-leaders').innerHTML = `
+    <div class="leader-card">
+      <div class="leader-title">⚽ מלך השערים</div>
+      ${topGoals?`<div class="leader-name">${topGoals.name}</div><div class="leader-stat">${topGoals.goals} שערים · ${topGoals.team}</div>`:'<div style="color:var(--ink3);font-size:13px;">אין תוצאות עדיין</div>'}
+    </div>
+    <div class="leader-card" style="background:linear-gradient(135deg,rgba(79,195,247,.1) 0%,rgba(79,195,247,.03) 100%);border-color:rgba(79,195,247,.25);">
+      <div class="leader-title" style="color:var(--bl);">🍳 מלך הבישולים</div>
+      ${topAssists?`<div class="leader-name">${topAssists.name}</div><div class="leader-stat">${topAssists.assists} בישולים · ${topAssists.team}</div>`:'<div style="color:var(--ink3);font-size:13px;">אין תוצאות עדיין</div>'}
+    </div>
+  `;
+  // Table — like the image: #, TEAM, MP, G (goals), PTS
+  document.getElementById('standings-body').innerHTML = st.map((s,i)=>`
+    <tr class="${i===0?'top-1':i===1?'top-2':i===2?'top-3':''}" style="cursor:pointer;" onclick="openH2HForTeam(${s.team.id})" title="לחץ למפגשים ישירים">
+      <td>
+        <span style="display:inline-flex;align-items:center;justify-content:center;width:28px;height:28px;border-radius:8px;background:${i<3?['#2c3e7a','#2c3e7a','#2c3e7a'][i]:'transparent'};color:${i<3?'#fff':'var(--ink3)'};font-family:'Bebas Neue',cursive;font-size:16px;font-weight:700;">${i+1}</span>
+      </td>
+      <td style="padding:14px;">
+        <div style="display:flex;align-items:center;gap:10px;">
+          <span class="match-team-crest ${s.team.color}" style="width:36px;height:36px;font-size:15px;display:inline-flex;">${s.team.name[0]}</span>
+          <span style="font-weight:700;font-size:14px;">${s.team.name}</span>
+        </div>
+      </td>
+      <td class="num" style="font-size:15px;">${s.played}</td>
+      <td class="num" style="font-size:13px;color:var(--ink2);">${s.won}</td>
+      <td class="num" style="font-size:13px;color:var(--ink2);">${s.drawn}</td>
+      <td class="num" style="font-size:13px;color:var(--ink2);">${s.lost}</td>
+      <td class="num" style="font-size:13px;color:var(--ink2);">${s.gf}:${s.ga}</td>
+      <td style="padding:10px 14px;">${formGuideHtml(s.team.id)}</td>
+      <td class="pts" style="font-size:22px;">${s.pts}</td>
+    </tr>`).join('');
+}
+
+// ══════════════════════════════════════════════════════════════
+// MATCHES
+// ══════════════════════════════════════════════════════════════
+function renderMatches(){
+  if(!T) return;
+  // Update count sub-title
+  const done=T.matches.filter(m=>m.status==='done').length;
+  const total=T.matches.length;
+  const pending=total-done;
+  const sub=document.getElementById('matches-count-sub');
+  if(sub) sub.textContent=`${done} שוחקו · ${pending} נותרו · ${total} סה"כ`;
+  // Overdue banner
+  const overdue=getOverdueMatches();
+  const bannerEl=document.getElementById('matches-overdue-banner');
+  if(bannerEl){
+    if(overdue.length){
+      bannerEl.style.display='flex';
+      bannerEl.querySelector('.overdue-banner-text').textContent=`⚠ ${overdue.length} משחק${overdue.length>1?'ים':''} עבר${overdue.length>1?'ו':''} ותאריכ${overdue.length>1?'ם':'ם'} ועדיין ללא תוצאה — הזן עכשיו`;
+    } else { bannerEl.style.display='none'; }
+  }
+  // Round tabs
+  const rounds = [...new Set(T.matches.map(m=>m.round))].sort((a,b)=>a-b);
+  const tabsEl = document.getElementById('matches-rounds-tabs');
+  tabsEl.innerHTML = `<button class="round-tab ${_matchRoundFilter===null?'active':''}" onclick="setRoundFilter(null)">כל הסיבובים</button>` +
+    rounds.map(r=>`<button class="round-tab ${_matchRoundFilter===r?'active':''}" onclick="setRoundFilter(${r})">${getRoundLabel(r)}</button>`).join('');
+  // Filter
+  let matches = T.matches.filter(m=>{
+    if(_matchFilter==='pending') return m.status==='pending';
+    if(_matchFilter==='done') return m.status==='done';
+    return true;
+  });
+  if(_matchRoundFilter!==null) matches = matches.filter(m=>m.round===_matchRoundFilter);
+  matches = matches.sort((a,b)=>a.date.localeCompare(b.date)||a.id-b.id);
+
+  // Group by round
+  const byRound = {};
+  matches.forEach(m=>{
+    if(!byRound[m.round]) byRound[m.round]={};
+    byRound[m.round][m.id]=m;
+  });
+
+  document.getElementById('matches-list').innerHTML = Object.entries(byRound).map(([round,ms])=>`
+    <div style="margin-bottom:20px;">
+      <div style="font-size:11px;font-weight:800;letter-spacing:1.2px;text-transform:uppercase;color:var(--ink3);margin-bottom:10px;">
+        ${getRoundLabel(parseInt(round))}${Object.values(ms).every(m=>m.status==='done')?'  <span class="badge badge-green">הושלם</span>':''}
+      </div>
+      ${Object.values(ms).map(m=>matchCardHtml(m,false)).join('')}
+    </div>`).join('') || '<div class="empty-state"><div class="empty-state-icon">⚽</div><div class="empty-state-title">אין משחקים</div></div>';
+}
+
+function matchCardHtml(m, compact){
+  const h = teamById(m.home), a = teamById(m.away);
+  const isDone = m.status==='done';
+  const today = dateStr(new Date());
+  const isToday = m.date===today;
+  const isOverdue = !isDone && m.date < today;
+  return `<div class="match-card ${isDone?'completed':isToday?'pending':isOverdue?'overdue':''}" onclick="openMatchModal(${m.id})" style="position:relative;">
+    <div class="match-card-top">
+      <div class="match-teams">
+        <div class="match-team right">
+          <div class="match-team-name">${h?.name||'?'}</div>
+          <div class="match-team-crest ${h?.color||'crest-0'}">${(h?.name||'?')[0]}</div>
+        </div>
+        <div class="match-score ${isDone?'completed':''}">${isDone?m.homeScore+' : '+m.awayScore:'—'}</div>
+        <div class="match-team">
+          <div class="match-team-crest ${a?.color||'crest-1'}">${(a?.name||'?')[0]}</div>
+          <div class="match-team-name">${a?.name||'?'}</div>
+        </div>
+      </div>
+    </div>
+    <div class="match-meta">
+      <span>📅 ${formatDate(m.date)}</span>
+      <span>🕐 ${m.time}</span>
+      ${isToday?'<span class="badge badge-green">היום</span>':''}
+      ${isOverdue?'<span class="badge badge-red" style="animation:pulse 1.5s infinite;">⚠ לא הוזנה תוצאה</span>':''}
+      ${isDone?'<span class="badge badge-green">הושלם</span>':isOverdue?'':'<span class="badge badge-yellow">ממתין</span>'}
+      ${isDone?`<button class="btn btn-secondary btn-sm" onclick="event.stopPropagation();showMatchProtocol(${m.id})" style="padding:3px 10px;font-size:11px;">📋 סיכום</button>`:''}
+      ${isDone&&(m.goalDetails||m.goals)?.length?`<span style="max-width:400px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">⚽ ${(m.goalDetails||m.goals).map(g=>{
+        const name=(g.scorer||g.name)||'—';
+        const team=teamById(g.team)?.name||'';
+        const assist=g.assist?' 🍳'+g.assist:'';
+        const og=g.og?'🔄 שע״צ ':'';
+        return og+name+assist+' ('+team+')';
+      }).join(' · ')}</span>`:''}
+    </div>
+  </div>`;
+}
+
+function filterMatches(f){
+  _matchFilter = f;
+  ['all','pending','done'].forEach(id=>{
+    document.getElementById('filter-'+id).classList.toggle('active',id===f);
+  });
+  renderMatches();
+}
+
+function setRoundFilter(r){
+  _matchRoundFilter = r;
+  renderMatches();
+}
+
+// ══════════════════════════════════════════════════════════════
+// MATCH MODAL
+// ══════════════════════════════════════════════════════════════
+function openMatchModal(matchId){
+  const m = T.matches.find(x=>x.id===matchId);
+  if(!m) return;
+  _currentMatchId = matchId;
+  const h = teamById(m.home), a = teamById(m.away);
+  document.getElementById('mm-title').textContent = (h?.name||'?')+' נגד '+(a?.name||'?');
+  document.getElementById('mm-sub').textContent = 'סיבוב '+m.round+' · '+formatDate(m.date)+' · '+m.time;
+  document.getElementById('mm-home-name').textContent = h?.name||'?';
+  document.getElementById('mm-away-name').textContent = a?.name||'?';
+  document.getElementById('mm-home-name-small').textContent = h?.name||'?';
+  document.getElementById('mm-away-name-small').textContent = a?.name||'?';
+  document.getElementById('mm-home-name-assist').textContent = h?.name||'?';
+  document.getElementById('mm-away-name-assist').textContent = a?.name||'?';
+  _homeScore = m.homeScore!==null?m.homeScore:0;
+  _awayScore = m.awayScore!==null?m.awayScore:0;
+  document.getElementById('mm-home-score').value = _homeScore;
+  document.getElementById('mm-away-score').value = _awayScore;
+  document.getElementById('mm-home-score-display').textContent = _homeScore;
+  document.getElementById('mm-away-score-display').textContent = _awayScore;
+  // Init _goals from saved match data (new per-goal-row format)
+  _goals = [];
+  // Rebuild from goals+assists arrays (each goal object: {team, name, assist?, og?})
+  if(m.goalDetails && m.goalDetails.length){
+    // New format: goalDetails array
+    _goals = m.goalDetails.map(g=>({
+      side: g.team===m.home?'home':'away',
+      scorer: g.scorer||'',
+      assist: g.assist||'',
+      og: g.og||false,
+    }));
+  } else if(m.goals && m.goals.length){
+    // Legacy format: reconstruct from goals+assists
+    const homeG = m.goals.filter(g=>g.team===m.home);
+    const awayG = m.goals.filter(g=>g.team===m.away);
+    homeG.forEach((g,i)=>{
+      const assist = (m.assists||[]).filter(a=>a.team===m.home)[i];
+      _goals.push({side:'home',scorer:g.name||'',assist:assist?.name||'',og:false});
+    });
+    awayG.forEach((g,i)=>{
+      const assist = (m.assists||[]).filter(a=>a.team===m.away)[i];
+      _goals.push({side:'away',scorer:g.name||'',assist:assist?.name||'',og:false});
+    });
+  } else {
+    // No saved data — generate empty rows based on score
+    for(let i=0;i<_homeScore;i++) _goals.push({side:'home',scorer:'',assist:'',og:false});
+    for(let i=0;i<_awayScore;i++) _goals.push({side:'away',scorer:'',assist:'',og:false});
+  }
+  renderGoalRows();
+  // Legacy chips for backward compat
+  _chips = {home:{goal:[],assist:[]},away:{goal:[],assist:[]}};
+  document.getElementById('mm-date').value = m.date;
+  document.getElementById('mm-clear-btn').style.display = m.status==='done'?'':'none';
+  document.getElementById('mm-reschedule-chk').checked = false;
+  document.getElementById('mm-reschedule-row').style.display = 'none';
+  document.getElementById('mm-new-date').value = '';
+  // Goals
+  // chips initialized above
+  openModal('match-modal');
+}
+
+function renderGoalEntries(side, goals){ /* handled by chips */ }
+function renderAssistEntries(side, assists){ /* handled by chips */ }
+function addGoalEntry(side){ /* legacy — not used */ }
+function addAssistEntry(side){ /* legacy — not used */ }
+
+function getGoalNames(side, m){
+  // Now handled by _goals / saveMatchResult directly
+  return [];
+}
+function getAssistNames(side, m){
+  return [];
+}
+
+function toggleReschedule(){
+  document.getElementById('mm-reschedule-row').style.display =
+    document.getElementById('mm-reschedule-chk').checked ? '' : 'none';
+}
+
+function saveMatchResult(){
+  const m = T.matches.find(x=>x.id===_currentMatchId);
+  if(!m) return;
+  // Reschedule?
+  if(document.getElementById('mm-reschedule-chk').checked){
+    const nd = document.getElementById('mm-new-date').value;
+    if(!nd){ toast('בחר תאריך חדש'); return; }
+    m.date = nd;
+    m.status = 'pending';
+    m.homeScore = null; m.awayScore = null;
+    m.goals = []; m.assists = [];
+    closeModal('match-modal');
+    saveData(); refreshAll(); toast('✓ המשחק נדחה');
+    return;
+  }
+  // Date override
+  const overrideDate = document.getElementById('mm-date').value;
+  if(overrideDate) m.date = overrideDate;
+  // Scores
+  const hs = parseInt(document.getElementById('mm-home-score').value)||0;
+  const as = parseInt(document.getElementById('mm-away-score').value)||0;
+  m.homeScore = hs; m.awayScore = as; m.status = 'done';
+  // Save new per-goal format
+  // First flush any open inputs
+  _goals.forEach((g,i)=>{
+    const sinp=document.getElementById('gr-scorer-'+i);
+    const ainp=document.getElementById('gr-assist-'+i);
+    if(sinp) g.scorer=sinp.value.trim();
+    if(ainp) g.assist=ainp.value.trim();
+  });
+  m.goalDetails = _goals.map(g=>({
+    team: g.side==='home'?m.home:m.away,
+    scorer: g.scorer||'',
+    assist: g.assist||'',
+    og: g.og||false,
+  }));
+  // Also update legacy goals/assists for backward compat
+  m.goals = _goals
+    .filter(g=>g.scorer)
+    .map(g=>({name:g.scorer, team:g.side==='home'?m.home:m.away}));
+  m.assists = _goals
+    .filter(g=>g.assist)
+    .map(g=>({name:g.assist, team:g.side==='home'?m.home:m.away}));
+  // Update scorer stats
+  rebuildScorers();
+  closeModal('match-modal');
+  saveData(); refreshAll(); toast('✓ התוצאה נשמרה');
+}
+
+function clearMatchResult(){
+  const m = T.matches.find(x=>x.id===_currentMatchId);
+  if(!m) return;
+  m.status='pending'; m.homeScore=null; m.awayScore=null; m.goals=[]; m.assists=[];
+  rebuildScorers();
+  closeModal('match-modal');
+  saveData(); refreshAll(); toast('תוצאה נמחקה');
+}
+
+// ══════════════════════════════════════════════════════════════
+// SCORERS
+// ══════════════════════════════════════════════════════════════
+function rebuildScorers(){
+  T.scorers = {};
+  T.matches.filter(m=>m.status==='done').forEach(m=>{
+    const goals = m.goalDetails||m.goals||[];
+    const assists = m.goalDetails
+      ? m.goalDetails.filter(g=>g.assist).map(g=>({name:g.assist,team:g.team}))
+      : (m.assists||[]);
+
+    goals.forEach(g=>{
+      const name = g.scorer||g.name;
+      if(!name) return;
+      // For own goals, credit the opposing team's scorer counts
+      const teamId = g.og ? (g.team===m.home?m.away:m.home) : g.team;
+      const teamName = teamById(teamId)?.name||'?';
+      if(!T.scorers[name]) T.scorers[name]={name,goals:0,assists:0,ownGoals:0,team:teamName};
+      if(g.og) T.scorers[name].ownGoals=(T.scorers[name].ownGoals||0)+1;
+      else T.scorers[name].goals++;
+    });
+    assists.forEach(g=>{
+      const name = g.assist||g.name;
+      if(!name) return;
+      const teamName = teamById(g.team)?.name||'?';
+      if(!T.scorers[name]) T.scorers[name]={name,goals:0,assists:0,ownGoals:0,team:teamName};
+      T.scorers[name].assists++;
+    });
+  });
+}
+
+function getTopScorer(field){
+  const all = Object.values(T.scorers||{}).filter(s=>s[field]>0).sort((a,b)=>b[field]-a[field]);
+  return all[0]||null;
+}
+
+function renderScorers(){
+  rebuildScorers();
+  const allScorers = Object.values(T.scorers||{}).filter(s=>s.goals>0).sort((a,b)=>b.goals-a.goals);
+  const allAssists = Object.values(T.scorers||{}).filter(s=>s.assists>0).sort((a,b)=>b.assists-a.assists);
+  const maxG = allScorers[0]?.goals||1;
+  const maxA = allAssists[0]?.assists||1;
+
+  function scorerHtml(arr, field, maxVal){
+    if(!arr.length) return '<div style="color:var(--ink3);font-size:13px;">אין נתונים עדיין</div>';
+    return arr.slice(0,10).map((s,i)=>`
+      <div class="scorer-row">
+        <div class="scorer-rank ${i===0?'gold':i===1?'silver':i===2?'bronze':''}">${i+1}</div>
+        <div class="scorer-info">
+          <div class="scorer-name">${s.name}</div>
+          <div class="scorer-team">${s.team}</div>
+          <div class="scorer-bar"><div class="scorer-bar-fill" style="width:${Math.round(s[field]/maxVal*100)}%"></div></div>
+        </div>
+        <div class="scorer-count">${s[field]}</div>
+      </div>`).join('');
+  }
+  document.getElementById('scorers-goals').innerHTML = scorerHtml(allScorers,'goals',maxG);
+  document.getElementById('scorers-assists').innerHTML = scorerHtml(allAssists,'assists',maxA);
+}
+
+// ══════════════════════════════════════════════════════════════
+// CALENDAR
+// ══════════════════════════════════════════════════════════════
+function renderCalendar(){
+  const y=_calYear, m=_calMonth;
+  const title = new Date(y,m,1).toLocaleDateString('he-IL',{month:'long',year:'numeric'});
+  document.getElementById('cal-title').textContent = title;
+  const first = new Date(y,m,1).getDay(); // 0=Sun
+  const daysInMonth = new Date(y,m+1,0).getDate();
+  const daysInPrev = new Date(y,m,0).getDate();
+  const today = dateStr(new Date());
+  const grid = document.getElementById('cal-grid');
+  // Remove old day cells (keep the header labels)
+  const headerCells = grid.querySelectorAll('.cal-day-name');
+  grid.innerHTML = '';
+  headerCells.forEach(c=>grid.appendChild(c));
+
+  // Previous month filler
+  for(let i=0;i<first;i++){
+    const d = document.createElement('div');
+    d.className='cal-day other-month';
+    d.innerHTML=`<div class="cal-day-num">${daysInPrev-first+i+1}</div>`;
+    grid.appendChild(d);
+  }
+  // This month
+  for(let day=1;day<=daysInMonth;day++){
+    const ds = `${y}-${String(m+1).padStart(2,'0')}-${String(day).padStart(2,'0')}`;
+    const blocked = isBlocked(ds);
+    const dayMatches = (T?.matches||[]).filter(mx=>mx.date===ds);
+    const d = document.createElement('div');
+    d.className='cal-day'+(blocked?' blocked':dayMatches.length?' has-match':'')+(ds===today?' today':'');
+    const dots = dayMatches.map(mx=>`<div class="cal-dot ${mx.status==='done'?'done':''}"></div>`).join('');
+    d.innerHTML=`<div class="cal-day-num">${day}</div><div class="cal-dots">${dots}</div>`;
+    if(dayMatches.length) d.title = dayMatches.map(mx=>`${teamById(mx.home)?.name} vs ${teamById(mx.away)?.name}`).join('\n');
+    if(!blocked && dayMatches.length) d.onclick=()=>{ _matchRoundFilter=null; showView('matches'); /* TODO filter by date */ };
+    grid.appendChild(d);
+  }
+  // Next month filler
+  const total = first+daysInMonth;
+  const remaining = total%7===0?0:7-(total%7);
+  for(let i=1;i<=remaining;i++){
+    const d=document.createElement('div');
+    d.className='cal-day other-month';
+    d.innerHTML=`<div class="cal-day-num">${i}</div>`;
+    grid.appendChild(d);
+  }
+}
+
+function calPrev(){ if(_calMonth===0){_calMonth=11;_calYear--;}else _calMonth--; renderCalendar(); }
+function calNext(){ if(_calMonth===11){_calMonth=0;_calYear++;}else _calMonth++; renderCalendar(); }
+
+// ══════════════════════════════════════════════════════════════
+// BLOCKED DAYS
+// ══════════════════════════════════════════════════════════════
+function addBlockedDay(){
+  const start = document.getElementById('block-start').value;
+  if(!start){ toast('בחר תאריך'); return; }
+  const end = document.getElementById('block-end').value;
+  const reason = document.getElementById('block-reason').value.trim();
+  if(!T.blockedDays) T.blockedDays=[];
+  T.blockedDays.push({start, end:end||null, reason});
+  document.getElementById('block-start').value='';
+  document.getElementById('block-end').value='';
+  document.getElementById('block-reason').value='';
+  saveData(); renderBlockedDays(); renderCalendar();
+  toast('✓ יום חסום נוסף');
+}
+
+function removeBlocked(i){
+  T.blockedDays.splice(i,1);
+  saveData(); renderBlockedDays(); renderCalendar();
+}
+
+function renderBlockedDays(){
+  const el = document.getElementById('blocked-list');
+  if(!el) return;
+  const bd = T?.blockedDays||[];
+  if(!bd.length){ el.innerHTML='<div style="color:var(--ink3);font-size:13px;">אין ימים חסומים</div>'; return; }
+  el.innerHTML = bd.map((b,i)=>`
+    <div class="blocked-chip" style="display:flex;">
+      <span>🚫 ${formatDate(b.start)}${b.end?' – '+formatDate(b.end):''}${b.reason?' · '+b.reason:''}</span>
+      <button onclick="removeBlocked(${i})">✕</button>
+    </div>`).join('');
+}
+
+// ══════════════════════════════════════════════════════════════
+// SETTINGS
+// ══════════════════════════════════════════════════════════════
+function renderSettings(){
+  if(!T){ document.getElementById('settings-body').innerHTML='<div style="color:var(--ink3);">אין טורניר פעיל</div>'; return; }
+  setTimeout(()=>{ renderRosterChips(); renderTeamRosters(); }, 50);
+  document.getElementById('settings-body').innerHTML = `
+    <div class="form-row">
+      <div class="form-group" style="margin-bottom:16px;">
+        <label class="form-label">שם הטורניר</label>
+        <input type="text" class="form-input" id="set-name" value="${T.name}">
+      </div>
+      <div class="form-group" style="margin-bottom:16px;">
+        <label class="form-label">מין השחקנים</label>
+        <select class="form-input" id="set-gender">
+          <option value="boys" ${T.gender==='boys'?'selected':''}>בנים</option>
+          <option value="girls" ${T.gender==='girls'?'selected':''}>בנות</option>
+          <option value="mixed" ${T.gender==='mixed'?'selected':''}>מעורב</option>
+        </select>
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="form-group" style="margin-bottom:16px;">
+        <label class="form-label">שעת משחקים</label>
+        <input type="time" class="form-input" id="set-time" value="${T.matchTime}">
+      </div>
+      <div class="form-group" style="margin-bottom:16px;">
+        <label class="form-label">מספר מפגשים בין קבוצות</label>
+        <div style="padding:9px 12px;background:var(--bg3);border:1px solid var(--bd2);border-radius:var(--rs);font-size:14px;color:var(--ink2);">${T.legs||1}× ${T.legs===2?'(הלוך וחזור)':T.legs===3?'(שלוש סבבים)':''}</div>
+        <div style="font-size:11px;color:var(--ink3);margin-top:4px;">ניתן לשנות ע"י יצירת טורניר חדש</div>
+      </div>
+    </div>
+    <div class="form-group" style="margin-bottom:20px;">
+      <label class="form-label">שמות קבוצות</label>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-top:6px;">
+        ${T.teams.map((t,i)=>`<input type="text" class="form-input" id="set-team-${i}" value="${t.name}">`).join('')}
+      </div>
+    </div>
+    <button class="btn btn-primary" onclick="saveSettings()">✓ שמור שינויים</button>
+  `;
+}
+
+function saveSettings(){
+  T.name = document.getElementById('set-name')?.value?.trim()||T.name;
+  T.gender = document.getElementById('set-gender')?.value||T.gender;
+  T.matchTime = document.getElementById('set-time')?.value||T.matchTime;
+  T.teams.forEach((t,i)=>{ const v=document.getElementById('set-team-'+i)?.value?.trim(); if(v) t.name=v; });
+  document.getElementById('hdr-tournament-name').textContent = T.name;
+  const genderBadge = document.getElementById('hdr-gender-badge');
+  if(genderBadge){
+    const gMap={boys:'⚽ בנים',girls:'⚽ בנות',mixed:'⚽ מעורב'};
+    genderBadge.innerHTML = T.gender?`<span class="gender-badge">${gMap[T.gender]||T.gender}</span>`:'';
+  }
+  saveData(); refreshAll(); toast('✓ הגדרות נשמרו');
+}
+
+function deleteTournament(){
+  if(!confirm('למחוק את הטורניר? כל הנתונים יאבדו.'))return;
+  // Remove from allTournaments
+  const all = getAllTournaments().filter(t=>t.id!==T?.id);
+  localStorage.setItem(LS_ALL, JSON.stringify(all));
+  localStorage.removeItem(LS_CUR);
+  T=null;
+  document.getElementById('hdr-tournament-name').textContent='';
+  document.getElementById('hdr-gender-badge').innerHTML='';
+  document.getElementById('sb-tournament-section').style.display='none';
+  document.getElementById('no-tournament-state').style.display='';
+  document.getElementById('tournament-dashboard').style.display='none';
+  renderHomeView();
+  showView('home');
+  toast('הטורניר נמחק');
+}
+
+// ══════════════════════════════════════════════════════════════
+// VIEWER PAGE
+// ══════════════════════════════════════════════════════════════
+function openViewer(){
+  if(!T){ toast('צור טורניר תחילה'); return; }
+  const html = buildViewerHtml();
+  const w = window.open('','_blank');
+  w.document.write(html);
+  w.document.close();
+}
+
+function buildViewerHtml(){
+  const st = calcStandings();
+  const upcoming = T.matches.filter(m=>m.status==='pending').sort((a,b)=>a.date.localeCompare(b.date)).slice(0,6);
+  const recent = T.matches.filter(m=>m.status==='done').sort((a,b)=>b.date.localeCompare(a.date)).slice(0,5);
+  const topGoals = getTopScorer('goals');
+  const topAssists = getTopScorer('assists');
+  scheduledDates = T.matches.map(m=>m.date).filter(Boolean).sort();
+  const done = T.matches.filter(m=>m.status==='done').length;
+  const total = T.matches.length;
+  pct = total>0?Math.round(done/total*100):0;
+
+  return `<!DOCTYPE html><html lang="he" dir="rtl"><head>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>⚽ ${T.name}</title>
+  <link href="https://fonts.googleapis.com/css2?family=Heebo:wght@400;600;700;800;900&family=Bebas+Neue&display=swap" rel="stylesheet">
+  <style>
+    *{box-sizing:border-box;margin:0;padding:0;}
+    body{font-family:'Heebo',sans-serif;background:#0a0c10;color:#f0f2ff;min-height:100vh;font-size:15px;}
+    header{background:#111420;border-bottom:1px solid rgba(255,255,255,.08);padding:20px 24px;display:flex;align-items:center;gap:12px;}
+    .logo{font-family:'Bebas Neue',cursive;font-size:28px;letter-spacing:2px;}
+    .badge{background:#00e676;color:#000;padding:2px 8px;border-radius:4px;font-size:14px;font-weight:900;}
+    .main{max-width:900px;margin:0 auto;padding:24px 16px;}
+    h2{font-family:'Bebas Neue',cursive;font-size:22px;letter-spacing:1px;color:rgba(240,242,255,.5);margin-bottom:14px;margin-top:28px;}
+    .card{background:#141720;border:1px solid rgba(255,255,255,.08);border-radius:14px;overflow:hidden;margin-bottom:16px;}
+    .card-head{padding:14px 20px;border-bottom:1px solid rgba(255,255,255,.06);font-weight:700;font-size:15px;}
+    table{width:100%;border-collapse:collapse;font-size:13px;}
+    th{padding:10px 14px;text-align:right;font-size:10px;font-weight:800;letter-spacing:.8px;text-transform:uppercase;color:rgba(240,242,255,.3);border-bottom:1px solid rgba(255,255,255,.06);}
+    td{padding:12px 14px;border-bottom:1px solid rgba(255,255,255,.04);vertical-align:middle;}
+    .rk{font-family:'Bebas Neue',cursive;font-size:18px;color:rgba(240,242,255,.3);width:32px;text-align:center;}
+    .pts{font-family:'Bebas Neue',cursive;font-size:22px;color:#00e676;}
+    .match-row{display:flex;align-items:center;gap:12px;padding:12px 20px;border-bottom:1px solid rgba(255,255,255,.04);}
+    .match-team-name{font-weight:700;font-size:15px;flex:1;}
+    .match-team-name.right{text-align:right;}
+    .score-box{background:#1c2030;border:1px solid rgba(255,255,255,.1);border-radius:8px;padding:4px 14px;font-family:'Bebas Neue',cursive;font-size:24px;letter-spacing:2px;color:#00e676;min-width:64px;text-align:center;}
+    .score-box.pending{color:rgba(255,255,255,.3);}
+    .match-date{font-size:11px;color:rgba(240,242,255,.3);text-align:center;min-width:90px;}
+    .hero-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:0;}
+    .hero-card{background:linear-gradient(135deg,rgba(0,230,118,.15) 0%,rgba(0,230,118,.04) 100%);border:1px solid rgba(0,230,118,.2);border-radius:14px;padding:18px;}
+    .hero-card.assist{background:linear-gradient(135deg,rgba(79,195,247,.15) 0%,rgba(79,195,247,.04) 100%);border-color:rgba(79,195,247,.2);}
+    .hero-label{font-size:10px;font-weight:800;letter-spacing:1.5px;text-transform:uppercase;color:#00e676;margin-bottom:6px;}
+    .hero-label.assist{color:#4fc3f7;}
+    .hero-name{font-family:'Bebas Neue',cursive;font-size:28px;letter-spacing:1px;}
+    .hero-stat{font-size:13px;color:rgba(240,242,255,.5);}
+    .crest{width:28px;height:28px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-size:13px;font-weight:900;margin-left:8px;flex-shrink:0;}
+    ${TEAM_COLORS.map((c,i)=>{
+      const cl = ['#00e676','#4fc3f7','#ffd600','#ff4444','#b388ff','#ff9800','#f06292','#4dd0e1','#aed581','#ffb74d'][i];
+      return `.tc-${i}{background:${cl}22;color:${cl};}`;
+    }).join('\n')}
+  </style></head><body>
+  <header>
+    <div class="logo">⚽ ${T.name}</div>
+    <span class="badge">${T.grade}׳</span>
+    <div style="margin-right:auto;display:flex;gap:16px;font-size:12px;color:rgba(240,242,255,.4);align-items:center;">
+      <span>${formatDate(scheduledDates[0]||T.startDate||'')} → ${formatDate(scheduledDates[scheduledDates.length-1]||'')}</span>
+      <span>${done}/${total} משחקים (${pct}%)</span>
+    </div>
+  </header>
+  <div class="main">
+    <!-- Heroes -->
+    ${(topGoals||topAssists)?`<h2>🥇 מובילים</h2><div class="hero-grid">
+      <div class="hero-card">${topGoals?`<div class="hero-label">⚽ מלך השערים</div><div class="hero-name">${topGoals.name}</div><div class="hero-stat">${topGoals.goals} שערים · ${topGoals.team}</div>`:'<div class="hero-stat">אין נתונים</div>'}</div>
+      <div class="hero-card assist">${topAssists?`<div class="hero-label assist">🍳 מלך הבישולים</div><div class="hero-name">${topAssists.name}</div><div class="hero-stat">${topAssists.assists} בישולים · ${topAssists.team}</div>`:'<div class="hero-stat">אין נתונים</div>'}</div>
+    </div>`:''}
+
+    <!-- Standings -->
+    <h2>📊 טבלת ליגה</h2>
+    <div class="card"><table>
+      <thead><tr><th>#</th><th>קבוצה</th><th>מש׳</th><th>נצ׳</th><th>ת׳</th><th>הפ׳</th><th>הפרש</th><th>נק׳</th></tr></thead>
+      <tbody>${st.map((s,i)=>`<tr>
+        <td class="rk">${i+1}</td>
+        <td style="font-weight:700;"><span class="crest tc-${s.team.id%10}">${s.team.name[0]}</span>${s.team.name}</td>
+        <td style="text-align:center;">${s.played}</td><td style="text-align:center;">${s.won}</td>
+        <td style="text-align:center;">${s.drawn}</td><td style="text-align:center;">${s.lost}</td>
+        <td style="text-align:center;color:${s.gd>0?'#00e676':s.gd<0?'#ff4444':''};">${s.gd>0?'+':''}${s.gd}</td>
+        <td class="pts">${s.pts}</td>
+      </tr>`).join('')}</tbody>
+    </table></div>
+
+    <!-- Upcoming -->
+    ${upcoming.length?`<h2>📅 משחקים קרובים</h2><div class="card">
+      ${upcoming.map(m=>{
+        const h=teamById(m.home),a=teamById(m.away);
+        return `<div class="match-row">
+          <div class="match-team-name right">${h?.name||'?'}</div>
+          <div class="score-box pending">—</div>
+          <div class="match-team-name">${a?.name||'?'}</div>
+          <div class="match-date">${formatDate(m.date)}<br>${m.time}</div>
+        </div>`;
+      }).join('')}</div>`:''}
+
+    <!-- Recent results -->
+    ${recent.length?`<h2>✅ תוצאות אחרונות</h2><div class="card">
+      ${recent.map(m=>{
+        const h=teamById(m.home),a=teamById(m.away);
+        const goalSummary=(m.goalDetails||m.goals||[]).map(g=>{
+          const n=g.scorer||g.name||'—';
+          return (g.og?'🔄':'⚽')+n+(g.assist?' 🍳'+g.assist:'');
+        }).join(' · ');
+        return `<div class="match-row">
+          <div class="match-team-name right">${h?.name||'?'}</div>
+          <div class="score-box">${m.homeScore} : ${m.awayScore}</div>
+          <div class="match-team-name">${a?.name||'?'}</div>
+          <div class="match-date">${formatDate(m.date)}${goalSummary?`<br><span style="font-size:10px;color:rgba(240,242,255,.4);">${goalSummary}</span>`:''}</div>
+        </div>`;
+      }).join('')}</div>`:''}
+
+  </div>
+  <div style="text-align:center;padding:24px;font-size:12px;color:rgba(240,242,255,.2);">TourneyGrade · SportGrade Suite</div>
+
+<!-- ══ PROTOCOL MODAL ══ -->
+<div class="modal-bg" id="protocol-modal">
+<div class="modal" style="max-width:480px;">
+  <div class="modal-title">📋 סיכום משחק</div>
+  <div id="protocol-modal-body"></div>
+  <div class="modal-actions">
+    <button class="btn btn-secondary" onclick="closeModal('protocol-modal')">סגור</button>
+  </div>
+</div>
+</div>
+</body></html>`;
+}
+
+// ══════════════════════════════════════════════════════════════
+// UTILS
+// ══════════════════════════════════════════════════════════════
+function teamById(id){ return T?.teams?.find(t=>t.id===id); }
+function formatDate(ds){
+  if(!ds)return '';
+  try{ return new Date(ds+'T12:00:00').toLocaleDateString('he-IL',{weekday:'short',day:'numeric',month:'short'}); }
+  catch(e){ return ds; }
+}
+
+function showView(name){
+  document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
+  document.getElementById('view-'+name)?.classList.add('active');
+  document.querySelectorAll('.sb-item').forEach(s=>s.classList.remove('active'));
+  document.getElementById('sb-'+name)?.classList.add('active');
+  if(name==='settings') renderSettings();
+  if(name==='scorers'){ showView('standings'); setStandingsTab('scorers'); return; }
+  if(name==='standings'){ setStandingsTab(_standingsTab||'overall'); }
+  if(name==='calendar'){ _calYear=new Date().getFullYear(); _calMonth=new Date().getMonth(); renderCalendar(); }
+  window.scrollTo(0,0);
+}
+
+function openModal(id){ document.getElementById(id).classList.add('open'); }
+function closeModal(id){ document.getElementById(id).classList.remove('open'); }
+function openNewTournament(){
+  // Full reset of the creation form
+  document.getElementById('nt-name').value='';
+  document.getElementById('nt-teams-count').value='6';
+  const lbl=document.getElementById('nt-teams-count-label');
+  if(lbl) lbl.textContent='6';
+  const bar=document.getElementById('nt-teams-bar');
+  if(bar) bar.style.width='27%';
+  document.getElementById('nt-grade').value='ח';
+  document.getElementById('nt-type').value='league';
+  document.getElementById('nt-gender').value='boys';
+  document.getElementById('nt-legs').value='1';
+  document.getElementById('nt-match-time').value='10:00';
+  document.getElementById('nt-start-date').valueAsDate=new Date();
+  // Uncheck all days then check Mon+Wed default
+  document.querySelectorAll('#nt-days input').forEach(cb=>{
+    cb.checked = ['1','3'].includes(cb.value);
+  });
+  // Clear team names grid completely — generateTeamNames will repopulate
+  const grid=document.getElementById('team-names-grid');
+  if(grid) grid.innerHTML='';
+  generateTeamNames();
+  openModal('new-tournament-modal');
+}
+
+let _tt;
+function toast(msg){
+  const el=document.getElementById('toast');
+  el.textContent=msg; el.classList.add('show');
+  clearTimeout(_tt); _tt=setTimeout(()=>el.classList.remove('show'),3000);
+}
+
+function refreshAll(){
+  renderDashboard(); renderStandings(); renderMatches(); renderCalendar(); renderScorers();
+}
+
+// ── Close modals on backdrop click ──
+document.querySelectorAll('.modal-bg').forEach(bg=>{
+  bg.addEventListener('click', e=>{ if(e.target===bg) bg.classList.remove('open'); });
+});
+
+// ── Init ──
+init();
+
+// ══ STANDINGS TABS ══════════════════════════════════════════
+let _standingsTab = 'overall';
+function setStandingsTab(tab){
+  _standingsTab = tab;
+  ['overall','scorers','assists','goals'].forEach(t=>{
+    document.getElementById('stab-'+t).classList.toggle('active', t===tab);
+    const cont = document.getElementById('stab-content-'+t);
+    if(cont) cont.style.display = t===tab?'':'none';
+  });
+  if(tab==='scorers') renderStScorers();
+  if(tab==='assists') renderStAssists();
+  if(tab==='goals') renderGoalBalance();
+}
+
+function renderStScorers(){
+  rebuildScorers();
+  const arr = Object.values(T.scorers||{}).filter(s=>s.goals>0).sort((a,b)=>b.goals-a.goals);
+  const max = arr[0]?.goals||1;
+  document.getElementById('st-scorers-body').innerHTML = arr.length
+    ? arr.slice(0,20).map((s,i)=>`
+        <div class="scorer-tbl-row">
+          <div class="scorer-tbl-rank ${i===0?'g':i===1?'s':i===2?'b':''}">${i+1}</div>
+          <div>
+            <div class="scorer-name">${s.name}${s.ownGoals?` <span style="font-size:10px;color:var(--re);">(${s.ownGoals} שע״צ)</span>`:''}</div>
+            <div class="scorer-team">${s.team}</div>
+            <div class="scorer-bar" style="margin-top:5px;"><div class="scorer-bar-fill" style="width:${Math.round(s.goals/max*100)}%"></div></div>
+          </div>
+          <div class="scorer-tbl-num">${s.goals}</div>
+        </div>`)
+        .join('')
+    : '<div style="color:var(--ink3);font-size:13px;">אין נתונים עדיין</div>';
+}
+
+function renderStAssists(){
+  rebuildScorers();
+  const arr = Object.values(T.scorers||{}).filter(s=>s.assists>0).sort((a,b)=>b.assists-a.assists);
+  const max = arr[0]?.assists||1;
+  document.getElementById('st-assists-body').innerHTML = arr.length
+    ? arr.slice(0,20).map((s,i)=>`
+        <div class="scorer-tbl-row">
+          <div class="scorer-tbl-rank ${i===0?'g':i===1?'s':i===2?'b':''}">${i+1}</div>
+          <div>
+            <div class="scorer-name">${s.name}</div>
+            <div class="scorer-team">${s.team}</div>
+            <div class="scorer-bar" style="margin-top:5px;"><div class="scorer-bar-fill" style="background:var(--bl);width:${Math.round(s.assists/max*100)}%"></div></div>
+          </div>
+          <div class="scorer-tbl-num" style="color:var(--bl);">${s.assists}</div>
+        </div>`)
+        .join('')
+    : '<div style="color:var(--ink3);font-size:13px;">אין נתונים עדיין</div>';
+}
+
+function renderGoalBalance(){
+  const st = calcStandings();
+  const maxGF = Math.max(...st.map(s=>s.gf),1);
+  const maxGA = Math.max(...st.map(s=>s.ga),1);
+  const maxAll = Math.max(maxGF, maxGA, 1);
+  document.getElementById('goals-balance-body').innerHTML = st.map((s,i)=>`
+    <tr>
+      <td class="rank">${i+1}</td>
+      <td class="team-name">
+        <span class="match-team-crest ${s.team.color}" style="width:24px;height:24px;font-size:11px;display:inline-flex;margin-left:6px;">${s.team.name[0]}</span>
+        ${s.team.name}
+      </td>
+      <td class="num gd-pos">${s.gf}</td>
+      <td class="num gd-neg">${s.ga}</td>
+      <td class="num ${s.gd>0?'gd-pos':s.gd<0?'gd-neg':''}">${s.gd>0?'+':''}${s.gd}</td>
+      <td style="padding:10px 14px;">
+        <div style="display:flex;align-items:center;gap:6px;">
+          <span style="font-size:11px;color:var(--gr);min-width:24px;text-align:center;">${s.gf}</span>
+          <div style="flex:1;position:relative;height:8px;background:var(--bg3);border-radius:4px;overflow:hidden;">
+            <div style="position:absolute;left:0;top:0;bottom:0;width:${Math.round(s.gf/maxAll*100)}%;background:var(--gr);border-radius:4px;opacity:.7;"></div>
+          </div>
+          <div style="flex:1;position:relative;height:8px;background:var(--bg3);border-radius:4px;overflow:hidden;">
+            <div style="position:absolute;right:0;top:0;bottom:0;width:${Math.round(s.ga/maxAll*100)}%;background:var(--re);border-radius:4px;opacity:.7;"></div>
+          </div>
+          <span style="font-size:11px;color:var(--re);min-width:24px;text-align:center;">${s.ga}</span>
+        </div>
+      </td>
+    </tr>`).join('');
+}
+
+// ══ SCORE +/- BUTTONS ═══════════════════════════════════════
+let _homeScore = 0, _awayScore = 0;
+function adjScore(side, delta){
+  if(side==='home'){
+    _homeScore = Math.max(0, _homeScore+delta);
+    document.getElementById('mm-home-score-display').textContent = _homeScore;
+    document.getElementById('mm-home-score').value = _homeScore;
+  } else {
+    _awayScore = Math.max(0, _awayScore+delta);
+    document.getElementById('mm-away-score-display').textContent = _awayScore;
+    document.getElementById('mm-away-score').value = _awayScore;
+  }
+  syncGoalRowsToScore();
+}
+
+// ══ AUTOCOMPLETE ENGINE ══════════════════════════════════════
+let _acFocusIdx = -1;
+
+function getRoster(){
+  return (T?.roster||[]);
+}
+
+function acSuggest(inp, listId){
+  const q = inp.value.trim().toLowerCase();
+  const list = document.getElementById(listId);
+  if(!q){ list.classList.remove('open'); return; }
+  const roster = getRoster();
+  const matches = roster.filter(n=>n.toLowerCase().includes(q)).slice(0,8);
+  if(!matches.length){ list.classList.remove('open'); return; }
+  _acFocusIdx = -1;
+  list.innerHTML = matches.map((n,i)=>
+    `<div class="ac-item" data-name="${n}" onmousedown="acSelect(event,'${inp.id}')">${n}</div>`
+  ).join('');
+  list.classList.add('open');
+}
+
+function acSelect(e, inputId){
+  e.preventDefault();
+  const name = e.target.getAttribute('data-name');
+  document.getElementById(inputId).value = name;
+  const listId = inputId+'-list';
+  document.getElementById(listId)?.classList.remove('open');
+}
+
+function acKeydown(e, side, type){
+  const inputId = 'ac-'+side+'-'+type;
+  const listId = inputId+'-list';
+  const list = document.getElementById(listId);
+  const items = list?.querySelectorAll('.ac-item')||[];
+
+  if(e.key==='ArrowDown'){
+    e.preventDefault();
+    _acFocusIdx = Math.min(_acFocusIdx+1, items.length-1);
+    items.forEach((it,i)=>it.classList.toggle('focused',i===_acFocusIdx));
+    if(items[_acFocusIdx]) document.getElementById(inputId).value = items[_acFocusIdx].getAttribute('data-name');
+  } else if(e.key==='ArrowUp'){
+    e.preventDefault();
+    _acFocusIdx = Math.max(_acFocusIdx-1, -1);
+    items.forEach((it,i)=>it.classList.toggle('focused',i===_acFocusIdx));
+    if(_acFocusIdx>=0&&items[_acFocusIdx]) document.getElementById(inputId).value = items[_acFocusIdx].getAttribute('data-name');
+  } else if(e.key==='Enter'){
+    e.preventDefault();
+    list?.classList.remove('open');
+    const name = document.getElementById(inputId).value.trim();
+    if(!name) return;
+    addEntryChip(side, type, name);
+    document.getElementById(inputId).value = '';
+    _acFocusIdx = -1;
+  } else if(e.key==='Escape'){
+    list?.classList.remove('open');
+  }
+}
+
+// Close AC on outside click
+document.addEventListener('click', e=>{
+  if(!e.target.closest('.ac-wrap')) document.querySelectorAll('.ac-list').forEach(l=>l.classList.remove('open'));
+});
+
+// Track chips per side/type in memory during modal session
+let _chips = {home:{goal:[],assist:[]}, away:{goal:[],assist:[]}};
+
+function addEntryChip(side, type, name){
+  if(!name) return;
+  _chips[side][type].push(name);
+  renderChips(side, type);
+}
+
+function removeChip(side, type, idx){
+  _chips[side][type].splice(idx,1);
+  renderChips(side, type);
+}
+
+function renderChips(side, type){
+  const containerMap = {goal:'goals', assist:'assists'};
+  const el = document.getElementById('mm-'+side+'-'+containerMap[type]);
+  const chipClass = type==='goal'?'goal-chip':'goal-chip assist-chip';
+  const icon = type==='goal'?'⚽':'🍳';
+  el.innerHTML = _chips[side][type].map((n,i)=>
+    `<span class="${chipClass}">${icon} ${n} <button onclick="removeChip('${side}','${type}',${i})" type="button">×</button></span>`
+  ).join('');
+}
+
+// ══ ROSTER MANAGEMENT ═══════════════════════════════════════
+function saveRoster(){
+  if(!T) return;
+  const raw = document.getElementById('roster-input')?.value||'';
+  const names = [...new Set(raw.split('\n').map(n=>n.trim()).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'he'));
+  T.roster = names;
+  saveData();
+  renderRosterChips();
+  document.getElementById('roster-count').textContent = names.length+' שחקנים';
+  toast('✓ רשימת שחקנים נשמרה ('+names.length+')');
+}
+
+function renderRosterChips(){
+  const el = document.getElementById('roster-chips');
+  if(!el||!T) return;
+  const names = T.roster||[];
+  el.innerHTML = names.map(n=>`<span style="background:var(--bg3);border:1px solid var(--bd);border-radius:20px;padding:3px 10px;font-size:11px;color:var(--ink2);">${n}</span>`).join('');
+  const inp = document.getElementById('roster-input');
+  if(inp && names.length) inp.value = names.join('\n');
+  const cnt = document.getElementById('roster-count');
+  if(cnt) cnt.textContent = names.length ? names.length+' שחקנים' : '';
+}
+
+// ══ ROUND LABEL ══════════════════════════════════════════════
+function getRoundLabel(round){
+  if(!T||T.type!=='league') return 'סיבוב '+round;
+  const legs = T.legs||1;
+  if(legs===1) return 'סיבוב '+round;
+  // Rounds per leg
+  const n = T.teams.length%2===0 ? T.teams.length : T.teams.length+1;
+  const roundsPerLeg = n-1;
+  const legNum = Math.ceil(round/roundsPerLeg);
+  const roundInLeg = ((round-1)%roundsPerLeg)+1;
+  const legLabel = legs===2
+    ? (legNum===1?'הלוך':'חזור')
+    : 'סבב '+legNum;
+  return legLabel+' — סיבוב '+roundInLeg;
+}
+
+// ══════════════════════════════════════════════════════════════
+// GOAL ROW ENGINE — per-goal rows with scorer+assister
+// ══════════════════════════════════════════════════════════════
+
+// _goals: [{scorer:'', assist:'', og:false, side:'home'}, ...]
+let _goals = [];
+
+// Get players available for a team (from teamRosters or full roster)
+function getTeamPlayers(teamId){
+  const roster = T?.teamRosters?.[teamId];
+  if(roster && roster.length) return roster;
+  return T?.roster||[];
+}
+
+// Get players for the OTHER team (for own goals)
+function getOpponentPlayers(side){
+  const m = T.matches.find(x=>x.id===_currentMatchId);
+  if(!m) return [];
+  const opponentId = side==='home' ? m.away : m.home;
+  return getTeamPlayers(opponentId);
+}
+
+// Build goal rows DOM from _goals array
+function renderGoalRows(){
+  const m = T.matches.find(x=>x.id===_currentMatchId);
+  if(!m) return;
+  const sides = ['home','away'];
+  sides.forEach(side=>{
+    const el = document.getElementById('mm-'+side+'-goals-rows');
+    if(!el) return;
+    const teamId = side==='home'?m.home:m.away;
+    const sideGoals = _goals.map((g,i)=>({...g,_i:i})).filter(g=>g.side===side);
+    const countEl = document.getElementById('mm-'+side+'-goal-count');
+    if(countEl) countEl.textContent = sideGoals.length ? '('+sideGoals.length+')' : '';
+    if(!sideGoals.length){
+      el.innerHTML = '<div style="color:var(--ink3);font-size:12px;padding:6px 0;">לא הוזנו שערים</div>';
+      return;
+    }
+    el.innerHTML = sideGoals.map((g,ri)=>`
+      <div class="goal-row" id="goal-row-${g._i}">
+        <button class="goal-row-del" onclick="removeGoalRow(${g._i})" title="מחק שער">✕</button>
+        <div class="goal-row-num">
+          <span class="goal-row-num-badge">${ri+1}</span>
+          <span style="font-size:13px;color:var(--ink3);">שער</span>
+          <label class="goal-row-og" style="margin-right:auto;">
+            <input type="checkbox" ${g.og?'checked':''} onchange="toggleOG(${g._i},this.checked)"> שער עצמי
+          </label>
+        </div>
+        <div class="goal-row-fields">
+          <div class="goal-row-field">
+            <div class="goal-row-label">⚽ ${g.og?'כובש עצמי (שחקן הקבוצה הסופגת)':'כובש'}</div>
+            <div style="position:relative;">
+              <input type="text" class="goal-row-input${g.og?' og-active':''}" 
+                id="gr-scorer-${g._i}"
+                value="${g.scorer||''}" 
+                placeholder="${g.og?'בחר שחקן מהקבוצה הסופגת':'שם הכובש (רשות)'}"
+                autocomplete="off"
+                oninput="grAcSuggest(this,${g._i},'scorer')"
+                onkeydown="grAcKeydown(event,${g._i},'scorer')"
+                onblur="setTimeout(()=>grAcClose(${g._i},'scorer'),150)">
+              <div class="goal-ac-list" id="grac-scorer-${g._i}"></div>
+            </div>
+          </div>
+          <div class="goal-row-field">
+            <div class="goal-row-label">🍳 מבשל <span style="font-weight:400;color:var(--ink3);">(ניתן להשאיר ריק)</span></div>
+            <div style="position:relative;">
+              <input type="text" class="goal-row-input" 
+                id="gr-assist-${g._i}"
+                value="${g.assist||''}" 
+                placeholder="שם המבשל (רשות)"
+                autocomplete="off"
+                oninput="grAcSuggest(this,${g._i},'assist')"
+                onkeydown="grAcKeydown(event,${g._i},'assist')"
+                onblur="setTimeout(()=>grAcClose(${g._i},'assist'),150)">
+              <div class="goal-ac-list" id="grac-assist-${g._i}"></div>
+            </div>
+          </div>
+        </div>
+      </div>`).join('');
+  });
+}
+
+function grAcSuggest(inp, goalIdx, field){
+  const g = _goals[goalIdx];
+  if(!g) return;
+  const m = T.matches.find(x=>x.id===_currentMatchId);
+  if(!m) return;
+  const q = inp.value.trim().toLowerCase();
+  const listEl = document.getElementById('grac-'+field+'-'+goalIdx);
+  if(!listEl) return;
+  if(!q){ listEl.classList.remove('open'); return; }
+  // For scorer: use team's players (or opponent if OG)
+  let pool;
+  if(field==='scorer'){
+    pool = g.og ? getTeamPlayers(g.side==='home'?m.away:m.home) : getTeamPlayers(g.side==='home'?m.home:m.away);
+  } else {
+    // assist: always from the scoring team
+    pool = getTeamPlayers(g.side==='home'?m.home:m.away);
+  }
+  // Fallback to full roster
+  if(!pool.length) pool = T?.roster||[];
+  const matches = pool.filter(n=>n.toLowerCase().includes(q)).slice(0,8);
+  if(!matches.length){ listEl.classList.remove('open'); return; }
+  listEl.innerHTML = matches.map(n=>
+    `<div class="ac-item" data-name="${n}" onmousedown="grAcPick(event,${goalIdx},'${field}')">${n}</div>`
+  ).join('');
+  listEl.classList.add('open');
+  // Also store input value immediately
+  g[field] = inp.value;
+}
+
+function grAcPick(e, goalIdx, field){
+  e.preventDefault();
+  const name = e.target.getAttribute('data-name');
+  const inp = document.getElementById('gr-'+field+'-'+goalIdx);
+  if(inp) inp.value = name;
+  grAcClose(goalIdx, field);
+  if(_goals[goalIdx]) _goals[goalIdx][field] = name;
+}
+
+function grAcKeydown(e, goalIdx, field){
+  const listEl = document.getElementById('grac-'+field+'-'+goalIdx);
+  const items = listEl?.querySelectorAll('.ac-item')||[];
+  const inp = document.getElementById('gr-'+field+'-'+goalIdx);
+  let focusIdx = parseInt(listEl?.getAttribute('data-focus')||'-1');
+  if(e.key==='ArrowDown'){
+    e.preventDefault();
+    focusIdx = Math.min(focusIdx+1, items.length-1);
+    listEl.setAttribute('data-focus', focusIdx);
+    items.forEach((it,i)=>it.classList.toggle('focused',i===focusIdx));
+    if(items[focusIdx]&&inp) inp.value = items[focusIdx].getAttribute('data-name');
+  } else if(e.key==='ArrowUp'){
+    e.preventDefault();
+    focusIdx = Math.max(focusIdx-1,-1);
+    listEl.setAttribute('data-focus', focusIdx);
+    items.forEach((it,i)=>it.classList.toggle('focused',i===focusIdx));
+    if(focusIdx>=0&&items[focusIdx]&&inp) inp.value = items[focusIdx].getAttribute('data-name');
+  } else if(e.key==='Enter'){
+    e.preventDefault();
+    if(_goals[goalIdx]&&inp) _goals[goalIdx][field]=inp.value.trim();
+    grAcClose(goalIdx, field);
+  } else if(e.key==='Escape'){
+    grAcClose(goalIdx, field);
+  } else {
+    // Track typed value
+    setTimeout(()=>{ if(_goals[goalIdx]&&inp) _goals[goalIdx][field]=inp.value.trim(); },0);
+  }
+}
+
+function grAcClose(goalIdx, field){
+  const listEl = document.getElementById('grac-'+field+'-'+goalIdx);
+  if(listEl){ listEl.classList.remove('open'); listEl.setAttribute('data-focus','-1'); }
+  // Save current input value
+  const inp = document.getElementById('gr-'+field+'-'+goalIdx);
+  if(inp&&_goals[goalIdx]) _goals[goalIdx][field]=inp.value.trim();
+}
+
+function toggleOG(goalIdx, isOG){
+  if(!_goals[goalIdx]) return;
+  _goals[goalIdx].og = isOG;
+  _goals[goalIdx].scorer = ''; // clear scorer when toggling
+  renderGoalRows();
+}
+
+function removeGoalRow(goalIdx){
+  _goals.splice(goalIdx, 1);
+  renderGoalRows();
+}
+
+// Called when score +/- buttons change
+function syncGoalRowsToScore(){
+  const m = T.matches.find(x=>x.id===_currentMatchId);
+  if(!m) return;
+  // Count current goal rows per side
+  const homeCount = _goals.filter(g=>g.side==='home').length;
+  const awayCount = _goals.filter(g=>g.side==='away').length;
+  const targetHome = _homeScore;
+  const targetAway = _awayScore;
+  // Add missing rows
+  for(let i=homeCount; i<targetHome; i++) _goals.push({side:'home',scorer:'',assist:'',og:false});
+  for(let i=awayCount; i<targetAway; i++) _goals.push({side:'away',scorer:'',assist:'',og:false});
+  // Remove excess rows (from end)
+  _goals = _goals.filter(g=>g.side!=='home').concat(_goals.filter(g=>g.side==='home').slice(0,targetHome));
+  _goals = _goals.filter(g=>g.side!=='away').concat(_goals.filter(g=>g.side==='away').slice(0,targetAway));
+  renderGoalRows();
+}
+
+// ── TEAM ROSTER MANAGEMENT ────────────────────────────────────
+function getTeamRosterForMatch(side){
+  const m = T.matches.find(x=>x.id===_currentMatchId);
+  if(!m) return [];
+  const teamId = side==='home'?m.home:m.away;
+  return getTeamPlayers(teamId);
+}
+
+// ── SETTINGS: roster per team ────────────────────────────────
+function renderTeamRosters(){
+  const el = document.getElementById('team-rosters-area');
+  if(!el||!T) return;
+  el.innerHTML = '<div class="team-roster-grid">'+T.teams.map(t=>`
+    <div class="team-roster-card">
+      <div class="team-roster-title">
+        <span class="match-team-crest ${t.color}" style="width:20px;height:20px;font-size:10px;display:inline-flex;">${t.name[0]}</span>
+        ${t.name}
+      </div>
+      <textarea class="form-input" id="tr-${t.id}" rows="5" placeholder="שם שחקן בכל שורה" style="font-size:11px;resize:vertical;">${(T.teamRosters?.[t.id]||[]).join('\n')}</textarea>
+    </div>`).join('')+'</div>'+
+    '<button class="btn btn-primary btn-sm" onclick="saveTeamRosters()" style="margin-top:12px;">✓ שמור רשתרות</button>'+
+    '<div style="font-size:11px;color:var(--ink3);margin-top:6px;">הרשתרות ישמשו לאוטו-קומפליט בהזנת כובשים ומבשלים</div>';
+}
+
+function saveTeamRosters(){
+  if(!T) return;
+  if(!T.teamRosters) T.teamRosters={};
+  T.teams.forEach(t=>{
+    const raw = document.getElementById('tr-'+t.id)?.value||'';
+    T.teamRosters[t.id] = [...new Set(raw.split('\n').map(n=>n.trim()).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'he'));
+  });
+  saveData();
+  toast('✓ רשתרות שמורות');
+}
+
+
+// ══════════════════════════════════════════════════════════════
+// 1. PRINT / EXPORT
+// ══════════════════════════════════════════════════════════════
+function buildPrintScheduleHTML(){
+  if(!T) return '';
+  const matches = [...T.matches].sort((a,b)=>a.date.localeCompare(b.date)||a.id-b.id);
+  const byDate = {};
+  matches.forEach(m=>{
+    if(!byDate[m.date]) byDate[m.date]=[];
+    byDate[m.date].push(m);
+  });
+  const rows = Object.entries(byDate).map(([date,ms])=>`
+    <tr style="background:#f7f7f7;">
+      <td colspan="5" style="font-weight:800;font-size:12px;color:#555;padding:8px 12px;letter-spacing:.5px;">${formatDate(date)}</td>
+    </tr>
+    ${ms.map(m=>{
+      const h=teamById(m.home),a=teamById(m.away);
+      const score = m.status==='done' ? `<b>${m.homeScore} : ${m.awayScore}</b>` : '—';
+      const goals = (m.goalDetails||m.goals||[]).map(g=>(g.scorer||g.name)+(g.og?'(שע"צ)':'')).join(', ');
+      return `<tr>
+        <td style="padding:7px 12px;width:50px;">${m.time}</td>
+        <td style="padding:7px 12px;text-align:right;font-weight:600;">${h?.name||'?'}</td>
+        <td style="padding:7px 12px;text-align:center;font-size:16px;font-weight:900;">${score}</td>
+        <td style="padding:7px 12px;font-weight:600;">${a?.name||'?'}</td>
+        <td style="padding:7px 12px;font-size:11px;color:#888;">${goals}</td>
+      </tr>`;
+    }).join('')}`).join('');
+  return `<table style="width:100%;border-collapse:collapse;font-family:'Heebo',sans-serif;font-size:13px;">
+    <thead><tr style="background:#111;color:#fff;">
+      <th style="padding:8px 12px;text-align:right;">שעה</th>
+      <th style="padding:8px 12px;text-align:right;">בית</th>
+      <th style="padding:8px 12px;">תוצאה</th>
+      <th style="padding:8px 12px;text-align:right;">חוץ</th>
+      <th style="padding:8px 12px;text-align:right;">כובשים</th>
+    </tr></thead>
+    <tbody>${rows}</tbody>
+  </table>`;
+}
+
+function buildPrintStandingsHTML(){
+  if(!T) return '';
+  const st = calcStandings();
+  rebuildScorers();
+  const scorers = Object.values(T.scorers||{}).filter(s=>s.goals>0).sort((a,b)=>b.goals-a.goals).slice(0,10);
+  return `<table style="width:100%;border-collapse:collapse;font-family:'Heebo',sans-serif;font-size:13px;margin-bottom:24px;">
+    <thead><tr style="background:#111;color:#fff;">
+      <th style="padding:8px 12px;">#</th>
+      <th style="padding:8px 12px;text-align:right;">קבוצה</th>
+      <th style="padding:8px 12px;text-align:center;">מש׳</th>
+      <th style="padding:8px 12px;text-align:center;">נצ׳</th>
+      <th style="padding:8px 12px;text-align:center;">ת׳</th>
+      <th style="padding:8px 12px;text-align:center;">הפ׳</th>
+      <th style="padding:8px 12px;text-align:center;">שערים</th>
+      <th style="padding:8px 12px;text-align:center;">נק׳</th>
+    </tr></thead>
+    <tbody>${st.map((s,i)=>`<tr style="border-bottom:1px solid #eee;">
+      <td style="padding:7px 12px;font-weight:900;text-align:center;">${i+1}</td>
+      <td style="padding:7px 12px;font-weight:700;">${s.team.name}</td>
+      <td style="padding:7px 12px;text-align:center;">${s.played}</td>
+      <td style="padding:7px 12px;text-align:center;">${s.won}</td>
+      <td style="padding:7px 12px;text-align:center;">${s.drawn}</td>
+      <td style="padding:7px 12px;text-align:center;">${s.lost}</td>
+      <td style="padding:7px 12px;text-align:center;">${s.gf}:${s.ga}</td>
+      <td style="padding:7px 12px;text-align:center;font-weight:900;font-size:16px;">${s.pts}</td>
+    </tr>`).join('')}</tbody>
+  </table>
+  <h3 style="font-family:'Heebo',sans-serif;font-size:14px;font-weight:800;margin-bottom:10px;">⚽ מלכי שערים</h3>
+  <table style="width:100%;border-collapse:collapse;font-family:'Heebo',sans-serif;font-size:13px;">
+    ${scorers.map((s,i)=>`<tr style="border-bottom:1px solid #eee;">
+      <td style="padding:6px 12px;font-weight:900;text-align:center;width:40px;">${i+1}</td>
+      <td style="padding:6px 12px;font-weight:700;">${s.name}</td>
+      <td style="padding:6px 12px;color:#666;">${s.team}</td>
+      <td style="padding:6px 12px;text-align:center;font-weight:900;font-size:16px;">${s.goals}</td>
+    </tr>`).join('')}
+  </table>`;
+}
+
+function openPrintWindow(bodyHtml, title){
+  const w = window.open('','_blank','width=900,height=700');
+  w.document.write(`<!DOCTYPE html><html lang="he" dir="rtl"><head>
+    <meta charset="UTF-8">
+    <title>${title}</title>
+    <link href="https://fonts.googleapis.com/css2?family=Heebo:wght@400;600;700;800;900&family=Bebas+Neue&display=swap" rel="stylesheet">
+    <style>
+      *{box-sizing:border-box;margin:0;padding:0;}
+      body{font-family:'Heebo',sans-serif;padding:30px;background:#fff;color:#000;}
+      .doc-header{margin-bottom:24px;padding-bottom:16px;border-bottom:3px solid #111;}
+      .doc-title{font-family:'Bebas Neue',cursive;font-size:32px;letter-spacing:2px;color:#111;}
+      .doc-sub{font-size:13px;color:#666;margin-top:4px;}
+      .print-btn{position:fixed;top:16px;left:16px;background:#111;color:#fff;border:none;padding:10px 20px;border-radius:8px;cursor:pointer;font-family:'Heebo',sans-serif;font-size:14px;font-weight:700;}
+      @media print{.print-btn{display:none;}}
+    </style>
+  </head><body>
+    <button class="print-btn" onclick="window.print()">🖨️ הדפס</button>
+    <div class="doc-header">
+      <div class="doc-title">⚽ ${T?.name||'טורניר'}</div>
+      <div class="doc-sub">${T?.grade||''} · ${title} · הודפס: ${new Date().toLocaleDateString('he-IL')}</div>
+    </div>
+    ${bodyHtml}
+  </body></html>`);
+  w.document.close();
+  setTimeout(()=>w.focus(), 300);
+}
+
+function printSchedule(){ openPrintWindow(buildPrintScheduleHTML(),'לוח משחקים'); }
+function printStandings(){ openPrintWindow(buildPrintStandingsHTML(),'טבלת ליגה ומלכי שערים'); }
+function printFull(){ openPrintWindow(buildPrintScheduleHTML()+'<div style="page-break-before:always;height:24px;"></div>'+buildPrintStandingsHTML(),'כל המידע'); }
+
+function exportCSV(){
+  if(!T){toast('אין טורניר');return;}
+  const st=calcStandings();
+  const lines=['#,קבוצה,משחקים,ניצחונות,תיקו,הפסדים,זכות,חובה,הפרש,נקודות'];
+  st.forEach((s,i)=>lines.push(`${i+1},${s.team.name},${s.played},${s.won},${s.drawn},${s.lost},${s.gf},${s.ga},${s.gd},${s.pts}`));
+  lines.push('','תאריך,בית,תוצאה,חוץ,כובשים');
+  T.matches.filter(m=>m.status==='done').sort((a,b)=>a.date.localeCompare(b.date)).forEach(m=>{
+    const h=teamById(m.home)?.name||'?', a=teamById(m.away)?.name||'?';
+    const g=(m.goalDetails||m.goals||[]).map(g=>g.scorer||g.name).filter(Boolean).join('; ');
+    lines.push(`${m.date},${h},${m.homeScore}:${m.awayScore},${a},${g}`);
+  });
+  const blob=new Blob(['\uFEFF'+lines.join('\n')],{type:'text/csv;charset=utf-8'});
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(blob);
+  a.download=`${T.name||'tournament'}.csv`;
+  a.click();
+  toast('✓ קובץ CSV הורד');
+}
+
+function exportICal(){
+  if(!T){toast('אין טורניר');return;}
+  const lines=['BEGIN:VCALENDAR','VERSION:2.0','PRODID:-//TourneyGrade//HE','CALSCALE:GREGORIAN'];
+  T.matches.forEach(m=>{
+    const h=teamById(m.home)?.name||'?', a=teamById(m.away)?.name||'?';
+    const [y,mo,d]=m.date.split('-');
+    const [hh,mm]=(m.time||'10:00').split(':');
+    const dtStart=`${y}${mo}${d}T${hh}${mm}00`;
+    const endH=String(parseInt(hh)+1).padStart(2,'0');
+    const dtEnd=`${y}${mo}${d}T${endH}${mm}00`;
+    lines.push('BEGIN:VEVENT');
+    lines.push(`DTSTART:${dtStart}`);
+    lines.push(`DTEND:${dtEnd}`);
+    lines.push(`SUMMARY:${h} vs ${a}`);
+    lines.push(`DESCRIPTION:סיבוב ${m.round} · ${T.name}`);
+    lines.push(`UID:match-${m.id}@tourney`);
+    if(m.status==='done') lines.push(`STATUS:CONFIRMED`);
+    lines.push('END:VEVENT');
+  });
+  lines.push('END:VCALENDAR');
+  const blob=new Blob([lines.join('\r\n')],{type:'text/calendar'});
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(blob);
+  a.download=`${T.name||'tournament'}.ics`;
+  a.click();
+  toast('✓ קובץ יומן הורד — ייבא ל-Google Calendar / Outlook');
+}
+
+// ══════════════════════════════════════════════════════════════
+// 2. QR CODE (using qrcode.js via CDN)
+// ══════════════════════════════════════════════════════════════
+let _qrLoaded = false;
+
+function renderQRView(){
+  const wrap = document.getElementById('qr-canvas-wrap');
+  if(!wrap) return;
+  wrap.innerHTML = '';
+  // Build viewer data URL (data: URI with the viewer HTML encoded)
+  // Since we can't serve a URL, create a self-contained viewer
+  const viewerHtml = buildViewerHtml();
+  const blob = new Blob([viewerHtml],{type:'text/html'});
+  const url = URL.createObjectURL(blob);
+  // Load QR library lazily
+  if(!window.QRCode){
+    const script = document.createElement('script');
+    script.src = 'https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js';
+    script.onload = ()=>{ _qrLoaded=true; makeQR(url,wrap); };
+    document.head.appendChild(script);
+  } else {
+    makeQR(url,wrap);
+  }
+}
+
+function makeQR(url, wrap){
+  try{
+    new QRCode(wrap, {
+      text: url,
+      width: 220, height: 220,
+      colorDark:'#111111', colorLight:'#ffffff',
+      correctLevel: QRCode.CorrectLevel.M
+    });
+    document.getElementById('qr-sub').textContent = 'הקוד מוביל לדף הצפייה';
+  } catch(e){
+    // Fallback: show the URL if QR fails (blob URLs are long)
+    wrap.innerHTML = `<div style="padding:20px;font-size:11px;color:#555;max-width:220px;word-break:break-all;">דף הצפייה נפתח לאחר לחיצה על "👁 פתח דף"</div>`;
+    document.getElementById('qr-sub').textContent = 'QR זמין בחיבור לאינטרנט';
+  }
+}
+
+function downloadQR(){
+  const canvas = document.querySelector('#qr-canvas-wrap canvas');
+  if(!canvas){toast('לא נוצר QR — נסה שוב');return;}
+  const a=document.createElement('a');
+  a.download='tournament-qr.png';
+  a.href=canvas.toDataURL();
+  a.click();
+}
+
+function printQRSheet(){
+  const canvas = document.querySelector('#qr-canvas-wrap canvas');
+  const qrSrc = canvas ? canvas.toDataURL() : '';
+  const w = window.open('','_blank','width=600,height=700');
+  w.document.write(`<!DOCTYPE html><html lang="he" dir="rtl"><head>
+    <meta charset="UTF-8">
+    <style>
+      body{font-family:'Heebo',sans-serif;text-align:center;padding:40px;background:#fff;}
+      h1{font-size:28px;font-weight:900;margin-bottom:6px;}
+      .sub{font-size:14px;color:#666;margin-bottom:28px;}
+      img{border:3px solid #111;padding:8px;border-radius:8px;}
+      ol{text-align:right;display:inline-block;margin-top:20px;line-height:2;font-size:14px;}
+      .print-btn{position:fixed;top:10px;left:10px;padding:8px 16px;background:#111;color:#fff;border:none;cursor:pointer;border-radius:6px;font-size:13px;}
+      @media print{.print-btn{display:none;}}
+    </style></head><body>
+    <button class="print-btn" onclick="window.print()">🖨️ הדפס</button>
+    <h1>⚽ ${T?.name||'טורניר'}</h1>
+    <div class="sub">סרקו לצפייה בטבלה ותוצאות</div>
+    ${qrSrc?`<img src="${qrSrc}" width="220" height="220">`:'<div style="padding:60px;border:3px dashed #ccc;display:inline-block;color:#999;">QR לא זמין</div>'}
+    <ol>
+      <li>פתחו את מצלמת הטלפון</li>
+      <li>כוונו לקוד ה-QR</li>
+      <li>לחצו על הקישור</li>
+    </ol>
+  </body></html>`);
+  w.document.close();
+}
+
+// ══════════════════════════════════════════════════════════════
+// 3. HEAD TO HEAD
+// ══════════════════════════════════════════════════════════════
+function initH2H(){
+  const selA = document.getElementById('h2h-team-a');
+  const selB = document.getElementById('h2h-team-b');
+  if(!selA||!selB||!T) return;
+  const opts = T.teams.map(t=>`<option value="${t.id}">${t.name}</option>`).join('');
+  selA.innerHTML = opts;
+  selB.innerHTML = opts;
+  if(T.teams.length>1) selB.value = T.teams[1].id;
+  renderH2H();
+}
+
+function renderH2H(){
+  const idA = parseInt(document.getElementById('h2h-team-a')?.value);
+  const idB = parseInt(document.getElementById('h2h-team-b')?.value);
+  const el = document.getElementById('h2h-result');
+  if(!el||!T||isNaN(idA)||isNaN(idB)) return;
+  if(idA===idB){ el.innerHTML='<div style="color:var(--ink3);padding:20px;">בחר שתי קבוצות שונות</div>'; return; }
+
+  const tA = teamById(idA), tB = teamById(idB);
+  const matches = T.matches.filter(m=>
+    (m.home===idA&&m.away===idB)||(m.home===idB&&m.away===idA)
+  ).sort((a,b)=>a.date.localeCompare(b.date));
+
+  let winsA=0,winsB=0,draws=0,gfA=0,gfB=0;
+  matches.filter(m=>m.status==='done').forEach(m=>{
+    const hs=m.homeScore||0, as=m.awayScore||0;
+    if(m.home===idA){ gfA+=hs;gfB+=as; if(hs>as)winsA++;else if(as>hs)winsB++;else draws++; }
+    else { gfA+=as;gfB+=hs; if(as>hs)winsA++;else if(hs>as)winsB++;else draws++; }
+  });
+
+  const totalDone = matches.filter(m=>m.status==='done').length;
+
+  el.innerHTML = `
+    <div class="h2h-summary">
+      <div class="h2h-team-box home">
+        <div class="match-team-crest ${tA?.color||'crest-0'}" style="width:40px;height:40px;font-size:18px;display:flex;margin:0 auto 8px;">${(tA?.name||'?')[0]}</div>
+        <div class="h2h-team-name">${tA?.name||'?'}</div>
+        <div class="h2h-wins ${winsA>winsB?'green':'gray'}">${winsA}</div>
+        <div style="font-size:11px;color:var(--ink3);">ניצחונות</div>
+      </div>
+      <div class="h2h-vs">
+        <div>
+          <div>${draws}</div>
+          <div style="font-size:11px;color:var(--ink3);font-family:'Heebo',sans-serif;font-weight:600;">תיקו</div>
+        </div>
+      </div>
+      <div class="h2h-team-box away">
+        <div class="match-team-crest ${tB?.color||'crest-1'}" style="width:40px;height:40px;font-size:18px;display:flex;margin:0 auto 8px;">${(tB?.name||'?')[0]}</div>
+        <div class="h2h-team-name">${tB?.name||'?'}</div>
+        <div class="h2h-wins ${winsB>winsA?'blue':'gray'}">${winsB}</div>
+        <div style="font-size:11px;color:var(--ink3);">ניצחונות</div>
+      </div>
+    </div>
+    <div class="h2h-stat-row">
+      <div class="h2h-stat"><div class="h2h-stat-val">${matches.length}</div><div class="h2h-stat-lbl">מפגשים</div></div>
+      <div class="h2h-stat"><div class="h2h-stat-val">${totalDone}</div><div class="h2h-stat-lbl">שוחקו</div></div>
+      <div class="h2h-stat"><div class="h2h-stat-val">${gfA}</div><div class="h2h-stat-lbl">שערי ${tA?.name||'?'}</div></div>
+      <div class="h2h-stat"><div class="h2h-stat-val">${gfB}</div><div class="h2h-stat-lbl">שערי ${tB?.name||'?'}</div></div>
+      <div class="h2h-stat"><div class="h2h-stat-val">${gfA+gfB}</div><div class="h2h-stat-lbl">סה"כ שערים</div></div>
+    </div>
+    <div style="font-size:11px;font-weight:800;letter-spacing:.8px;text-transform:uppercase;color:var(--ink3);margin-bottom:10px;">היסטוריית מפגשים</div>
+    ${matches.length ? matches.map(m=>matchCardHtml(m,false)).join('') : '<div style="color:var(--ink3);">אין מפגשים מתוכננים</div>'}
+  `;
+}
+
+// ══════════════════════════════════════════════════════════════
+// 4. FORM GUIDE (W/D/L last 5)
+// ══════════════════════════════════════════════════════════════
+function getFormGuide(teamId, last=5){
+  const done = T.matches.filter(m=>m.status==='done'&&(m.home===teamId||m.away===teamId))
+    .sort((a,b)=>b.date.localeCompare(a.date)).slice(0,last);
+  return done.map(m=>{
+    const isHome = m.home===teamId;
+    const gf=isHome?m.homeScore:m.awayScore, ga=isHome?m.awayScore:m.homeScore;
+    if(gf>ga) return 'W';
+    if(gf<ga) return 'L';
+    return 'D';
+  }).reverse();
+}
+
+function formGuideHtml(teamId){
+  const fg=getFormGuide(teamId);
+  if(!fg.length) return '<span style="color:var(--ink3);font-size:11px;">—</span>';
+  return `<div class="form-guide">${fg.map(r=>`<div class="fg-${r.toLowerCase()}">${r}</div>`).join('')}</div>`;
+}
+
+// ══════════════════════════════════════════════════════════════
+// 5. MATCH PROTOCOL (post-match summary)
+// ══════════════════════════════════════════════════════════════
+function showMatchProtocol(matchId){
+  const m = T.matches.find(x=>x.id===matchId);
+  if(!m||m.status!=='done') return;
+  const h=teamById(m.home), a=teamById(m.away);
+
+  // Table impact: standings before vs after (simulate by reverting)
+  const stBefore = calcStandingsWithout(matchId);
+  const stAfter  = calcStandings();
+  const getPos=(st,tid)=>st.findIndex(s=>s.team.id===tid)+1;
+  const posHBefore=getPos(stBefore,m.home), posHAfter=getPos(stAfter,m.home);
+  const posABefore=getPos(stBefore,m.away), posAAfter=getPos(stAfter,m.away);
+  const arrow=(before,after)=>before===after?'➡':before>after?`<span style="color:var(--gr);">↑${before-after}</span>`:`<span style="color:var(--re);">↓${after-before}</span>`;
+
+  const goalsList = (m.goalDetails||m.goals||[]);
+  const goalsHtml = goalsList.length
+    ? goalsList.map(g=>{
+        const side=g.team===m.home?h?.name:a?.name;
+        return `<div style="padding:4px 0;font-size:13px;">${g.og?'🔄 שע"צ':'⚽'} <b>${g.scorer||g.name||'—'}</b>${g.assist?' 🍳 '+g.assist:''} <span style="color:var(--ink3);">(${side})</span></div>`;
+      }).join('')
+    : '<div style="color:var(--ink3);font-size:13px;">לא הוזנו כובשים</div>';
+
+  const proto=`
+    <div class="protocol-card">
+      <div class="protocol-score">${m.homeScore} : ${m.awayScore}</div>
+      <div class="protocol-teams">
+        <b>${h?.name||'?'}</b>
+        <span style="color:var(--ink3);">בית</span>
+        <b>${a?.name||'?'}</b>
+      </div>
+      <div style="font-size:12px;color:var(--ink3);text-align:center;margin-bottom:12px;">${formatDate(m.date)} · ${m.time}</div>
+      <div style="margin-bottom:12px;">${goalsHtml}</div>
+      <div class="protocol-table-impact">
+        <div style="font-size:10px;font-weight:800;letter-spacing:.8px;text-transform:uppercase;color:var(--ink3);margin-bottom:8px;">השפעת התוצאה על הטבלה</div>
+        <div class="protocol-table-row">
+          <span>${h?.name||'?'}</span>
+          <span>${posHBefore}. → ${posHAfter}. ${arrow(posHBefore,posHAfter)}</span>
+        </div>
+        <div class="protocol-table-row">
+          <span>${a?.name||'?'}</span>
+          <span>${posABefore}. → ${posAAfter}. ${arrow(posABefore,posAAfter)}</span>
+        </div>
+      </div>
+    </div>`;
+  // Show in a modal
+  document.getElementById('protocol-modal-body').innerHTML = proto;
+  openModal('protocol-modal');
+}
+
+function calcStandingsWithout(excludeMatchId){
+  const stats={};
+  T.teams.forEach(t=>{ stats[t.id]={team:t,played:0,won:0,drawn:0,lost:0,gf:0,ga:0,pts:0}; });
+  T.matches.filter(m=>m.status==='done'&&m.id!==excludeMatchId).forEach(m=>{
+    const h=stats[m.home],a=stats[m.away];if(!h||!a)return;
+    const hs=m.homeScore||0,as=m.awayScore||0;
+    h.played++;a.played++;h.gf+=hs;h.ga+=as;a.gf+=as;a.ga+=hs;
+    if(hs>as){h.won++;h.pts+=3;a.lost++;}
+    else if(hs<as){a.won++;a.pts+=3;h.lost++;}
+    else{h.drawn++;a.drawn++;h.pts++;a.pts++;}
+  });
+  return Object.values(stats).sort((a,b)=>b.pts-a.pts||(b.gf-b.ga)-(a.gf-a.ga)||b.gf-a.gf);
+}
+
+// ══════════════════════════════════════════════════════════════
+// 6. ADMIN / ACCESS CONTROL
+// ══════════════════════════════════════════════════════════════
+const ADMIN_KEY = 'tg_admin_hash';
+let _adminUnlocked = false;
+
+async function hashPass(pass){
+  const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(pass+'tg_salt'));
+  return Array.from(new Uint8Array(buf)).map(b=>b.toString(16).padStart(2,'0')).join('');
+}
+
+async function setAdminPass(){
+  const p1=document.getElementById('admin-pass-new')?.value;
+  const p2=document.getElementById('admin-pass-confirm')?.value;
+  if(!p1||p1.length<4){toast('סיסמה קצרה מדי (מינ. 4 תווים)');return;}
+  if(p1!==p2){toast('הסיסמאות אינן תואמות');return;}
+  const hash=await hashPass(p1);
+  localStorage.setItem(ADMIN_KEY,hash);
+  _adminUnlocked=true;
+  toast('✓ הגנה הופעלה');
+  renderAdminView();
+}
+
+function removeAdminPass(){
+  if(!confirm('להסיר את הגנת הסיסמה?'))return;
+  localStorage.removeItem(ADMIN_KEY);
+  _adminUnlocked=false;
+  toast('🔓 הגנה הוסרה');
+  renderAdminView();
+}
+
+async function adminLogin(){
+  const pass=document.getElementById('admin-login-pass')?.value;
+  if(!pass){document.getElementById('admin-login-err').textContent='הזן סיסמה';return;}
+  const hash=await hashPass(pass);
+  const stored=localStorage.getItem(ADMIN_KEY);
+  if(hash===stored){
+    _adminUnlocked=true;
+    document.getElementById('admin-login-card').style.display='none';
+    document.getElementById('admin-setup-card').style.display='';
+    renderAdminView();
+    toast('✓ כניסת מנהל אושרה');
+  } else {
+    document.getElementById('admin-login-err').textContent='סיסמה שגויה';
+    setTimeout(()=>{const e=document.getElementById('admin-login-err');if(e)e.textContent='';},2000);
+  }
+}
+
+function checkAdminLock(){
+  const stored=localStorage.getItem(ADMIN_KEY);
+  if(!stored) return true; // no lock
+  return _adminUnlocked;
+}
+
+function renderAdminView(){
+  const stored=localStorage.getItem(ADMIN_KEY);
+  const loginCard=document.getElementById('admin-login-card');
+  const setupCard=document.getElementById('admin-setup-card');
+  const banner=document.getElementById('admin-status-banner');
+  const removeBtn=document.getElementById('admin-remove-btn');
+  if(!stored){
+    // No lock set
+    if(loginCard) loginCard.style.display='none';
+    if(setupCard) setupCard.style.display='';
+    if(banner) banner.innerHTML='<div style="background:var(--yebg);border:1px solid var(--yebd);border-radius:8px;padding:10px 14px;font-size:13px;color:var(--ye);">⚠ כרגע אין הגנת סיסמה — כל מי שיש לו את הקישור יוכל לערוך</div>';
+    if(removeBtn) removeBtn.style.display='none';
+  } else if(_adminUnlocked){
+    if(loginCard) loginCard.style.display='none';
+    if(setupCard) setupCard.style.display='';
+    if(banner) banner.innerHTML='<div style="background:var(--grbg);border:1px solid var(--grbd);border-radius:8px;padding:10px 14px;font-size:13px;color:var(--gr);">✓ הגנת סיסמה פעילה — אתה מחובר כמנהל</div>';
+    if(removeBtn) removeBtn.style.display='';
+  } else {
+    if(setupCard) setupCard.style.display='none';
+    if(loginCard) loginCard.style.display='';
+  }
+}
+
+function guardAdmin(fn){
+  if(checkAdminLock()) fn();
+  else { showView('admin'); }
+}
+
+// ══════════════════════════════════════════════════════════════
+// UPDATE showView for new views
+// ══════════════════════════════════════════════════════════════
+const _origShowView = showView;
+showView = function(name){
+  // Admin guard for sensitive views
+  const protected_views = ['settings','blocked']; // 'matches' is OK to view
+  if(protected_views.includes(name) && localStorage.getItem(ADMIN_KEY) && !_adminUnlocked){
+    _origShowView('admin');
+    return;
+  }
+  _origShowView(name);
+  if(name==='home') setTimeout(renderHomeView, 50);
+  if(name==='qr') setTimeout(renderQRView, 100);
+  if(name==='h2h'){ setTimeout(initH2H, 50); }
+  if(name==='admin') setTimeout(renderAdminView, 50);
+};
+
+// ══════════════════════════════════════════════════════════════
+// Update match card to show protocol button and form guide
+// ══════════════════════════════════════════════════════════════
+
+
+function openH2HForTeam(teamId){
+  showView('h2h');
+  setTimeout(()=>{
+    const selA=document.getElementById('h2h-team-a');
+    if(selA) selA.value=teamId;
+    renderH2H();
+  },80);
+}
+
+// ── 3-DOT MATCH MENU ─────────────────────────────────────────
+function toggleMatchMenu(matchId){
+  const dd = document.getElementById('match-dd-'+matchId);
+  if(!dd) return;
+  const isOpen = dd.classList.contains('open');
+  closeAllMenus();
+  if(!isOpen) dd.classList.add('open');
+}
+function closeAllMenus(){
+  document.querySelectorAll('.match-dropdown.open').forEach(d=>d.classList.remove('open'));
+}
+document.addEventListener('click', ()=>closeAllMenus());
+
+function rescheduleMatchPrompt(matchId){
+  const m = T.matches.find(x=>x.id===matchId);
+  if(!m) return;
+  // Open match modal with reschedule pre-checked
+  openMatchModal(matchId);
+  setTimeout(()=>{
+    const chk=document.getElementById('mm-reschedule-chk');
+    if(chk){ chk.checked=true; toggleReschedule(); }
+  }, 100);
+}
+
+function deleteMatch(matchId){
+  if(!confirm('למחוק את המשחק לצמיתות?')) return;
+  T.matches = T.matches.filter(m=>m.id!==matchId);
+  // Renumber rounds if needed
+  saveData(); refreshAll(); toast('✓ המשחק נמחק');
+}
+
+// ── OVERDUE BANNER in renderMatches ─────────────────────────
+function getOverdueMatches(){
+  const today=dateStr(new Date());
+  return T.matches.filter(m=>m.status==='pending'&&m.date<today);
+}
+
+// ── HOME VIEW ────────────────────────────────────────────────
+function renderHomeView(){
+  const grid=document.getElementById('home-tournaments-grid');
+  const empty=document.getElementById('home-empty-state');
+  if(!grid) return;
+  const all=getAllTournaments();
+  if(!all.length){ grid.innerHTML=''; if(empty) empty.style.display=''; return; }
+  if(empty) empty.style.display='none';
+  const today=dateStr(new Date());
+  grid.innerHTML=all.sort((a,b)=>(b.id||0)-(a.id||0)).map(t=>{
+    const done=(t.matches||[]).filter(m=>m.status==='done').length;
+    const total=(t.matches||[]).length;
+    const pct=total?Math.round(done/total*100):0;
+    const isActive=T&&T.id===t.id;
+    const overdue=(t.matches||[]).filter(m=>m.status==='pending'&&m.date<today).length;
+    const gMap={boys:'⚽ בנים',girls:'⚽ בנות',mixed:'⚽ מעורב'};
+    return `<div class="card" style="cursor:pointer;border-color:${isActive?'var(--ac)':'var(--bd)'};transition:border-color .2s;" onclick="switchTournament('${t.id}')">
+      <div class="card-head" style="gap:8px;">
+        <div class="card-title" style="flex:1;">${t.name}</div>
+        ${isActive?'<span class="badge badge-green">פעיל</span>':''}
+      </div>
+      <div class="card-body" style="padding:14px 18px;">
+        <div style="display:flex;gap:8px;margin-bottom:10px;flex-wrap:wrap;">
+          <span class="badge badge-gray">${t.grade}׳</span>
+          ${t.gender?`<span class="badge badge-gray">${gMap[t.gender]||t.gender}</span>`:''}
+          <span class="badge badge-gray">${t.teams?.length||0} קבוצות</span>
+          ${t.type==='league'?'<span class="badge badge-blue">ליגה</span>':'<span class="badge badge-yellow">נוקאאוט</span>'}
+        </div>
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">
+          <div style="flex:1;height:5px;background:var(--bg3);border-radius:3px;overflow:hidden;">
+            <div style="height:100%;width:${pct}%;background:var(--ac);border-radius:3px;"></div>
+          </div>
+          <span style="font-size:11px;color:var(--ink3);white-space:nowrap;">${done}/${total}</span>
+        </div>
+        ${overdue?`<div style="font-size:11px;color:var(--re);font-weight:700;">⚠ ${overdue} משחקים ללא תוצאה</div>`:''}
+        <div style="display:flex;gap:8px;margin-top:10px;">
+          <button class="btn btn-primary btn-sm" onclick="event.stopPropagation();switchTournament('${t.id}')">פתח</button>
+          <button class="btn btn-danger btn-sm" onclick="event.stopPropagation();deleteTournamentById('${t.id}')">מחק</button>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function switchTournament(id){
+  const all=getAllTournaments();
+  const found=all.find(t=>String(t.id)===String(id));
+  if(!found){ toast('לא נמצא'); return; }
+  T=found;
+  localStorage.setItem(LS_CUR,String(T.id));
+  loadTournament();
+  showView('dashboard');
+  toast('✓ עבר לטורניר: '+T.name);
+}
+
+function deleteTournamentById(id){
+  const all=getAllTournaments();
+  const t=all.find(x=>String(x.id)===String(id));
+  if(!confirm('למחוק את "'+t?.name+'"? לא ניתן לשחזר!')) return;
+  const filtered=all.filter(x=>String(x.id)!==String(id));
+  localStorage.setItem(LS_ALL,JSON.stringify(filtered));
+  if(T&&String(T.id)===String(id)){
+    T=filtered.length?filtered[0]:null;
+    localStorage.setItem(LS_CUR,T?String(T.id):'');
+    if(T){ loadTournament(); showView('dashboard'); }
+    else { document.getElementById('sb-tournament-section').style.display='none';
+           document.getElementById('hdr-tournament-name').textContent='';
+           document.getElementById('hdr-gender-badge').innerHTML=''; }
+  }
+  renderHomeView();
+  toast('הטורניר נמחק');
+}
+</script>
+</body>
+</html>
