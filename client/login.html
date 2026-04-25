@@ -241,6 +241,7 @@ input::placeholder {
   .login-box { padding: 28px 20px; }
 }
 </style>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
 </head>
 <body>
 
@@ -318,25 +319,28 @@ const SUPABASE_URL = 'https://pqotkdtvccfwuephxjsk.supabase.co';
 const SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBxb3RrZHR2Y2Nmd3VlcGh4anNrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzcwNjYwNDYsImV4cCI6MjA5MjY0MjA0Nn0.mivFnmb4hqee4OvpAFZR7Yi3AKkcaQn5CNno2OtYGy8';
 
 // ══════════════════════════════════════════════════════
-// Supabase Client (ללא npm — טעינה מ-CDN)
+// Supabase Client
 // ══════════════════════════════════════════════════════
-const script = document.createElement('script');
-script.src = 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2';
-script.onload = initSupabase;
-document.head.appendChild(script);
-
-let supabase;
+let sbClient;
 
 function initSupabase() {
-  supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
-  checkSession();
+  // Use a unique name to avoid conflict with other scripts
+  const sb = window.supabase || window._supabase;
+  if (sb && sb.createClient) {
+    sbClient = sb.createClient(SUPABASE_URL, SUPABASE_ANON);
+    checkSession();
+  } else {
+    setTimeout(initSupabase, 100);
+  }
 }
+
+window.addEventListener('load', initSupabase);
 
 // ══════════════════════════════════════════════════════
 // בדיקת session קיים — אם מחובר → עבור לאפליקציה
 // ══════════════════════════════════════════════════════
 async function checkSession() {
-  const { data: { session } } = await supabase.auth.getSession();
+  const { data: { session } } = await sbClient.auth.getSession();
   if (session) {
     goToApp(session.user);
   }
@@ -373,7 +377,7 @@ async function doLogin() {
   if (!email || !password) { showMsg('נא למלא אימייל וסיסמה', 'error'); return; }
 
   setLoading('btn-login', true);
-  const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+  const { data, error } = await sbClient.auth.signInWithPassword({ email, password });
   setLoading('btn-login', false);
 
   if (error) {
@@ -403,7 +407,7 @@ async function doRegister() {
   }
 
   setLoading('btn-register', true);
-  const { data, error } = await supabase.auth.signUp({
+  const { data, error } = await sbClient.auth.signUp({
     email,
     password,
     options: {
@@ -417,7 +421,7 @@ async function doRegister() {
   } else {
     // צור פרופיל
     if (data.user) {
-      await supabase.from('profiles').upsert({
+      await sbClient.from('profiles').upsert({
         id: data.user.id,
         full_name: name,
         school,
@@ -433,7 +437,7 @@ async function doRegister() {
 // כניסה עם Google
 // ══════════════════════════════════════════════════════
 async function doGoogle() {
-  const { error } = await supabase.auth.signInWithOAuth({
+  const { error } = await sbClient.auth.signInWithOAuth({
     provider: 'google',
     options: {
       redirectTo: window.location.origin + '/pe-grading-app.html'
@@ -451,7 +455,7 @@ async function showForgot() {
     showMsg('הזן את האימייל שלך בשדה למעלה', 'error');
     return;
   }
-  const { error } = await supabase.auth.resetPasswordForEmail(email, {
+  const { error } = await sbClient.auth.resetPasswordForEmail(email, {
     redirectTo: window.location.origin + '/reset-password.html'
   });
   if (error) {
