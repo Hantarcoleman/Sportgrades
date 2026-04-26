@@ -1795,6 +1795,51 @@ history.pushState(null,'',location.href);
   </div>
 </div>
 
+
+<!-- ══ SETTINGS MODAL ══ -->
+<div class="mbg" id="settings-modal" style="align-items:flex-start;padding:20px 16px;overflow-y:auto;">
+  <div class="mod" onclick="event.stopPropagation()" style="max-width:460px;width:100%;">
+    <div class="mt">⚙️ הגדרות</div>
+    <!-- Theme -->
+    <div style="margin-bottom:18px;">
+      <div style="font-size:11px;font-weight:800;color:var(--ink3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px;">תצוגה</div>
+      <div style="display:flex;gap:8px;">
+        <button id="set-light" onclick="setTheme('light')" class="btn bg2" style="flex:1;">☀️ מצב בהיר</button>
+        <button id="set-dark" onclick="setTheme('dark')" class="btn bg2" style="flex:1;">🌙 מצב כהה</button>
+      </div>
+    </div>
+    <!-- Font size -->
+    <div style="margin-bottom:18px;">
+      <div style="font-size:11px;font-weight:800;color:var(--ink3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px;">גודל טקסט</div>
+      <div style="display:flex;gap:8px;">
+        <button onclick="setFontSize(-1)" class="btn bg2" style="flex:1;">A− קטן יותר</button>
+        <button onclick="setFontSize(0)" class="btn bg2" style="flex:1;">A רגיל</button>
+        <button onclick="setFontSize(1)" class="btn bg2" style="flex:1;">A+ גדול יותר</button>
+      </div>
+    </div>
+    <!-- Teacher name -->
+    <div style="margin-bottom:18px;">
+      <div style="font-size:11px;font-weight:800;color:var(--ink3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px;">שם המורה (יוצג בדוחות)</div>
+      <input type="text" id="set-teacher-name" placeholder="שם המורה"
+        style="width:100%;padding:10px 14px;border:1.5px solid var(--bd2);border-radius:var(--rs);font-family:'Heebo',sans-serif;font-size:14px;background:var(--bg);box-sizing:border-box;"
+        onchange="saveSettingField('teacherName',this.value)">
+    </div>
+    <!-- School name -->
+    <div style="margin-bottom:18px;">
+      <div style="font-size:11px;font-weight:800;color:var(--ink3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px;">שם בית הספר</div>
+      <input type="text" id="set-school-name" placeholder="שם בית הספר"
+        style="width:100%;padding:10px 14px;border:1.5px solid var(--bd2);border-radius:var(--rs);font-family:'Heebo',sans-serif;font-size:14px;background:var(--bg);box-sizing:border-box;"
+        onchange="saveSettingField('schoolName',this.value)">
+    </div>
+    <!-- Reset -->
+    <div style="border-top:1px solid var(--bd);padding-top:14px;margin-top:6px;">
+      <button onclick="resetSettings()" class="btn bg2" style="color:#ef4444;border-color:rgba(239,68,68,.3);width:100%;">
+        🔄 איפוס הגדרות לברירת מחדל
+      </button>
+    </div>
+    <div class="mf"><button class="btn bp" onclick="closeModal('settings-modal')">סגור</button></div>
+  </div>
+</div>
 <!-- ══ FTI DISAMBIGUATION MODAL ══ -->
 <div class="mbg" id="fti-disambig-modal">
   <div class="mod" onclick="event.stopPropagation()" style="max-width:400px;">
@@ -4258,7 +4303,7 @@ function toast(msg){
 }
 
 ['asgn-modal','add-modal','custom-modal','ftbl-modal','free-entry-modal','student-report-modal','semester-modal','bl-add-modal','fti-disambig-modal','dist-modal','archive-group-modal','new-year-modal','settings-modal'].forEach(id=>{
-  document.getElementById(id).addEventListener('click',e=>{if(e.target===document.getElementById(id))closeModal(id);});
+  const _el=document.getElementById(id);if(_el)_el.addEventListener('click',e=>{if(e.target===_el)closeModal(id);});
 });
 document.addEventListener('keydown',e=>{
   // Escape — close any open modal
@@ -10113,50 +10158,7 @@ function openTournamentManager(){
 <!-- ══════════════════════════════════════════════════════════
      TOURNAMENT MANAGER — embedded full-screen panel
 ═══════════════════════════════════════════════════════════ -->
-<!-- ══ SETTINGS MODAL ══ -->
-<div class="mbg" id="settings-modal" style="align-items:flex-start;padding:20px 16px;overflow-y:auto;">
-  <div class="mod" onclick="event.stopPropagation()" style="max-width:460px;width:100%;">
-    <div class="mt">⚙️ הגדרות</div>
-    <!-- Theme -->
-    <div style="margin-bottom:18px;">
-      <div style="font-size:11px;font-weight:800;color:var(--ink3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px;">תצוגה</div>
-      <div style="display:flex;gap:8px;">
-        <button id="set-light" onclick="setTheme('light')" class="btn bg2" style="flex:1;">☀️ מצב בהיר</button>
-        <button id="set-dark" onclick="setTheme('dark')" class="btn bg2" style="flex:1;">🌙 מצב כהה</button>
-      </div>
-    </div>
-    <!-- Font size -->
-    <div style="margin-bottom:18px;">
-      <div style="font-size:11px;font-weight:800;color:var(--ink3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px;">גודל טקסט</div>
-      <div style="display:flex;gap:8px;">
-        <button onclick="setFontSize(-1)" class="btn bg2" style="flex:1;">A− קטן יותר</button>
-        <button onclick="setFontSize(0)" class="btn bg2" style="flex:1;">A רגיל</button>
-        <button onclick="setFontSize(1)" class="btn bg2" style="flex:1;">A+ גדול יותר</button>
-      </div>
-    </div>
-    <!-- Teacher name -->
-    <div style="margin-bottom:18px;">
-      <div style="font-size:11px;font-weight:800;color:var(--ink3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px;">שם המורה (יוצג בדוחות)</div>
-      <input type="text" id="set-teacher-name" placeholder="שם המורה"
-        style="width:100%;padding:10px 14px;border:1.5px solid var(--bd2);border-radius:var(--rs);font-family:'Heebo',sans-serif;font-size:14px;background:var(--bg);box-sizing:border-box;"
-        onchange="saveSettingField('teacherName',this.value)">
-    </div>
-    <!-- School name -->
-    <div style="margin-bottom:18px;">
-      <div style="font-size:11px;font-weight:800;color:var(--ink3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px;">שם בית הספר</div>
-      <input type="text" id="set-school-name" placeholder="שם בית הספר"
-        style="width:100%;padding:10px 14px;border:1.5px solid var(--bd2);border-radius:var(--rs);font-family:'Heebo',sans-serif;font-size:14px;background:var(--bg);box-sizing:border-box;"
-        onchange="saveSettingField('schoolName',this.value)">
-    </div>
-    <!-- Reset -->
-    <div style="border-top:1px solid var(--bd);padding-top:14px;margin-top:6px;">
-      <button onclick="resetSettings()" class="btn bg2" style="color:#ef4444;border-color:rgba(239,68,68,.3);width:100%;">
-        🔄 איפוס הגדרות לברירת מחדל
-      </button>
-    </div>
-    <div class="mf"><button class="btn bp" onclick="closeModal('settings-modal')">סגור</button></div>
-  </div>
-</div>
+
 
 <!-- ── ACCESSIBILITY BUTTON ── -->
 <button class="a11y-btn" onclick="toggleA11yPanel()" title="נגישות" id="a11y-btn" aria-label="נגישות">♿</button>
