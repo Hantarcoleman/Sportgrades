@@ -2,7 +2,7 @@
 <html lang="he" dir="rtl" style="color-scheme:light;">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
 <title>SportGrade — הערכה בחינוך גופני</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
@@ -10,6 +10,11 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Heebo:wght@300;400;500;600;700;800;900&family=DM+Serif+Display:ital@0;1&display=swap');
+[data-theme="dark"]{--bg:#1a1a2e;--bg2:#16213e;--ink:#e2e8f0;--ink2:#94a3b8;--ink3:#64748b;--bd:rgba(255,255,255,.1);--bd2:rgba(255,255,255,.15);--abg:rgba(200,64,26,.15);--abd:rgba(200,64,26,.3);--ac:#e87c5a;--gn:#22c55e;--gnbg:rgba(34,197,94,.15);}
+[data-theme="dark"] header{background:#0f0f23;}
+[data-theme="dark"] .gc{background:#16213e;}
+[data-theme="dark"] .card{background:#16213e;}
+[data-theme="dark"] .ri{background:#1a1a2e;color:#e2e8f0;}
 :root{
   --bg:#faf7f2;--bg2:#f2ede4;--bg3:#e8e1d6;--sf:#fff;
   --bd:#ddd6ca;--bd2:#c8bfb0;
@@ -24,9 +29,19 @@
   --r:12px;--rs:8px;--rx:30px;--t:.16s ease;
 }
 *{box-sizing:border-box;margin:0;padding:0;}
-@media(prefers-color-scheme:dark){:root{--bg:#faf7f2!important;--bg2:#f2ede4!important;--bg3:#e8e1d6!important;--sf:#fff!important;--bd:#ddd6ca!important;--bd2:#c8bfb0!important;--ink:#1a1510!important;--ink2:#6b5f52!important;--ink3:#a8998a!important;}body{background:#faf7f2!important;color:#1a1510!important;}}
+@media(prefers-color-scheme:dark){[data-theme="dark"]{--bg:#1a1a2e;--bg2:#16213e;--ink:#e2e8f0;--ink2:#94a3b8;--ink3:#64748b;--bd:rgba(255,255,255,.1);--bd2:rgba(255,255,255,.15);--abg:rgba(200,64,26,.15);--abd:rgba(200,64,26,.3);--ac:#e87c5a;--gn:#22c55e;--gnbg:rgba(34,197,94,.15);}
+[data-theme="dark"] header{background:#0f0f23;}
+[data-theme="dark"] .gc{background:#16213e;}
+[data-theme="dark"] .card{background:#16213e;}
+[data-theme="dark"] .ri{background:#1a1a2e;color:#e2e8f0;}
+:root{--bg:#faf7f2!important;--bg2:#f2ede4!important;--bg3:#e8e1d6!important;--sf:#fff!important;--bd:#ddd6ca!important;--bd2:#c8bfb0!important;--ink:#1a1510!important;--ink2:#6b5f52!important;--ink3:#a8998a!important;}body{background:#faf7f2!important;color:#1a1510!important;}}
 @media(prefers-color-scheme:dark){
-  :root{
+  [data-theme="dark"]{--bg:#1a1a2e;--bg2:#16213e;--ink:#e2e8f0;--ink2:#94a3b8;--ink3:#64748b;--bd:rgba(255,255,255,.1);--bd2:rgba(255,255,255,.15);--abg:rgba(200,64,26,.15);--abd:rgba(200,64,26,.3);--ac:#e87c5a;--gn:#22c55e;--gnbg:rgba(34,197,94,.15);}
+[data-theme="dark"] header{background:#0f0f23;}
+[data-theme="dark"] .gc{background:#16213e;}
+[data-theme="dark"] .card{background:#16213e;}
+[data-theme="dark"] .ri{background:#1a1a2e;color:#e2e8f0;}
+:root{
     --bg:#faf7f2!important;--bg2:#f2ede4!important;--bg3:#e8e1d6!important;--sf:#fff!important;
     --bd:#ddd6ca!important;--bd2:#c8bfb0!important;
     --ink:#1a1510!important;--ink2:#6b5f52!important;--ink3:#a8998a!important;
@@ -251,6 +266,17 @@ tr.highlighted td{background:rgba(200,64,26,.06)!important;transition:background
 .rec-result{text-align:center;color:var(--ink2);font-size:12px;}
 .rec-score{text-align:center;font-weight:800;font-size:14px;}
 .rec-grade{text-align:center;font-size:11px;color:var(--ink3);}
+.a11y-btn{position:fixed;bottom:20px;left:20px;z-index:999;background:var(--ink);color:#fff;border:none;border-radius:50%;width:44px;height:44px;font-size:20px;cursor:pointer;box-shadow:0 2px 12px rgba(0,0,0,.3);display:flex;align-items:center;justify-content:center;transition:all .2s;}
+.a11y-btn:hover{transform:scale(1.1);}
+.a11y-panel{position:fixed;bottom:72px;left:20px;z-index:999;background:var(--bg);border:1.5px solid var(--bd2);border-radius:14px;padding:14px;box-shadow:0 4px 24px rgba(0,0,0,.18);min-width:200px;display:none;direction:rtl;font-family:'Heebo',sans-serif;}
+.a11y-panel.open{display:block;}
+.a11y-row{display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--bd);gap:12px;}
+.a11y-row:last-child{border-bottom:none;}
+.a11y-label{font-size:13px;font-weight:700;color:var(--ink);}
+.a11y-row button{background:var(--bg2);border:1.5px solid var(--bd2);border-radius:8px;padding:5px 12px;cursor:pointer;font-family:'Heebo',sans-serif;font-size:13px;font-weight:700;color:var(--ink);transition:all .15s;}
+.a11y-row button:hover{border-color:var(--ac);color:var(--ac);}
+.a11y-row button.active{background:var(--ac);color:#fff;border-color:var(--ac);}
+@media(max-width:640px){.a11y-btn{bottom:14px;left:14px;width:40px;height:40px;font-size:18px;}}
 .toast{position:fixed;bottom:26px;left:50%;transform:translateX(-50%) translateY(80px);background:var(--ink);color:#fff;padding:11px 22px;border-radius:var(--rx);font-size:13px;font-weight:600;z-index:999;transition:transform .32s cubic-bezier(.34,1.56,.64,1);box-shadow:var(--shl);pointer-events:none;display:flex;align-items:center;gap:8px;}
 .toast.show{transform:translateX(-50%) translateY(0);}
 .td2{width:7px;height:7px;border-radius:50%;background:var(--gn);flex-shrink:0;}
@@ -475,6 +501,7 @@ tr.has-result td:first-child{border-right:3px solid var(--gn);}
 .grade-pick-btn:hover:not(.active){border-color:var(--ac);color:var(--ac);}
 
 /* ── SIDEBAR ──────────────────────────────────────────────── */
+@media(max-width:640px){#sb-pin-btn{display:none!important;}}
 .sb-toggle{background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.15);cursor:pointer;padding:7px 11px;border-radius:8px;color:#fff;font-size:20px;line-height:1;transition:background .15s;opacity:1!important;visibility:visible!important;z-index:201;position:relative;flex-shrink:0;}
 .sb-toggle:hover{background:rgba(255,255,255,.22);color:#fff;}
 #sidebar{position:fixed;top:0;right:0;width:260px;height:100vh;background:var(--ink);z-index:500;display:flex;flex-direction:column;transform:translateX(100%);transition:transform .25s cubic-bezier(.4,0,.2,1);box-shadow:-4px 0 30px rgba(0,0,0,.3);}
@@ -666,7 +693,7 @@ async function sbSignOut() {
 }
 
 // ── Start ────────────────────────────────────────────────────
-window.addEventListener('DOMContentLoaded', sbInit);
+window.addEventListener('DOMContentLoaded', ()=>{ sbInit(); loadA11ySettings(); });
 
 // ── Offline Detection & Queue ─────────────────────────────────
 let _offlineQueue = []; // gids waiting to sync
@@ -742,8 +769,8 @@ history.pushState(null,'',location.href);
 <div id="sidebar">
   <div class="sb-head">
     <div class="sb-head-title">SportGrade 🏃</div>
-    <button id="sb-pin-btn" onclick="toggleSidebarPin()" title="נעץ פתוח" style="background:none;border:none;cursor:pointer;color:rgba(255,255,255,.35);font-size:16px;padding:4px 6px;border-radius:5px;transition:color .15s;" title="נעץ סרגל פתוח">📌</button>
-    <button class="sb-close" onclick="closeSidebar()">✕</button>
+    <button id="sb-pin-btn" onclick="toggleSidebarPin()" title="נעץ/שחרר סרגל" style="background:none;border:none;cursor:pointer;color:rgba(255,255,255,.35);font-size:16px;padding:4px 6px;border-radius:5px;transition:all .15s;">📍</button>
+    <button class="sb-close" onclick="closeSidebar(true)">✕</button>
   </div>
   <div class="sb-body">
     <div class="sb-section">
@@ -773,6 +800,9 @@ history.pushState(null,'',location.href);
       </div>
       <div class="sb-item" onclick="openArchiveView()">
         <span class="sb-item-icon">📦</span><span>ארכיון שנים קודמות</span>
+      </div>
+      <div class="sb-item" onclick="openSettings()">
+        <span class="sb-item-icon">⚙️</span><span>הגדרות</span>
       </div>
       <div class="sb-item" onclick="sbOpenGuide()">
         <span class="sb-item-icon">📖</span><span>מדריך למורה</span>
@@ -815,7 +845,7 @@ history.pushState(null,'',location.href);
     <div class="card">
       <div class="ch"><div class="ct">קבוצות</div><span id="gtot" style="font-size:12px;color:var(--ink3);"></span></div>
       <div class="cb">
-        <div class="gg" id="gg"></div>
+        <div id="gg" style="display:flex;flex-direction:column;gap:8px;"></div>
         <div id="gsec-empty" style="padding:20px;text-align:center;color:var(--ink3);font-size:13px;display:none;">עדיין לא הוספת קבוצות</div>
       </div>
     </div>
@@ -2288,20 +2318,37 @@ function parseXLSX(data,fileName){
     saveState();renderGroupGrid();toast(`"${fileName}" נטענה — ${students.length} תלמידים ✓`);
   }catch(err){toast('שגיאה: '+err.message);}
 }
+const GRADE_ORDER=['א','ב','ג','ד','ה','ו','ז','ח','ט','י','יא','יב'];
+function gradeKey(name){
+  const m=name.match(/([אבגדהוזחטייא-יב]+)/);
+  if(!m)return 99;
+  const idx=GRADE_ORDER.indexOf(m[1]);
+  return idx>=0?idx:99;
+}
 function renderGroupGrid(){
   const ids=Object.keys(S.groups);
-  document.getElementById('gg').innerHTML=ids.map(gid=>{
+  // Sort by grade extracted from group name
+  const sorted=[...ids].sort((a,b)=>{
+    return gradeKey(S.groups[a].name)-gradeKey(S.groups[b].name)||S.groups[a].name.localeCompare(S.groups[b].name,'he');
+  });
+  document.getElementById('gg').innerHTML=sorted.map(gid=>{
     const g=S.groups[gid];
-    return `<div class="gc" onclick="openGroup(${gid})" style="padding-bottom:14px;">
-      <button class="gc-menu-btn" onclick="event.stopPropagation();toggleGroupMenu(${gid})" title="אפשרויות">⋮</button>
+    const stuCount=g.students.length;
+    const done=Object.values(g.results||{}).reduce((a,t)=>a+Object.values(t||{}).filter(d=>d&&d.a!=='').length,0);
+    return `<div onclick="openGroup(${gid})"
+      style="background:var(--bg);border:1.5px solid var(--bd);border-radius:var(--rs);padding:14px 18px;cursor:pointer;display:flex;align-items:center;gap:14px;transition:all .15s;position:relative;"
+      onmouseover="this.style.borderColor='var(--ac)'" onmouseout="this.style.borderColor='var(--bd)'">
+      <div style="font-size:26px;flex-shrink:0;">📋</div>
+      <div style="flex:1;min-width:0;">
+        <div style="font-weight:800;font-size:15px;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${g.name}</div>
+        <div style="font-size:12px;color:var(--ink3);margin-top:2px;">👥 ${stuCount} תלמידים${done?' · ✓ '+done+' ציונים':''}</div>
+      </div>
+      <button class="gc-menu-btn" onclick="event.stopPropagation();toggleGroupMenu(${gid})" title="אפשרויות" style="flex-shrink:0;">⋮</button>
       <div class="gc-dropdown" id="gc-dd-${gid}" onclick="event.stopPropagation()">
         <div class="gc-dd-item" onclick="closeGroupMenus();openGroup(${gid})">📂 פתח קבוצה</div>
         <div class="gc-dd-item" onclick="closeGroupMenus();renameGroup(${gid})">✏️ שנה שם</div>
         <div class="gc-dd-item danger" onclick="closeGroupMenus();deleteGroup(${gid})">🗑 מחק קבוצה</div>
       </div>
-      <div class="gcn">${g.name}</div>
-      <div class="gci">${g.classes||''}</div>
-      <div class="gcb">👥 ${g.students.length} תלמידים</div>
     </div>`;
   }).join('');
   const total=Object.values(S.groups).reduce((a,g)=>a+g.students.length,0);
@@ -2378,7 +2425,7 @@ function buildTabs(){
   });
   // "Create new" button — always last
   html+=`<div class="tab tab-new${CUR.test==='__completion__'?' sel':''}" onclick="selectCompletion()" id="tab-__completion__" style="background:rgba(239,68,68,.1);border-color:rgba(239,68,68,.25);color:#ef4444;">⚠ השלמת מבחנים</div>`;
-  html+=`<div class="tab tab-new${CUR.test==='__entered__'?' sel':''}" onclick="selectEntered()" id="tab-__entered__" style="background:rgba(21,128,61,.1);border-color:rgba(21,128,61,.3);color:#15803d;">✓ הזנה למערכת</div>`;
+  html+=`<div class="tab tab-new${CUR.test==='__entered__'?' sel':''}" onclick="selectEntered()" id="tab-__entered__" style="background:rgba(21,128,61,.1);border-color:rgba(21,128,61,.3);color:#15803d;font-size:11px;">✓ תיעוד הזנות למערכת ביה"ס</div>`;
   html+=`<div class="tab tab-new" onclick="openCustomModal()">＋ יצירת מבחן חדש</div>`;
   html+=`<div class="tab" onclick="showGroupEditView()" style="background:rgba(124,58,237,.1);border-color:rgba(124,58,237,.25);color:#a78bfa;padding:5px 10px;" title="עריכת קבוצה">עריכת קבוצה</div>`;
   document.getElementById('test-tabs').innerHTML=html;
@@ -3401,10 +3448,16 @@ function exportFullExcel(){
 function getPDFDoc(title, groupName, semLabel){
   const {jsPDF} = window.jspdf;
   const doc = new jsPDF({orientation:'landscape', unit:'mm', format:'a4'});
-  // RTL support
-  doc.setLanguage && doc.setLanguage('he');
   return doc;
 }
+
+// Hebrew text reversal for jsPDF RTL workaround
+function heb(str){
+  if(!str) return '';
+  // Reverse the string for RTL display in jsPDF
+  return String(str).split('').reverse().join('');
+}
+function hebArr(arr){ return arr.map(heb); }
 
 function addPDFHeader(doc, title, groupName, semLabel, testLabel){
   const pageW = doc.internal.pageSize.getWidth();
@@ -3415,15 +3468,15 @@ function addPDFHeader(doc, title, groupName, semLabel, testLabel){
   doc.setFont('helvetica','bold');
   doc.setFontSize(14);
   doc.setTextColor(255,255,255);
-  doc.text(title, pageW-10, 10, {align:'right'});
+  doc.text(heb(title), 10, 10, {align:'left'});
   // Subtitle
   doc.setFontSize(9);
   doc.setTextColor(200,200,200);
-  doc.text(`${groupName}  |  ${semLabel}  |  ${new Date().toLocaleDateString('he-IL')}`, pageW-10, 17, {align:'right'});
+  doc.text(heb(`${groupName}  |  ${semLabel}  |  ${new Date().toLocaleDateString('he-IL')}`), 10, 17, {align:'left'});
   if(testLabel){
     doc.setFontSize(10);
     doc.setTextColor(200,100,60);
-    doc.text(testLabel, 10, 10);
+    doc.text(heb(testLabel), pageW-10, 10);
   }
   return 28; // y start after header
 }
@@ -3450,7 +3503,7 @@ function addStatsFooter(doc, scores){
   doc.setFontSize(8);
   doc.setTextColor(80,80,80);
   doc.setFont('helvetica','normal');
-  const statsText = `ממוצע: ${avg}  |  מקסימום: ${max}  |  מינימום: ${min}  |  מספר תלמידים שנבחנו: ${done}`;
+  const statsText = heb(`ממוצע: ${avg}  |  מקסימום: ${max}  |  מינימום: ${min}  |  נבחנו: ${done}`);
   doc.text(statsText, pageW/2, pageH-6, {align:'center'});
 }
 
@@ -3496,7 +3549,7 @@ function exportPDF(){
 
   doc.autoTable({
     startY,
-    head:[['#','שם תלמיד','מין','כיתה','תוצאה א׳','','ציון א׳','תוצאה ב׳','ציון ב׳','ציון סופי']],
+    head:[[heb('#'),heb('שם תלמיד'),heb('מין'),heb('כיתה'),heb('תוצאה א'),heb(''),heb('ציון א'),heb('תוצאה ב'),heb('ציון ב'),heb('ציון סופי')]],
     body: tableBody,
     theme: 'grid',
     styles:{ font:'helvetica', fontSize:8.5, halign:'center', cellPadding:2.5 },
@@ -3572,7 +3625,7 @@ function exportFullPDF(){
     });
     doc.autoTable({
       startY,
-      head:[['#','שם תלמיד','מין','כיתה','תוצאה א׳','','ציון א׳','תוצאה ב׳','ציון ב׳','ציון סופי']],
+      head:[[heb('#'),heb('שם תלמיד'),heb('מין'),heb('כיתה'),heb('תוצאה א'),heb(''),heb('ציון א'),heb('תוצאה ב'),heb('ציון ב'),heb('ציון סופי')]],
       body: tableBody,
       theme: 'grid',
       styles:{ font:'helvetica', fontSize:8.5, halign:'center', cellPadding:2.5 },
@@ -4058,16 +4111,17 @@ function openRecords(){
   // Populate test selector
   const sel=document.getElementById('records-test-sel');
   if(!sel)return;
-  // Populate group selector
+  // Populate group selector — default = all groups
   const gSel=document.getElementById('records-group-sel');
   if(gSel){
     const gids=Object.keys(S.groups);
-    gSel.innerHTML=gids.map(id=>`<option value="${id}" ${id==CUR.gid?'selected':''}>${S.groups[id].name}</option>`).join('');
+    gSel.innerHTML=`<option value="__all__">כל הקבוצות</option>`+gids.map(id=>`<option value="${id}">${S.groups[id].name}</option>`).join('');
+    gSel.value='__all__';
   }
-  const g=S.groups[CUR.gid];if(!g)return;
+  // Gather tests across ALL groups
+  const allGroups=Object.values(S.groups);
   const allTests=[...TEST_LIST,...Object.entries(S.customTests||{}).map(([id,ct])=>({id,label:ct.name}))];
-  // Filter tests that have data
-  const usedTests=allTests.filter(t=>Object.values(g.results?.[t.id]||{}).some(d=>d&&d.a!==''));
+  const usedTests=allTests.filter(t=>allGroups.some(g=>Object.values(g.results?.[t.id]||{}).some(d=>d&&d.a!=='')));
   sel.innerHTML=usedTests.map(t=>`<option value="${t.id}">${t.label}</option>`).join('');
   if(usedTests.length){
     if(CUR.test){
@@ -4094,7 +4148,19 @@ function renderRecords(gradeFilter){
   if(activeBtn)activeBtn.classList.add('on');
 
   const testId=document.getElementById('records-test-sel')?.value||CUR.test;
-  const g=S.groups[CUR.gid];if(!g){return;}
+  const groupSel=document.getElementById('records-group-sel')?.value||'__all__';
+  // Gather students from selected group or all groups
+  let allStudents=[];
+  if(groupSel==='__all__'){
+    Object.entries(S.groups).forEach(([gid,g])=>{
+      g.students.forEach((s,idx)=>allStudents.push({s,idx,g,gid}));
+    });
+  } else {
+    const g=S.groups[groupSel];
+    if(g) g.students.forEach((s,idx)=>allStudents.push({s,idx,g,gid:groupSel}));
+  }
+  if(!allStudents.length){document.getElementById('records-table-wrap').innerHTML='<div style="text-align:center;padding:30px;color:var(--ink3);">אין נתונים</div>';return;}
+  const g=S.groups[groupSel]||Object.values(S.groups)[0];if(!g)return;
   const T=getTbl(testId);
   const results=g.results?.[testId]||{};
   const resultsB=g.results_b?.[testId]||{};
@@ -4157,7 +4223,7 @@ function renderRecords(gradeFilter){
 }
 
 function recSwitchGroup(gid){
-  CUR.gid=gid;
+  if(gid!=='__all__') CUR.gid=gid;
   // Reload test selector
   const sel=document.getElementById('records-test-sel');
   const g=S.groups[gid];if(!g||!sel)return;
@@ -4190,7 +4256,7 @@ function toast(msg){
   clearTimeout(_tt);_tt=setTimeout(()=>el.classList.remove('show'),3500);
 }
 
-['asgn-modal','add-modal','custom-modal','ftbl-modal','free-entry-modal','student-report-modal','semester-modal','bl-add-modal','fti-disambig-modal','dist-modal','archive-group-modal','new-year-modal'].forEach(id=>{
+['asgn-modal','add-modal','custom-modal','ftbl-modal','free-entry-modal','student-report-modal','semester-modal','bl-add-modal','fti-disambig-modal','dist-modal','archive-group-modal','new-year-modal','settings-modal'].forEach(id=>{
   document.getElementById(id).addEventListener('click',e=>{if(e.target===document.getElementById(id))closeModal(id);});
 });
 document.addEventListener('keydown',e=>{
@@ -4222,6 +4288,91 @@ function switchTestDelta(delta){
   const next=allTests[(cur+delta+allTests.length)%allTests.length];
   if(next){ CUR.test=next.id; renderTable(); updateRef(); }
 }
+
+// ── ACCESSIBILITY ────────────────────────────────────────────
+const A11Y_LS = 'sg_a11y_v1';
+
+function loadA11ySettings(){
+  try{
+    const s=JSON.parse(localStorage.getItem(A11Y_LS)||'{}');
+    if(s.theme) setTheme(s.theme, true);
+    if(s.fontSize) applyFontSize(s.fontSize, true);
+  }catch(e){}
+}
+
+function saveA11ySettings(){
+  const theme=document.documentElement.getAttribute('data-theme')||'light';
+  const fs=parseInt(document.documentElement.style.fontSize)||100;
+  localStorage.setItem(A11Y_LS, JSON.stringify({theme,fontSize:fs}));
+}
+
+function openSettings(){
+  closeSidebar();
+  // Populate fields
+  const s=JSON.parse(localStorage.getItem(A11Y_LS)||'{}');
+  const tnEl=document.getElementById('set-teacher-name');
+  const snEl=document.getElementById('set-school-name');
+  if(tnEl) tnEl.value=s.teacherName||'';
+  if(snEl) snEl.value=s.schoolName||'';
+  // Highlight active theme
+  document.getElementById('set-light')?.classList.toggle('active',!s.theme||s.theme==='light');
+  document.getElementById('set-dark')?.classList.toggle('active',s.theme==='dark');
+  openModal('settings-modal');
+}
+
+function saveSettingField(key,val){
+  const s=JSON.parse(localStorage.getItem(A11Y_LS)||'{}');
+  s[key]=val;
+  localStorage.setItem(A11Y_LS,JSON.stringify(s));
+}
+
+function resetSettings(){
+  if(!confirm('לאפס את כל ההגדרות לברירת מחדל?'))return;
+  localStorage.removeItem(A11Y_LS);
+  setTheme('light');
+  applyFontSize(100);
+  document.getElementById('set-teacher-name').value='';
+  document.getElementById('set-school-name').value='';
+  toast('✓ הגדרות אופסו');
+}
+
+function getSettings(){
+  try{ return JSON.parse(localStorage.getItem(A11Y_LS)||'{}'); }
+  catch(e){ return {}; }
+}
+
+function toggleA11yPanel(){
+  document.getElementById('a11y-panel').classList.toggle('open');
+}
+
+function setTheme(theme, silent=false){
+  document.documentElement.setAttribute('data-theme', theme);
+  document.getElementById('a11y-light')?.classList.toggle('active', theme==='light');
+  document.getElementById('a11y-dark')?.classList.toggle('active', theme==='dark');
+  if(!silent) saveA11ySettings();
+}
+
+let _fontSize=100;
+function setFontSize(delta){
+  if(delta===0){ _fontSize=100; }
+  else { _fontSize=Math.max(80,Math.min(130,_fontSize+(delta*10))); }
+  applyFontSize(_fontSize);
+  saveA11ySettings();
+}
+
+function applyFontSize(pct, silent=false){
+  _fontSize=pct;
+  document.documentElement.style.fontSize=pct+'%';
+}
+
+// Close a11y panel on outside click
+document.addEventListener('click',e=>{
+  const panel=document.getElementById('a11y-panel');
+  const btn=document.getElementById('a11y-btn');
+  if(panel&&!panel.contains(e.target)&&e.target!==btn&&!btn?.contains(e.target)){
+    panel.classList.remove('open');
+  }
+});
 
 function showKbHelp(){
   toast('⌨ Alt+A=הזנה | Alt+←→=מבחן | S=מיון | R=שיאים | Esc=סגור');
@@ -5345,7 +5496,7 @@ function unmarkAllEntered(testId){
   const res=g[resKey()]?.[testId]||{};
   const entered=Object.values(res).filter(d=>d&&d._entered);
   if(!entered.length){toast('אין סימונים לביטול');return;}
-  if(!confirm(`בטל ${entered.length} סימונים?`))return;
+
   entered.forEach(d=>{ d._entered=false; });
   saveState();renderTable();renderEntered();
   toast('כל הסימונים בוטלו');
@@ -5425,14 +5576,23 @@ function renderEntered(){
       </div>
     </div>`;
 
+  // Split into pending and done cards
+  const pendingCards=cards.filter(c=>c.rows.some(r=>!r.d._entered));
+  const doneCards=cards.filter(c=>c.rows.every(r=>r.d._entered));
+
+  if(pendingCards.length){
+    html+=`<div style="font-size:11px;font-weight:800;color:var(--ac);text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px;">⏳ ממתינים להזנה (${pendingCards.reduce((a,c)=>a+c.rows.filter(r=>!r.d._entered).length,0)} ציונים)</div>`;
+  }
+
   cards.forEach((card,cardIdx)=>{
     const {testId,testLabel,cls,rows}=card;
     const enteredRows=rows.filter(r=>r.d._entered);
     const pendingRows=rows.filter(r=>!r.d._entered);
     const allDone=pendingRows.length===0;
+    const isPendingSection=!allDone;
 
     html+=`
-    <div class="card" style="margin-bottom:12px;border-color:${allDone?'rgba(21,128,61,.35)':'var(--bd)'};" id="entered-card-${cardIdx}">
+    <div class="card" style="margin-bottom:20px;border-color:${allDone?'rgba(21,128,61,.35)':'var(--bd)'};" id="entered-card-${cardIdx}">
       <!-- Card header -->
       <div class="ch" style="gap:10px;flex-wrap:wrap;">
         <div style="display:flex;align-items:center;gap:8px;flex:1;min-width:0;">
@@ -5492,6 +5652,29 @@ function renderEntered(){
 
   // Store cards data for markCardEntered/unmarkCardEntered
   window._enteredCards=cards;
+
+  // Add section divider between pending and done
+  if(pendingCards.length && doneCards.length){
+    // Insert divider HTML between the two sections
+    const divider=`<div style="margin:20px 0 14px;padding:10px 0;border-top:2px solid var(--bd);display:flex;align-items:center;gap:10px;">
+      <span style="font-size:11px;font-weight:800;color:var(--gn);text-transform:uppercase;letter-spacing:.5px;">✅ הוזנו במערכת (${doneCards.reduce((a,c)=>a+c.rows.length,0)} ציונים)</span>
+    </div>`;
+    // Find position after last pending card in HTML
+    const lastPendingId='entered-card-'+(cards.indexOf(pendingCards[pendingCards.length-1]));
+    const marker=`id="${lastPendingId}"`;
+    const markerIdx=html.lastIndexOf(marker);
+    if(markerIdx>-1){
+      // Find closing </div> after this card
+      const afterCard=html.indexOf('</div>\n    </div>\n\n    ',markerIdx);
+      if(afterCard>-1){
+        const insertAt=afterCard+html.slice(afterCard).indexOf('</div>')+6;
+        html=html.slice(0,insertAt)+divider+html.slice(insertAt);
+      }
+    }
+  } else if(!pendingCards.length && doneCards.length){
+    html=`<div style="text-align:center;padding:16px;color:var(--gn);font-weight:700;font-size:14px;margin-bottom:12px;">✅ כל הציונים הוזנו במערכת!</div>`+html;
+  }
+
   ev.innerHTML=html;
 }
 
@@ -5500,8 +5683,7 @@ function markCardEntered(cardIdx){
   const card=window._enteredCards?.[cardIdx];if(!card)return;
   const pending=card.rows.filter(r=>!r.d._entered);
   if(!pending.length)return;
-  if(!confirm(`סמן ${pending.length} תלמידים כהוזנו במערכת הבית ספרית?
-(${card.testLabel} — כיתה ${card.cls})`))return;
+  
   const g=S.groups[CUR.gid];if(!g)return;
   const key=resKey();
   pending.forEach(({idx})=>{
@@ -7030,7 +7212,7 @@ function openSidebar(){
   if(rgBadge) rgBadge.textContent = rgCount ? `(${rgCount})` : '';
 }
 function closeSidebar(){
-  if(_sbPinned) return; // pinned — don't close on backdrop click
+  if(_sbPinned) return; // pinned — backdrop click ignored
   document.getElementById('sidebar').classList.remove('open');
   document.getElementById('sb-backdrop').classList.remove('open');
 }
@@ -7581,11 +7763,11 @@ function toggleSidebarPin(){
     sidebar.classList.add('pinned');
     document.body.classList.add('sb-pinned');
     document.getElementById('sb-backdrop')?.classList.remove('open');
-    if(btn)btn.classList.add('active');
+    if(btn){ btn.textContent='📌'; btn.style.color='var(--ac)'; btn.title='בטל נעיצה'; }
   } else {
     sidebar.classList.remove('pinned');
     document.body.classList.remove('sb-pinned');
-    if(btn)btn.classList.remove('active');
+    if(btn){ btn.textContent='📍'; btn.style.color='rgba(255,255,255,.35)'; btn.title='נעץ סרגל'; }
   }
 }
 
@@ -9930,6 +10112,72 @@ function openTournamentManager(){
 <!-- ══════════════════════════════════════════════════════════
      TOURNAMENT MANAGER — embedded full-screen panel
 ═══════════════════════════════════════════════════════════ -->
+<!-- ══ SETTINGS MODAL ══ -->
+<div class="mbg" id="settings-modal" style="align-items:flex-start;padding:20px 16px;overflow-y:auto;">
+  <div class="mod" onclick="event.stopPropagation()" style="max-width:460px;width:100%;">
+    <div class="mt">⚙️ הגדרות</div>
+    <!-- Theme -->
+    <div style="margin-bottom:18px;">
+      <div style="font-size:11px;font-weight:800;color:var(--ink3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px;">תצוגה</div>
+      <div style="display:flex;gap:8px;">
+        <button id="set-light" onclick="setTheme('light')" class="btn bg2" style="flex:1;">☀️ מצב בהיר</button>
+        <button id="set-dark" onclick="setTheme('dark')" class="btn bg2" style="flex:1;">🌙 מצב כהה</button>
+      </div>
+    </div>
+    <!-- Font size -->
+    <div style="margin-bottom:18px;">
+      <div style="font-size:11px;font-weight:800;color:var(--ink3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px;">גודל טקסט</div>
+      <div style="display:flex;gap:8px;">
+        <button onclick="setFontSize(-1)" class="btn bg2" style="flex:1;">A− קטן יותר</button>
+        <button onclick="setFontSize(0)" class="btn bg2" style="flex:1;">A רגיל</button>
+        <button onclick="setFontSize(1)" class="btn bg2" style="flex:1;">A+ גדול יותר</button>
+      </div>
+    </div>
+    <!-- Teacher name -->
+    <div style="margin-bottom:18px;">
+      <div style="font-size:11px;font-weight:800;color:var(--ink3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px;">שם המורה (יוצג בדוחות)</div>
+      <input type="text" id="set-teacher-name" placeholder="שם המורה"
+        style="width:100%;padding:10px 14px;border:1.5px solid var(--bd2);border-radius:var(--rs);font-family:'Heebo',sans-serif;font-size:14px;background:var(--bg);box-sizing:border-box;"
+        onchange="saveSettingField('teacherName',this.value)">
+    </div>
+    <!-- School name -->
+    <div style="margin-bottom:18px;">
+      <div style="font-size:11px;font-weight:800;color:var(--ink3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px;">שם בית הספר</div>
+      <input type="text" id="set-school-name" placeholder="שם בית הספר"
+        style="width:100%;padding:10px 14px;border:1.5px solid var(--bd2);border-radius:var(--rs);font-family:'Heebo',sans-serif;font-size:14px;background:var(--bg);box-sizing:border-box;"
+        onchange="saveSettingField('schoolName',this.value)">
+    </div>
+    <!-- Reset -->
+    <div style="border-top:1px solid var(--bd);padding-top:14px;margin-top:6px;">
+      <button onclick="resetSettings()" class="btn bg2" style="color:#ef4444;border-color:rgba(239,68,68,.3);width:100%;">
+        🔄 איפוס הגדרות לברירת מחדל
+      </button>
+    </div>
+    <div class="mf"><button class="btn bp" onclick="closeModal('settings-modal')">סגור</button></div>
+  </div>
+</div>
+
+<!-- ── ACCESSIBILITY BUTTON ── -->
+<button class="a11y-btn" onclick="toggleA11yPanel()" title="נגישות" id="a11y-btn" aria-label="נגישות">♿</button>
+<div class="a11y-panel" id="a11y-panel">
+  <div style="font-size:11px;font-weight:800;color:var(--ink3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px;">הגדרות תצוגה</div>
+  <div class="a11y-row">
+    <span class="a11y-label">מצב תצוגה</span>
+    <div style="display:flex;gap:6px;">
+      <button id="a11y-light" onclick="setTheme('light')" class="active">☀️ בהיר</button>
+      <button id="a11y-dark" onclick="setTheme('dark')">🌙 כהה</button>
+    </div>
+  </div>
+  <div class="a11y-row">
+    <span class="a11y-label">גודל טקסט</span>
+    <div style="display:flex;gap:6px;">
+      <button onclick="setFontSize(-1)" title="הקטן">A−</button>
+      <button onclick="setFontSize(0)" title="ברירת מחדל">A</button>
+      <button onclick="setFontSize(1)" title="הגדל">A+</button>
+    </div>
+  </div>
+</div>
+
 <div id="tm-panel" style="display:none;position:fixed;inset:0;z-index:600;background:var(--bg);overflow-y:auto;font-family:'Heebo',sans-serif;direction:rtl;">
 <style>
 :root { 
