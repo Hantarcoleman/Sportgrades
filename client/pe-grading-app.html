@@ -319,8 +319,11 @@ tr.highlighted td{background:rgba(200,64,26,.06)!important;transition:background
 .tc-reset:hover{background:rgba(255,255,255,.18);}
 /* Splits table */
 .splits-wrap{background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.08);border-radius:12px;overflow:visible;max-height:400px;overflow-y:auto;}
-.split-row{display:grid;grid-template-columns:28px 1fr auto;gap:8px;align-items:center;padding:8px 12px;border-bottom:1px solid rgba(255,255,255,.06);}
-.split-row-name{grid-column:1/-1;margin-top:4px;}
+.split-row{display:grid;grid-template-columns:30px 1fr auto auto;gap:6px;align-items:center;padding:8px 12px;border-bottom:1px solid rgba(255,255,255,.06);}
+.split-row-name{grid-column:1/-1;margin-top:2px;}
+.metro-split-row{display:flex;flex-direction:column;padding:8px 12px;border-bottom:1px solid rgba(255,255,255,.06);gap:6px;}
+.metro-split-row-top{display:flex;align-items:center;gap:8px;}
+.metro-split-row-name{width:100%;}
 .split-row:last-child{border-bottom:none;}
 .split-row.split-new{background:rgba(79,128,255,.12);animation:splitPop .4s ease;}
 @keyframes splitPop{from{background:rgba(79,128,255,.35);}to{background:rgba(79,128,255,.12);}}
@@ -459,7 +462,7 @@ tr.has-result td:first-child{border-right:3px solid var(--gn);}
 /* Long Run Live & Metronome — reuse bl- classes, add specific */
 .lr-bg{position:fixed;inset:0;background:#0a0c12;z-index:700;display:flex;flex-direction:column;opacity:0;pointer-events:none;transition:opacity .2s;}
 .lr-bg.open{opacity:1;pointer-events:all;}
-.metro-bg{position:fixed;inset:0;background:rgba(10,14,8,.96);z-index:700;display:flex;flex-direction:column;align-items:center;justify-content:flex-start;padding:20px 16px 60px;overflow-y:auto;opacity:0;pointer-events:none;transition:opacity .2s;}
+.metro-bg{position:fixed;inset:0;background:rgba(10,14,8,.96);z-index:700;display:flex;flex-direction:column;align-items:center;justify-content:flex-start;padding:20px 16px 60px;overflow-y:auto;opacity:0;pointer-events:none;transition:opacity .15s;will-change:opacity;-webkit-backface-visibility:hidden;backface-visibility:hidden;}
 .metro-bg.open{opacity:1;pointer-events:all;}
 .metro-main{width:100%;max-width:600px;}
 .metro-clock{font-family:'DM Serif Display',serif;font-size:72px;color:#fff;text-align:center;line-height:1;}
@@ -6691,19 +6694,20 @@ function metroRenderSplitRow(split,idx,isNew){
   const body=document.getElementById('metro-splits-body');
   const col=split.score===null?'rgba(255,255,255,.3)':split.score>=80?'#4ade80':split.score>=60?'#fbbf24':'#f87171';
   const div=document.createElement('div');
-  div.className='split-row'+(isNew?' split-new':'');div.id='metro-sr-'+idx;
+  div.className='metro-split-row'+(isNew?' split-new':'');div.id='metro-sr-'+idx;
   div.innerHTML=`
-    <div class="split-num">${idx+1}</div>
-    <div><div class="split-time">${split.displayVal||split.rawVal} חז׳</div></div>
-    <div class="split-score" style="color:${col}">${split.score!==null?split.score:'—'}</div>
-    <div class="split-ac-wrap">
+    <div class="metro-split-row-top">
+      <div class="split-num" style="flex-shrink:0;">${idx+1}</div>
+      <div style="flex:1;"><div class="split-time">${split.displayVal||split.rawVal} חז׳</div></div>
+      <div class="split-score" style="color:${col};font-size:20px;font-weight:800;">${split.score!==null?split.score:'—'}</div>
+    </div>
+    <div class="metro-split-row-name split-ac-wrap">
       <input type="text" class="split-name-input" id="metro-sni-${idx}"
-        placeholder="שם תלמיד..." value="${split.name}"
+        placeholder="🔍 שם תלמיד..." value="${split.name}"
         oninput="metroNameInput(this,${idx})" onkeydown="metroNameKeydown(event,${idx})"
         onchange="metroSplitNameChange(${idx},this.value)" autocomplete="off">
       <div class="split-ac-list" id="msac-${idx}" style="display:none;"></div>
-    </div>
-    <div style="font-size:10px;color:rgba(255,255,255,.3);text-align:center;">${split.rawVal}</div>`;
+    </div>`;
   body.appendChild(div);
   if(isNew)setTimeout(()=>{const inp=document.getElementById('metro-sni-'+idx);if(inp)inp.focus();},60);
 }
