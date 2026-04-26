@@ -1,17 +1,29 @@
 # SportGrade — מסמך מצב פרויקט
-**עודכן:** אפריל 2026  
+**עודכן:** 26 אפריל 2026  
 **שיחה:** pe-grading-app-dev
 
 ---
 
 ## קבצים פעילים
 
-| קובץ | שורות | גודל | תיאור |
-|------|--------|------|--------|
-| `pe-grading-app.html` | 10,099 | 729KB | האפליקציה הראשית (כולל tournament משולב) |
-| `tournament-manager.html` | 3,309 | 176KB | מנהל טורנירים עצמאי (legacy — לא בשימוש) |
+| קובץ | גודל | תיאור |
+|------|------|--------|
+| `client/pe-grading-app.html` | 850KB | האפליקציה הראשית (כולל tournament משולב) |
+| `client/login.html` | 17KB | דף התחברות |
+| `client/tournament-manager.html` | 180KB | מנהל טורנירים עצמאי (legacy — לא בשימוש) |
+| `.claude/launch.json` | — | הגדרות שרת פיתוח (preview mode) |
+| `.claude/serve.ps1` | — | שרת סטטי ב-PowerShell (ללא תלויות חיצוניות) |
 
 **חשוב:** מנהל הטורנירים משולב **בתוך** pe-grading-app.html מאז תיקון בעיית file:// URL. tournament-manager.html הוא גיבוי בלבד.
+
+---
+
+## סביבת פיתוח
+
+- **שרת:** PowerShell HttpListener — `powershell -File .claude/serve.ps1 -Port 8000 -Root client`
+- **כתובת:** http://localhost:8000/
+- **הפעלה מ-Claude Code:** `preview_start("static-powershell")` (מוגדר ב-`.claude/launch.json`)
+- **דרישות:** רק PowerShell 5.1+ מובנה — אין צורך ב-Node.js / Python
 
 ---
 

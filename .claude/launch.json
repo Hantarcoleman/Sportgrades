@@ -1,0 +1,21 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "static-powershell",
+      "runtimeExecutable": "powershell",
+      "runtimeArgs": [
+        "-NoProfile",
+        "-ExecutionPolicy",
+        "Bypass",
+        "-File",
+        ".claude/serve.ps1",
+        "-Port",
+        "8000",
+        "-Root",
+        "client"
+      ],
+      "port": 8000
+    }
+  ]
+}
