@@ -147,11 +147,11 @@ header{background:#1a1510;padding:0 16px 0 20px;height:58px;display:flex;align-i
 .sv{font-family:'DM Serif Display',serif;font-size:30px;color:var(--ac);line-height:1;}
 .sl{font-size:10px;color:var(--ink3);margin-top:3px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;}
 /* TABLE */
-.tc{background:var(--sf);border:1px solid var(--bd);border-radius:var(--r);contain:paint;box-shadow:var(--sh);}
+.tc{background:var(--sf);border:1px solid var(--bd);border-radius:var(--r);overflow:hidden;box-shadow:var(--sh);}
 .th{padding:13px 20px;border-bottom:1px solid var(--bd);display:flex;align-items:center;justify-content:space-between;background:var(--bg);gap:10px;flex-wrap:wrap;}
 .tt{font-family:'DM Serif Display',serif;font-size:17px;}
-.tw{overflow-x:auto;overflow-y:clip;position:relative;overscroll-behavior-x:none;touch-action:pan-y;}
-.tw thead{position:sticky;top:58px;z-index:101;}
+.tw{overflow:auto;position:relative;overscroll-behavior-x:contain;max-height:calc(100vh - 200px);}
+.tw thead{position:sticky;top:0;z-index:101;}
 .tw thead th{position:sticky;top:0;z-index:100;background:var(--bg2);box-shadow:0 1px 0 var(--bd);}
 .tw tbody td:first-child,.tw thead th:first-child{position:sticky;right:0;z-index:3;}
 .tw tbody td:first-child{background:var(--bg);}
