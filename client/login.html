@@ -440,7 +440,7 @@ async function doGoogle() {
   const { error } = await sbClient.auth.signInWithOAuth({
     provider: 'google',
     options: {
-      redirectTo: window.location.origin + '/pe-grading-app.html'
+      redirectTo: new URL('pe-grading-app.html', window.location.href).href
     }
   });
   if (error) showMsg(translateError(error.message), 'error');
