@@ -153,10 +153,10 @@ header{background:#1a1510;padding:0 16px 0 20px;height:58px;display:flex;align-i
 .tw tbody td:first-child,.tw thead th:first-child{position:sticky;right:0;z-index:3;}
 .tw tbody td:first-child{background:var(--bg);}
 .tw thead th:first-child{background:var(--bg2);z-index:101;}
-td,th{isolation:isolate;}
 table{width:100%;border-collapse:collapse;}
 th{background:var(--bg2);color:var(--ink3);padding:8px 13px;text-align:right;font-size:10px;font-weight:800;letter-spacing:.7px;text-transform:uppercase;white-space:nowrap;border-bottom:1px solid var(--bd);}
 td{padding:8px 13px;border-bottom:1px solid var(--bg2);font-size:13px;vertical-align:middle;height:48px;}
+.tw tbody td{position:relative;z-index:0;}
 tr:hover td{background:var(--bg);}
 tr:last-child td{border-bottom:none;}
 .tw tbody tr:nth-child(even) td{background:var(--bg);}
@@ -167,6 +167,10 @@ tr:last-child td{border-bottom:none;}
 .tw-ind{position:absolute;top:0;bottom:0;width:48px;pointer-events:none;z-index:6;opacity:0;transition:opacity .25s;}
 .tw-ind-r{right:0;background:linear-gradient(to left,var(--sf),transparent);}
 .tw-ind-l{left:0;background:linear-gradient(to right,var(--sf),transparent);}
+.tw-arr{position:absolute;top:50%;transform:translateY(-50%);width:34px;height:34px;border-radius:50%;background:var(--sf);border:1px solid var(--bd2);box-shadow:0 2px 10px rgba(26,21,16,.15);cursor:pointer;z-index:9;display:none;align-items:center;justify-content:center;font-size:17px;color:var(--ink2);transition:opacity .2s,box-shadow .15s;padding:0;}
+.tw-arr:hover{box-shadow:0 4px 16px rgba(26,21,16,.22);color:var(--ink);}
+.tw-arr-r{right:8px;}.tw-arr-l{left:8px;}
+@media(pointer:fine){.tw-arr{display:flex;}}
 tr.highlighted td{background:rgba(200,64,26,.06)!important;transition:background .5s;}
 .tn{font-weight:700;}
 .gm{display:inline-flex;padding:1px 7px;border-radius:4px;background:rgba(26,78,138,.08);color:var(--bl);font-size:11px;font-weight:700;}
@@ -10041,14 +10045,14 @@ function openTournamentManager(){
   openTournamentPanel();
 }
 
-// Mobile UX: directional scroll lock + scroll edge indicators for the student table
+// Mobile UX: directional scroll lock + scroll edge indicators + desktop arrows
 (function(){
   function initTableScrollUX(){
     const tw = document.getElementById('tw-scroll');
     if(!tw) return;
     const wrap = tw.parentElement;
 
-    // Gradient edge indicators
+    // --- Gradient edge indicators ---
     const indR = document.createElement('div');
     indR.className = 'tw-ind tw-ind-r';
     const indL = document.createElement('div');
@@ -10056,14 +10060,47 @@ function openTournamentManager(){
     wrap.appendChild(indR);
     wrap.appendChild(indL);
 
+    // --- Desktop arrow buttons (only rendered/visible on pointer:fine via CSS) ---
+    const btnR = document.createElement('button');
+    btnR.className = 'tw-arr tw-arr-r';
+    btnR.innerHTML = '&#8250;'; // › right chevron (RTL: back to start)
+    btnR.setAttribute('aria-label', 'גלול ימינה');
+    const btnL = document.createElement('button');
+    btnL.className = 'tw-arr tw-arr-l';
+    btnL.innerHTML = '&#8249;'; // ‹ left chevron (RTL: more columns)
+    btnL.setAttribute('aria-label', 'גלול שמאלה');
+    wrap.appendChild(btnR);
+    wrap.appendChild(btnL);
+
+    const STEP = 220;
+    btnR.addEventListener('click', function(){ tw.scrollBy({left: STEP, behavior:'smooth'}); });
+    btnL.addEventListener('click', function(){ tw.scrollBy({left: -STEP, behavior:'smooth'}); });
+
+    // --- Shared state ---
+    function getScrollBounds(){
+      const max = tw.scrollWidth - tw.clientWidth;
+      const sl  = tw.scrollLeft; // RTL Chrome: 0 at right edge, negative leftward
+      const scrolled   = Math.abs(sl);
+      const remaining  = max - scrolled;
+      return { max, scrolled, remaining };
+    }
+
     function updateIndicators(){
-      const maxScroll = tw.scrollWidth - tw.clientWidth;
-      if(maxScroll <= 0){ indR.style.opacity='0'; indL.style.opacity='0'; return; }
-      // RTL: scrollLeft is 0 at the right edge and goes negative; normalise with abs
-      const scrolled = Math.abs(tw.scrollLeft);
-      const remaining = maxScroll - scrolled;
-      indR.style.opacity = scrolled > 8 ? '1' : '0';
-      indL.style.opacity = remaining > 8 ? '1' : '0';
+      const { max, scrolled, remaining } = getScrollBounds();
+      if(max <= 0){
+        indR.style.opacity = indL.style.opacity = '0';
+        btnR.style.opacity = btnL.style.opacity = '0';
+        btnR.style.pointerEvents = btnL.style.pointerEvents = 'none';
+        return;
+      }
+      const showR = scrolled > 8;
+      const showL = remaining > 8;
+      indR.style.opacity = showR ? '1' : '0';
+      indL.style.opacity = showL ? '1' : '0';
+      btnR.style.opacity = showR ? '1' : '0';
+      btnL.style.opacity = showL ? '1' : '0';
+      btnR.style.pointerEvents = showR ? '' : 'none';
+      btnL.style.pointerEvents = showL ? '' : 'none';
     }
 
     tw.addEventListener('scroll', updateIndicators, {passive:true});
@@ -10079,7 +10116,7 @@ function openTournamentManager(){
       };
     }
 
-    // Directional scroll lock (RTL: scrollLeft goes negative leftward)
+    // --- Directional scroll lock (RTL: scrollLeft 0 = right edge, negative = leftward) ---
     let startX=0, startY=0, lastX=0, scrollDir=null;
 
     tw.addEventListener('touchstart', function(e){
@@ -10091,17 +10128,32 @@ function openTournamentManager(){
     tw.addEventListener('touchmove', function(e){
       const curX = e.touches[0].clientX;
       const curY = e.touches[0].clientY;
-      if(!scrollDir){
-        const dx = Math.abs(curX - startX);
-        const dy = Math.abs(curY - startY);
-        if(dx > 8 || dy > 8) scrollDir = dx > dy ? 'h' : 'v';
+      const adx = Math.abs(curX - startX);
+      const ady = Math.abs(curY - startY);
+
+      if(!scrollDir && (adx > 8 || ady > 8)){
+        scrollDir = adx > ady ? 'h' : 'v';
       }
+
       if(scrollDir === 'h'){
+        // Hard-clamp to prevent any overscroll/bounce
         e.preventDefault();
-        // RTL: finger moving left → curX < lastX → delta negative → scrollLeft decreases (reveals left content)
-        tw.scrollLeft += (curX - lastX);
+        const { max } = getScrollBounds();
+        const sl = tw.scrollLeft;
+        // RTL: valid range is [-max, 0]
+        const next = sl + (curX - lastX);
+        tw.scrollLeft = Math.max(-max, Math.min(0, next));
         updateIndicators();
+      } else if(!scrollDir && adx > 0) {
+        // Before direction is determined: kill bounce at the horizontal boundaries
+        const { scrolled, remaining } = getScrollBounds();
+        const movingTowardStart = curX > lastX; // swiping right = back to start (RTL)
+        const movingTowardEnd   = curX < lastX;
+        if((movingTowardStart && scrolled < 2) || (movingTowardEnd && remaining < 2)){
+          e.preventDefault();
+        }
       }
+
       lastX = curX;
     }, {passive:false});
 
