@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
 <title>SportGrade — הערכה בחינוך גופני</title>
+<script>if(location.hash.indexOf('gid=')!==-1){document.documentElement.setAttribute('data-restoring','1');setTimeout(function(){document.documentElement.removeAttribute('data-restoring');},3000);}</script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
@@ -52,6 +53,7 @@ body{font-family:'Heebo',sans-serif;background:var(--bg);color:var(--ink);min-he
 body::after{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;opacity:.5;
   background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='200' height='200' filter='url(%23n)' opacity='.03'/%3E%3C/svg%3E");}
 .app{position:relative;z-index:1;}
+html[data-restoring="1"] #view-welcome,html[data-restoring="1"] .view{visibility:hidden;}
 header{background:#1a1510;padding:0 16px 0 20px;height:58px;display:flex;align-items:center;gap:12px;position:sticky;top:0;z-index:201;box-shadow:0 2px 12px rgba(0,0,0,.3);}
 .logo{font-family:'DM Serif Display',serif;font-size:21px;color:#fff;display:flex;align-items:center;gap:10px;}
 .logo em{color:var(--a2);font-style:italic;}
@@ -148,7 +150,7 @@ header{background:#1a1510;padding:0 16px 0 20px;height:58px;display:flex;align-i
 .tc{background:var(--sf);border:1px solid var(--bd);border-radius:var(--r);overflow:clip;box-shadow:var(--sh);}
 .th{padding:13px 20px;border-bottom:1px solid var(--bd);display:flex;align-items:center;justify-content:space-between;background:var(--bg);gap:10px;flex-wrap:wrap;}
 .tt{font-family:'DM Serif Display',serif;font-size:17px;}
-.tw{overflow-x:auto;overflow-y:clip;position:relative;overscroll-behavior-x:none;-webkit-overflow-scrolling:touch;will-change:scroll-position;}
+.tw{overflow-x:auto;overflow-y:clip;position:relative;overscroll-behavior-x:none;touch-action:pan-y;}
 .tw thead th{position:sticky;top:58px;z-index:100;background:var(--bg2);box-shadow:0 1px 0 var(--bd);}
 .tw tbody td:first-child,.tw thead th:first-child{position:sticky;right:0;z-index:3;}
 .tw tbody td:first-child{background:var(--bg);}
@@ -171,7 +173,7 @@ tr:last-child td{border-bottom:none;}
 .tw-arr{position:absolute;top:50%;transform:translateY(-50%);width:34px;height:34px;border-radius:50%;background:var(--sf);border:1px solid var(--bd2);box-shadow:0 2px 10px rgba(26,21,16,.15);cursor:pointer;z-index:9;display:none;align-items:center;justify-content:center;font-size:17px;color:var(--ink2);transition:opacity .2s,box-shadow .15s;padding:0;}
 .tw-arr:hover{box-shadow:0 4px 16px rgba(26,21,16,.22);color:var(--ink);}
 .tw-arr-r{right:8px;}.tw-arr-l{left:8px;}
-@media(pointer:fine){.tw-arr{display:flex;}}
+@media(min-width:769px){.tw-arr{display:flex;}}
 .tw table.hide-col-gender th:nth-child(3),.tw table.hide-col-gender td:nth-child(3){display:none;}
 .tw table.hide-col-class th:nth-child(4),.tw table.hide-col-class td:nth-child(4){display:none;}
 .tw table.hide-col-scoreA th:nth-child(6),.tw table.hide-col-scoreA td:nth-child(6){display:none;}
@@ -2350,24 +2352,35 @@ function _parseRoute(){
   return{gid:isNaN(+p.gid)?p.gid:+p.gid,test:p.test||'pushups',semester:p.sem==='b'?'b':'a'};
 }
 async function restoreRoute(){
+  function _done(){document.documentElement.removeAttribute('data-restoring');}
   let r=_parseRoute();
   if(!r){
     try{const ls=JSON.parse(localStorage.getItem(CUR_LS_KEY)||'null');if(ls&&ls.gid!=null)r={gid:ls.gid,test:ls.test||'pushups',semester:ls.semester||'a'};}catch(e){}
   }
-  if(!r)return;
+  if(!r){_done();return;}
   if(!S.groups||!S.groups[r.gid]){
     history.replaceState(null,'',location.pathname+location.search);
     try{localStorage.removeItem(CUR_LS_KEY);}catch(e){}
+    _done();
     return;
   }
-  const validTest=(typeof getTbl==='function'&&getTbl(r.test)&&getTbl(r.test).id===r.test)||!!(S.groups[r.gid]&&S.groups[r.gid].customTests&&S.groups[r.gid].customTests[r.test]);
-  if(!validTest)r.test='pushups';
+  // Validate test exists (built-in or custom). Built-in test list lives in TEST_LIST.
+  const isBuiltIn=(typeof TEST_LIST!=='undefined')&&TEST_LIST.some(function(t){return t.id===r.test;});
+  const isCustom=!!(S.groups[r.gid]&&S.groups[r.gid].customTests&&S.groups[r.gid].customTests[r.test]);
+  if(!isBuiltIn&&!isCustom)r.test='pushups';
+  // Replicate the full confirmSemester() side-effects non-interactively.
   setCUR({gid:r.gid,test:r.test,semester:r.semester});
+  const g=S.groups[r.gid];
+  const bcG=document.getElementById('bc-g');if(bcG)bcG.textContent=g.name;
+  const ig=document.getElementById('ig');if(ig)ig.textContent=g.name;
+  const ic2=document.getElementById('ic2');if(ic2)ic2.textContent=g.students.length;
+  const hp=document.getElementById('hpill');if(hp)hp.textContent=g.name+' · מחצית '+(r.semester==='a'?'א׳':'ב׳');
+  if(typeof setSemester==='function')setSemester(r.semester);
+  if(typeof updateClassFilter==='function')updateClassFilter();
+  if(typeof buildTabs==='function')buildTabs();
+  if(typeof selectTest==='function')selectTest(r.test);
   showView('group');
-  renderTable();
-  if(typeof updateRef==='function')updateRef();
-  const hp=document.getElementById('hpill');
-  if(hp)hp.textContent=(S.groups[r.gid].name||'')+' · '+(r.semester==='b'?'מחצית ב׳':'מחצית א׳');
+  _done();
 }
 
 function r(idx){
