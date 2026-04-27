@@ -6696,8 +6696,6 @@ function metroSplit(){
   const idx=MTR.splits.length-1;
   metroRenderSplitRow(split,idx,true);
   document.getElementById('metro-splits').style.display='block';
-  const sw=document.getElementById('metro-splits');
-  setTimeout(()=>sw.scrollTop=sw.scrollHeight,50);
 }
 
 function metroRenderSplitRow(split,idx,isNew){
@@ -6719,14 +6717,6 @@ function metroRenderSplitRow(split,idx,isNew){
       <div class="split-ac-list" id="msac-${idx}" style="display:none;"></div>
     </div>`;
   body.appendChild(div);
-  if(isNew)setTimeout(()=>{
-    const inp=document.getElementById('metro-sni-'+idx);
-    if(inp){
-      inp.focus();
-      // Scroll the name input into view with extra space for autocomplete
-      inp.scrollIntoView({behavior:'smooth',block:'center'});
-    }
-  },80);
 }
 
 function metroSplitNameChange(idx,val){
@@ -6771,6 +6761,10 @@ function metroStopTest(){
   // Saeif 6: restore test-btn for next use (hidden)
   document.getElementById('metro-test-btn').style.display='none';
   document.getElementById('metro-save-row').style.display='block';
+  setTimeout(()=>{
+    const first=document.getElementById('metro-sni-0');
+    if(first){first.scrollIntoView({behavior:'smooth',block:'center'});first.focus();}
+  },150);
   setTimeout(()=>metroSaveAll(true),200); // auto-save
 }
 
