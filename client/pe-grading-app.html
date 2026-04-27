@@ -6569,7 +6569,8 @@ function metroNewTest(){
   document.getElementById('metro-split-btn').disabled=true;
   const hint=document.getElementById('metro-start-hint');
   if(hint)hint.style.display='block';
-  toast('מבחן חדש — הטיימר ממשיך');
+  metroPlay();
+  toast('מבחן חדש');
 }
 
 function setBpm(v){
@@ -6740,6 +6741,7 @@ function metroSplitNameChange(idx,val){
 
 function metroStopTest(){
   MTR.testing=false;
+  metroStop();
   if(!MTR.stoppedOnce){
     MTR.stoppedOnce=true;
     const scoreReps=Math.floor(MTR.reps);
