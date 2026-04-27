@@ -151,11 +151,12 @@ header{background:#1a1510;padding:0 16px 0 20px;height:58px;display:flex;align-i
 .th{padding:13px 20px;border-bottom:1px solid var(--bd);display:flex;align-items:center;justify-content:space-between;background:var(--bg);gap:10px;flex-wrap:wrap;}
 .tt{font-family:'DM Serif Display',serif;font-size:17px;}
 .tw{overflow-x:auto;overflow-y:clip;position:relative;overscroll-behavior-x:none;touch-action:pan-y;}
-.tw thead th{position:sticky;top:58px;z-index:100;background:var(--bg2);box-shadow:0 1px 0 var(--bd);}
+.tw thead{position:sticky;top:58px;z-index:101;}
+.tw thead th{position:sticky;top:0;z-index:100;background:var(--bg2);box-shadow:0 1px 0 var(--bd);}
 .tw tbody td:first-child,.tw thead th:first-child{position:sticky;right:0;z-index:3;}
 .tw tbody td:first-child{background:var(--bg);}
 .tw thead th:first-child{background:var(--bg2);z-index:102;}
-table{width:100%;border-collapse:collapse;}
+table{width:100%;border-collapse:separate;border-spacing:0;}
 th{background:var(--bg2);color:var(--ink3);padding:8px 13px;text-align:right;font-size:10px;font-weight:800;letter-spacing:.7px;text-transform:uppercase;white-space:nowrap;border-bottom:1px solid var(--bd);}
 td{padding:8px 13px;border-bottom:1px solid var(--bg2);font-size:13px;vertical-align:middle;height:48px;}
 .tw tbody td{position:relative;}
