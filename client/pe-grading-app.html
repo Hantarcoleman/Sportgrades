@@ -177,10 +177,8 @@ tr:last-child td{border-bottom:none;}
 @media(min-width:769px){.tw-arr{display:flex;}}
 .tw table.hide-col-gender th:nth-child(3),.tw table.hide-col-gender td:nth-child(3){display:none;}
 .tw table.hide-col-class th:nth-child(4),.tw table.hide-col-class td:nth-child(4){display:none;}
-.tw table.hide-col-scoreA th:nth-child(6),.tw table.hide-col-scoreA td:nth-child(6){display:none;}
-.tw table.hide-col-scoreB th:nth-child(8),.tw table.hide-col-scoreB td:nth-child(8){display:none;}
-.tw table.hide-col-final th:nth-child(10),.tw table.hide-col-final td:nth-child(10){display:none;}
-.tw table.hide-col-actions th:nth-child(11),.tw table.hide-col-actions td:nth-child(11){display:none;}
+.tw table.hide-col-score th:nth-child(6),.tw table.hide-col-score td:nth-child(6){display:none;}
+.tw table.hide-col-actions th:nth-child(7),.tw table.hide-col-actions td:nth-child(7){display:none;}
 #col-menu{position:absolute;z-index:300;background:var(--sf);border:1px solid var(--bd2);border-radius:var(--rs);box-shadow:var(--shl);padding:6px 0;min-width:160px;display:none;direction:rtl;top:100%;right:0;}
 #col-menu.open{display:block;}
 #col-menu label{display:flex;align-items:center;gap:8px;padding:7px 14px;font-size:13px;cursor:pointer;font-family:'Heebo',sans-serif;}
@@ -1264,10 +1262,7 @@ history.pushState(null,'',location.href);
     </div>
     <div class="tw-wrap"><div class="tw" id="tw-scroll"><table><thead><tr>
       <th>#</th><th>שם תלמיד</th><th>מין</th><th>כיתה</th>
-      <th id="ahd">תוצאה מועד א׳</th><th>ציון מועד א׳</th>
-      <th id="bhd">תוצאה מועד ב׳</th><th>ציון מועד ב׳</th>
-      <th id="sem-a-ref-hd" style="display:none;font-size:9px;color:#7c3aed;">מחצית א׳ (לצפייה)</th>
-      <th id="grade-hd">ציון לתעודה מחצית א׳</th><th></th>
+      <th id="ahd">תוצאה</th><th>ציון</th><th></th>
     </tr></thead><tbody id="tbody"></tbody></table></div></div>
   </div>
   <div id="guest-note" style="display:none;margin:8px 0;background:rgba(251,191,36,.12);border:1px solid rgba(251,191,36,.3);border-radius:8px;padding:10px 16px;font-size:12px;color:var(--ink2);"></div>
@@ -2605,8 +2600,7 @@ function selectTest(testId){
   const lb=T.lb||(ct&&ct.lowerBetter);
   const hint=lb?(isSeconds?'הזן שניות ומאיות':'הזן MM:SS — נמוך = טוב'):'הזן תוצאה — ציון אוטומטי';
   document.getElementById('thint').textContent=hint;
-  document.getElementById('ahd').textContent=`תוצאה מועד א׳ (${(T.unit||(ct&&ct.unit)||'ערך').replace('-','')})`;
-  document.getElementById('bhd').textContent=`תוצאה מועד ב׳ (${(T.unit||(ct&&ct.unit)||'ערך').replace('-','')})`;
+  document.getElementById('ahd').textContent=`תוצאה (${(T.unit||(ct&&ct.unit)||'ערך').replace('-','')})`;
   document.getElementById('pbtn').style.display=T.isPaste?'':'none';
   if(!T.isPaste)document.getElementById('ppc').style.display='none';
   document.getElementById('edit-custom-btn').style.display=ct?'':'none';
@@ -2752,8 +2746,6 @@ function renderTable(){
   if(fc)fc.textContent=sorted.length<totalStudents?`מציג ${sorted.length} מתוך ${totalStudents}`:'';
 
   const isInSemB=CUR.semester==='b';
-  const semAHd=document.getElementById('sem-a-ref-hd');
-  if(semAHd)semAHd.style.display=isInSemB?'':'none';
 
   document.getElementById('tbody').innerHTML=sorted.map(s=>{
     const idx=s._orig;
@@ -2804,7 +2796,7 @@ function renderTable(){
       '<span style="color:rgba(255,255,255,.2);">—</span>'}</td>`:'';
 
     const gb=isFem?`<span class="gf">נ</span>`:`<span class="gm">ז</span>`;
-    const sAh=!hasResult?'<span class="spn" style="opacity:.25;">—</span>':(sA===null?`<span class="spn">${dis?'—':''}</span>`:`<span class="sp ${spCls(sA)}">${sA}</span>`);
+    const sAh=!hasResult?'<span class="spn" style="opacity:.25;">—</span>':(fin===null?`<span class="spn">${dis?'—':''}</span>`:`<span class="sp spf">${fin}</span>`);
     const sBh=!hasResult?'<span class="spn" style="opacity:.25;">—</span>':(sB===null?'<span class="spn">—</span>':`<span class="sp ${spCls(sB)}">${sB}</span>`);
     const fh=!hasResult?'<span class="spn" style="opacity:.2;">—</span>':(gradeScore===null?'<span class="spn">—</span>':gradeScoreIsInherited?`<span class="sp spf spf-inh" title="ציון ממחצית א׳ — טרם הוזנה תוצאה במחצית ב׳">${gradeScore}</span>`:`<span class="sp spf">${gradeScore}</span>`);
     const rc=(isTime||isSeconds)?'ri ri-t':'ri';
@@ -2828,16 +2820,10 @@ function renderTable(){
       <td style="font-size:11px;color:var(--ink3);">${s.grade}${s.cls}</td>
       <td>
         <input type="text" class="${rc}" value="${d.a}" ${dis?'disabled':''} placeholder="${ph}"
-          data-idx="${idx}" data-f="a" oninput="onLive(event)" onchange="onFC(event)">
+          data-idx="${idx}" data-f="a" onfocus="this.dataset.orig=this.value" oninput="onLive(event)" onchange="onFC(event)">
         ${bonA}
       </td>
       <td>${sAh}</td>
-      <td>
-        <input type="text" class="${rc}" value="${d.b}" ${dis?'disabled':''} placeholder="${ph}"
-          data-idx="${idx}" data-f="b" oninput="onLive(event)" onchange="onFC(event)">
-        ${!dis?bonB:''}
-      </td>
-      <td>${sBh}</td>${semACell}<td>${fh}</td>
       <td></td>
     </tr>`;
   }).join('');
@@ -2860,9 +2846,7 @@ const COL_LS_KEY='sg_col_vis_v1';
 const COL_DEFS=[
   {key:'gender', label:'מין',         cls:'hide-col-gender'},
   {key:'class',  label:'כיתה',        cls:'hide-col-class'},
-  {key:'scoreA', label:'ציון מועד א׳', cls:'hide-col-scoreA'},
-  {key:'scoreB', label:'ציון מועד ב׳', cls:'hide-col-scoreB'},
-  {key:'final',  label:'ציון לתעודה', cls:'hide-col-final'},
+  {key:'score',  label:'ציון',        cls:'hide-col-score'},
   {key:'actions',label:'עמודה אחרונה',cls:'hide-col-actions'},
 ];
 function loadColVis(){try{return JSON.parse(localStorage.getItem(COL_LS_KEY)||'{}');}catch(e){return {};}}
@@ -2896,18 +2880,32 @@ function onLive(e){const i=parseInt(e.target.dataset.idx),f=e.target.dataset.f;r
 function _checkReminder(){setTimeout(checkWeeklyReminder,2000);}
 function onFC(e){
   const i=parseInt(e.target.dataset.idx),f=e.target.dataset.f,v=e.target.value;
-  if(f==='bonusA')r(i).bonusA=parseFloat(v)||0;
-  else{
-    const prev=r(i)[f];
-    // Save history before overwriting (only for actual result fields a/b)
-    if((f==='a'||f==='b')&&prev!==undefined&&prev!==''&&prev!==v){
+  if(f==='bonusA'){r(i).bonusA=parseFloat(v)||0;saveState();refreshRow(i);return;}
+  if(f==='a'){
+    const prev=e.target.dataset.orig||'';
+    // If new value lowers the score compared to saved, ask for confirmation
+    if(prev!==''&&v!==''&&v!==prev){
+      const s=S.groups[CUR.gid]?.students[i];
+      if(s){
+        const grade=s.grade||'ט';const gender=s.gender||'ז';
+        const sExist=getScore(CUR.test,grade,gender,prev);
+        const sNew=getScore(CUR.test,grade,gender,v);
+        if(sExist!==null&&sNew!==null&&sNew<sExist){
+          if(!confirm(`האם להוריד את הציון מ-${sExist} ל-${sNew}?`)){
+            e.target.value=prev;
+            r(i)[f]=prev;
+            refreshRow(i);
+            return;
+          }
+        }
+      }
       if(!r(i)._hist) r(i)._hist=[];
       r(i)._hist.unshift({val:prev,ts:Date.now(),sem:CUR.semester,field:f});
-      if(r(i)._hist.length>10) r(i)._hist.pop(); // keep last 10
+      if(r(i)._hist.length>10) r(i)._hist.pop();
     }
     r(i)[f]=v;
     if(v)r(i)._ts=Date.now();
-    if(f==='b'&&v&&CUR.semester==='b')r(i).showB=true;
+    e.target.dataset.orig=v;
   }
   saveState();refreshRow(i);
 }
@@ -2934,41 +2932,12 @@ function refreshRow(idx){
   else if(isInSemB&&semABest!==null&&fin===null)gradeScore=semABest;
   const row=document.querySelector(`tr[data-idx="${idx}"]`);if(!row)return;
   const cells=row.querySelectorAll('td');
-  // If value exists but not yet saved (_ts not set), show as faded "live preview"
   const isLivePreview=d.a!==''&&!d._ts;
-  cells[5].innerHTML=sA===null
+  cells[5].innerHTML=fin===null
     ?`<span class="spn">${dis?'—':''}</span>`
     :isLivePreview
-      ?`<span class="sp ${spCls(sA)}" style="opacity:.35;font-style:italic;" title="טרם נשמר">${sA}</span>`
-      :`<span class="sp ${spCls(sA)}">${sA}</span>`;
-  cells[7].innerHTML=d.b&&sB!==null?`<span class="sp ${spCls(sB)}">${sB}</span>`:'<span class="spn">—</span>';
-  const gradeIdx=isInSemB?9:8;
-  if(cells[gradeIdx]){
-    let gradeScoreInh2=false;
-    if(isInSemB&&semABest!==null&&fin===null) gradeScoreInh2=true;
-    cells[gradeIdx].innerHTML=gradeScore===null
-      ?'<span class="spn">—</span>'
-      :gradeScoreInh2
-        ?`<span class="sp spf spf-inh" title="ציון ממחצית א׳ — טרם הוזנה תוצאה במחצית ב׳">${gradeScore}</span>`
-        :isLivePreview
-          ?`<span class="sp spf" style="opacity:.35;font-style:italic;" title="טרם נשמר">${gradeScore}</span>`
-          :`<span class="sp spf">${gradeScore}</span>`;
-  }
-  const note=row.querySelector('.impr-big,.impr-decline');if(note){
-    const isImp=imp>0, isDec=sB!==null&&sA!==null&&sB<sA&&d.b&&!isImp;
-    if(isImp){
-      note.className='impr-big';
-      note.textContent='📈 שיפור '+imp+'%';
-      note.style.cssText='opacity:1;height:auto;padding:4px 10px;margin:5px 0 0;border:1px solid rgba(16,185,129,.3);display:inline-block;';
-    } else if(isDec){
-      note.className='impr-decline';
-      note.textContent='📉 ירידה';
-      note.style.cssText='opacity:1;height:auto;padding:4px 10px;margin:5px 0 0;border:1px solid rgba(248,113,113,.3);display:inline-block;';
-    } else {
-      note.textContent='';
-      note.style.cssText='opacity:0;height:0;padding:0;margin:0;border:none;overflow:hidden;';
-    }
-  }
+      ?`<span class="sp spf" style="opacity:.35;font-style:italic;" title="טרם נשמר">${fin}</span>`
+      :`<span class="sp spf">${fin}</span>`;
   updateStats();
 }
 function toggleB(i){const d=r(i);d.showB=!d.showB;if(!d.showB){d.b='';d.bonusB=0;}saveState();renderTable();}
@@ -3002,8 +2971,6 @@ function setSemester(sem){
   document.getElementById('sem-b-btn').style.color=sem==='b'?'#fff':'var(--ink2)';
   const label=sem==='b'?'מחצית ב׳':'מחצית א׳';
   document.getElementById('hpill').textContent=S.groups[CUR.gid]?.name+' · '+label;
-  const gradeHd=document.getElementById('grade-hd');
-  if(gradeHd)gradeHd.textContent='ציון לתעודה מחצית '+(sem==='b'?'ב׳':'א׳');
   renderTable();updateStats();
 }
 
@@ -6442,19 +6409,14 @@ function writeResult(gid, testId, studentIdx, rawVal, round){
   if(!g[key][testId])g[key][testId]={};
   if(!g[key][testId][studentIdx])g[key][testId][studentIdx]={a:'',b:'',bonusA:0,bonusB:0,showB:false};
   const d=g[key][testId][studentIdx];
-  const field=round==='b'?'b':'a';
-  if(round==='a'){
-    // For round A: keep the better score
-    const s=g.students?.[studentIdx];
-    const grade=s?.grade||'ט';const gender=s?.gender||'ז';
-    const sExist=d[field]?getScore(testId,grade,gender,d[field]):null;
-    const sNew=getScore(testId,grade,gender,rawVal);
-    if(sExist!==null&&sNew!==null&&sExist>=sNew)return;
-  }
-  // For round B: always write (even if lower - shown for comparison, grade uses best of A+B)
-  d[field]=rawVal;
+  // Always write to field 'a' with improvement-only logic (round parameter ignored)
+  const s=g.students?.[studentIdx];
+  const grade=s?.grade||'ט';const gender=s?.gender||'ז';
+  const sExist=d.a?getScore(testId,grade,gender,d.a):null;
+  const sNew=getScore(testId,grade,gender,rawVal);
+  if(sExist!==null&&sNew!==null&&sExist>=sNew)return;
+  d.a=rawVal;
   d._ts=Date.now();
-  if(round==='b')d.showB=true;
 }
 
 // ═══════════════════════════════════════════════════════════
