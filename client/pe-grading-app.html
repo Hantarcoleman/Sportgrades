@@ -145,19 +145,27 @@ header{background:#1a1510;padding:0 16px 0 20px;height:58px;display:flex;align-i
 .sv{font-family:'DM Serif Display',serif;font-size:30px;color:var(--ac);line-height:1;}
 .sl{font-size:10px;color:var(--ink3);margin-top:3px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;}
 /* TABLE */
-.tc{background:var(--sf);border:1px solid var(--bd);border-radius:var(--r);overflow:hidden;box-shadow:var(--sh);}
+.tc{background:var(--sf);border:1px solid var(--bd);border-radius:var(--r);overflow:clip;box-shadow:var(--sh);}
 .th{padding:13px 20px;border-bottom:1px solid var(--bd);display:flex;align-items:center;justify-content:space-between;background:var(--bg);gap:10px;flex-wrap:wrap;}
 .tt{font-family:'DM Serif Display',serif;font-size:17px;}
-.tw{overflow:auto;max-height:65vh;position:relative;}
-.tw thead th{position:sticky;top:0;z-index:4;background:var(--bg2);}
+.tw{overflow-x:auto;overflow-y:clip;position:relative;overscroll-behavior-x:contain;}
+.tw thead th{position:sticky;top:58px;z-index:4;background:var(--bg2);}
 .tw tbody td:first-child,.tw thead th:first-child{position:sticky;right:0;z-index:3;}
 .tw tbody td:first-child{background:var(--bg);}
 .tw thead th:first-child{background:var(--bg2);z-index:5;}
 table{width:100%;border-collapse:collapse;}
 th{background:var(--bg2);color:var(--ink3);padding:8px 13px;text-align:right;font-size:10px;font-weight:800;letter-spacing:.7px;text-transform:uppercase;white-space:nowrap;border-bottom:1px solid var(--bd);}
-td{padding:8px 13px;border-bottom:1px solid var(--bg2);font-size:13px;vertical-align:middle;}
+td{padding:8px 13px;border-bottom:1px solid var(--bg2);font-size:13px;vertical-align:middle;height:48px;}
 tr:hover td{background:var(--bg);}
 tr:last-child td{border-bottom:none;}
+.tw tbody tr:nth-child(even) td{background:var(--bg);}
+.tw tbody tr:nth-child(even) td:first-child{background:var(--bg);}
+.tw tbody tr:nth-child(odd) td:first-child{background:var(--sf);}
+.tw tbody tr:hover td,.tw tbody tr:hover td:first-child{background:var(--bg2);}
+.tw-wrap{position:relative;overflow:clip;}
+.tw-ind{position:absolute;top:0;bottom:0;width:48px;pointer-events:none;z-index:6;opacity:0;transition:opacity .25s;}
+.tw-ind-r{right:0;background:linear-gradient(to left,var(--sf),transparent);}
+.tw-ind-l{left:0;background:linear-gradient(to right,var(--sf),transparent);}
 tr.highlighted td{background:rgba(200,64,26,.06)!important;transition:background .5s;}
 .tn{font-weight:700;}
 .gm{display:inline-flex;padding:1px 7px;border-radius:4px;background:rgba(26,78,138,.08);color:var(--bl);font-size:11px;font-weight:700;}
@@ -1202,13 +1210,13 @@ history.pushState(null,'',location.href);
         <button class="btn bs bsm" onclick="openLiveTest2()" title="מבחן חי 2" style="background:rgba(16,185,129,.1);border-color:rgba(16,185,129,.3);color:#059669;">⚡ מבחן חי</button>
       </div>
     </div>
-    <div class="tw"><table><thead><tr>
+    <div class="tw-wrap"><div class="tw" id="tw-scroll"><table><thead><tr>
       <th>#</th><th>שם תלמיד</th><th>מין</th><th>כיתה</th>
       <th id="ahd">תוצאה מועד א׳</th><th>ציון מועד א׳</th>
       <th id="bhd">תוצאה מועד ב׳</th><th>ציון מועד ב׳</th>
       <th id="sem-a-ref-hd" style="display:none;font-size:9px;color:#7c3aed;">מחצית א׳ (לצפייה)</th>
       <th id="grade-hd">ציון לתעודה מחצית א׳</th><th></th>
-    </tr></thead><tbody id="tbody"></tbody></table></div>
+    </tr></thead><tbody id="tbody"></tbody></table></div></div>
   </div>
   <div id="guest-note" style="display:none;margin:8px 0;background:rgba(251,191,36,.12);border:1px solid rgba(251,191,36,.3);border-radius:8px;padding:10px 16px;font-size:12px;color:var(--ink2);"></div>
   <div class="eb">
@@ -10031,6 +10039,80 @@ function openTournamentManager(){
   closeSidebar();
   openTournamentPanel();
 }
+
+// Mobile UX: directional scroll lock + scroll edge indicators for the student table
+(function(){
+  function initTableScrollUX(){
+    const tw = document.getElementById('tw-scroll');
+    if(!tw) return;
+    const wrap = tw.parentElement;
+
+    // Gradient edge indicators
+    const indR = document.createElement('div');
+    indR.className = 'tw-ind tw-ind-r';
+    const indL = document.createElement('div');
+    indL.className = 'tw-ind tw-ind-l';
+    wrap.appendChild(indR);
+    wrap.appendChild(indL);
+
+    function updateIndicators(){
+      const maxScroll = tw.scrollWidth - tw.clientWidth;
+      if(maxScroll <= 0){ indR.style.opacity='0'; indL.style.opacity='0'; return; }
+      // RTL: scrollLeft is 0 at the right edge and goes negative; normalise with abs
+      const scrolled = Math.abs(tw.scrollLeft);
+      const remaining = maxScroll - scrolled;
+      indR.style.opacity = scrolled > 8 ? '1' : '0';
+      indL.style.opacity = remaining > 8 ? '1' : '0';
+    }
+
+    tw.addEventListener('scroll', updateIndicators, {passive:true});
+    window.addEventListener('resize', updateIndicators, {passive:true});
+    setTimeout(updateIndicators, 200);
+
+    // Re-check whenever renderTable() repaints
+    const origRender = window.renderTable;
+    if(typeof origRender === 'function'){
+      window.renderTable = function(){
+        origRender.apply(this, arguments);
+        setTimeout(updateIndicators, 50);
+      };
+    }
+
+    // Directional scroll lock (RTL: scrollLeft goes negative leftward)
+    let startX=0, startY=0, lastX=0, scrollDir=null;
+
+    tw.addEventListener('touchstart', function(e){
+      startX = lastX = e.touches[0].clientX;
+      startY = e.touches[0].clientY;
+      scrollDir = null;
+    }, {passive:true});
+
+    tw.addEventListener('touchmove', function(e){
+      const curX = e.touches[0].clientX;
+      const curY = e.touches[0].clientY;
+      if(!scrollDir){
+        const dx = Math.abs(curX - startX);
+        const dy = Math.abs(curY - startY);
+        if(dx > 8 || dy > 8) scrollDir = dx > dy ? 'h' : 'v';
+      }
+      if(scrollDir === 'h'){
+        e.preventDefault();
+        // RTL: finger moving left → curX < lastX → delta negative → scrollLeft decreases (reveals left content)
+        tw.scrollLeft += (curX - lastX);
+        updateIndicators();
+      }
+      lastX = curX;
+    }, {passive:false});
+
+    tw.addEventListener('touchend', function(){ scrollDir = null; }, {passive:true});
+  }
+
+  if(document.readyState === 'loading'){
+    document.addEventListener('DOMContentLoaded', initTableScrollUX);
+  } else {
+    initTableScrollUX();
+  }
+})();
 
 </script>
 
