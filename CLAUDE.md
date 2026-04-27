@@ -18,6 +18,24 @@
 - בעיות ידועות (הוסף / הסר לפי המצב)
 - פונקציות מרכזיות אם נוספו/שונו
 
+## זרימת עבודה — פרסום שינויים
+
+האפליקציה חיה בגיטהאב פייג'ס:
+`https://hantarcoleman.github.io/Sportgrades/client/pe-grading-app.html`
+
+**אחרי כל שינוי — חובה לבצע:**
+```bash
+git add client/pe-grading-app.html
+git commit -m "תיאור השינוי"
+# ואז מה-main repo:
+git -C "C:/Users/eitan/OneDrive/שולחן העבודה/אפליקציית ציונים/Sportgrade" merge claude/competent-banach-4c0fcf --no-edit
+git -C "C:/Users/eitan/OneDrive/שולחן העבודה/אפליקציית ציונים/Sportgrade" push origin main
+```
+
+GitHub Pages מתעדכן תוך ~1 דקה אחרי ה-push.
+
+---
+
 ## שרת הפיתוח
 
 להפעלת preview mode:
