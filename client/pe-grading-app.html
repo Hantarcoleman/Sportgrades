@@ -2212,7 +2212,7 @@ const TEST_LIST = [
   {id:'run3000',label:'ריצת 3000מ׳ (בנים יא-יב)',group:'cardio'},
 ];
 
-let tabGroupState = { strength: true, speed: true, cardio: true };
+let tabGroupState = { strength: true, speed: true, cardio: true, tools: false };
 function toggleTabGroup(key) { tabGroupState[key] = !tabGroupState[key]; buildTabs(); }
 
 // FTI placeholders and examples per test
@@ -2716,19 +2716,30 @@ function buildTabs(){
       </div>
     </div>`;
   }
-  // Custom tests
-  let extraHtml='';
-  Object.entries(S.customTests||{}).forEach(([id,ct])=>{
-    extraHtml+=`<div class="tab tab-custom${id===CUR.test?' sel':''}" style="display:flex;align-items:center;gap:4px;" id="tab-${id}">
+  // Tools & Actions accordion
+  const customIds=Object.keys(S.customTests||{});
+  const toolsActive=CUR.test==='__completion__'||CUR.test==='__entered__'||customIds.includes(CUR.test);
+  if(toolsActive) tabGroupState.tools=true;
+  const toolsOpen=tabGroupState.tools;
+  let toolsHtml='';
+  customIds.forEach(id=>{
+    const ct=S.customTests[id];
+    toolsHtml+=`<div class="tab tab-custom${id===CUR.test?' sel':''}" style="display:flex;align-items:center;gap:4px;" id="tab-${id}">
       <span onclick="selectTest('${id}')" style="cursor:pointer;">${ct.name}</span>
       <span onclick="deleteCustomTest('${id}')" style="cursor:pointer;opacity:.5;font-size:12px;padding:0 2px;" title="מחק מבחן">✕</span>
     </div>`;
   });
-  extraHtml+=`<div class="tab tab-new${CUR.test==='__completion__'?' sel':''}" onclick="selectCompletion()" id="tab-__completion__" style="background:rgba(239,68,68,.1);border-color:rgba(239,68,68,.25);color:#ef4444;">⚠ השלמת מבחנים</div>`;
-  extraHtml+=`<div class="tab tab-new${CUR.test==='__entered__'?' sel':''}" onclick="selectEntered()" id="tab-__entered__" style="background:rgba(21,128,61,.1);border-color:rgba(21,128,61,.3);color:#15803d;font-size:11px;">✓ תיעוד הזנות למערכת ביה"ס</div>`;
-  extraHtml+=`<div class="tab tab-new" onclick="openCustomModal()">＋ יצירת מבחן חדש</div>`;
-  extraHtml+=`<div class="tab" onclick="showGroupEditView()" title="עריכת קבוצה">✏ עריכת קבוצה</div>`;
-  if(extraHtml) html+=`<div class="tab-cat-extra">${extraHtml}</div>`;
+  toolsHtml+=`<div class="tab tab-new${CUR.test==='__completion__'?' sel':''}" onclick="selectCompletion()" id="tab-__completion__" style="background:rgba(239,68,68,.1);border-color:rgba(239,68,68,.25);color:#ef4444;">⚠ השלמת מבחנים</div>`;
+  toolsHtml+=`<div class="tab tab-new${CUR.test==='__entered__'?' sel':''}" onclick="selectEntered()" id="tab-__entered__" style="background:rgba(21,128,61,.1);border-color:rgba(21,128,61,.3);color:#15803d;font-size:11px;">✓ תיעוד הזנות למערכת ביה"ס</div>`;
+  toolsHtml+=`<div class="tab tab-new" onclick="openCustomModal()">＋ יצירת מבחן חדש</div>`;
+  toolsHtml+=`<div class="tab" onclick="showGroupEditView()" title="עריכת קבוצה">✏ עריכת קבוצה</div>`;
+  html+=`<div class="tab-cat">
+    <div class="tab-cat-hdr${toolsActive?' has-active':''}" onclick="toggleTabGroup('tools')">
+      <span>⚙️ כלים ופעולות</span>
+      <span class="tab-cat-arrow${toolsOpen?' open':''}">‹</span>
+    </div>
+    <div class="tab-cat-body"${toolsOpen?'':' style="display:none"'}>${toolsHtml}</div>
+  </div>`;
   document.getElementById('test-tabs').innerHTML=html;
 }
 
