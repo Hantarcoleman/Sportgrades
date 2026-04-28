@@ -4772,19 +4772,25 @@ function srlSave(){
   if(!name){toast('נא להזין שם תלמיד');document.getElementById('srl-student-name')?.focus();return;}
   const g=S.groups[SRL.gid];
   SRL.lastSavedIdx=-1;SRL.lastSavedName=name;
+  let msg=`✓ ${name} — ${SRL.count} קפיצות`;
   if(g){
     const nl=name.trim().toLowerCase();
     const idx=g.students.findIndex(s=>s.name.trim().toLowerCase()===nl);
     if(idx<0){toast(`לא נמצא תלמיד בשם "${name}"`);document.getElementById('srl-student-name')?.focus();return;}
-    const key=resKey();
-    if(!g[key])g[key]={};
-    if(!g[key][SRL.testId])g[key][SRL.testId]={};
-    g[key][SRL.testId][idx]={a:String(SRL.count),b:'',bonusA:0,_ts:Date.now()};
-    saveState();
-    if(CUR.gid===SRL.gid&&CUR.test===SRL.testId)renderTable();
     SRL.lastSavedIdx=idx;SRL.lastSavedName=g.students[idx].name;
+    const s=g.students[idx];
+    const existing=g[resKey()]?.[SRL.testId]?.[idx];
+    const sExist=existing?.a!==undefined&&existing.a!==''?getScore(SRL.testId,s.grade,s.gender,existing.a):null;
+    const sNew=getScore(SRL.testId,s.grade,s.gender,String(SRL.count));
+    if(sExist!==null&&sNew!==null&&sExist>=sNew){
+      msg=`⚠ ${SRL.lastSavedName} — הציון הקיים (${existing.a} קפיצות) גבוה יותר, לא הוחלף`;
+    } else {
+      writeResult(SRL.gid,SRL.testId,idx,String(SRL.count),'a');
+      saveState();
+      if(CUR.gid===SRL.gid&&CUR.test===SRL.testId)renderTable();
+      msg=`✓ ${SRL.lastSavedName} — ${SRL.count} קפיצות`;
+    }
   }
-  const msg=`✓ ${SRL.lastSavedName} — ${SRL.count} קפיצות`;
   document.getElementById('srl-finish-row').style.display='none';
   document.getElementById('srl-saved-msg').textContent=msg;
   document.getElementById('srl-saved-row').style.display='';
@@ -4888,26 +4894,31 @@ function strFinish(){
 }
 
 function strSave(){
-  // Prefer finish-row name, fall back to top name
   const finishName=document.getElementById('str-finish-name')?.value.trim();
   const topName=document.getElementById('str-student-name')?.value.trim();
   const name=finishName||topName;
   if(!name){toast('נא להזין שם נבחן');document.getElementById('str-finish-name')?.focus();return;}
   const g=S.groups[STR.gid];
   STR.lastSavedIdx=-1;STR.lastSavedName=name;
+  let msg=`✓ ${name} — ${STR.count} חזרות`;
   if(g){
     const nl=name.trim().toLowerCase();
     const idx=g.students.findIndex(s=>s.name.trim().toLowerCase()===nl);
     if(idx<0){toast(`לא נמצא תלמיד בשם "${name}"`);document.getElementById('str-finish-name')?.focus();return;}
-    const key=resKey();
-    if(!g[key])g[key]={};
-    if(!g[key][STR.testId])g[key][STR.testId]={};
-    g[key][STR.testId][idx]={a:String(STR.count),b:'',bonusA:0,_ts:Date.now()};
-    saveState();
-    if(CUR.gid===STR.gid&&CUR.test===STR.testId)renderTable();
     STR.lastSavedIdx=idx;STR.lastSavedName=g.students[idx].name;
+    const s=g.students[idx];
+    const existing=g[resKey()]?.[STR.testId]?.[idx];
+    const sExist=existing?.a!==undefined&&existing.a!==''?getScore(STR.testId,s.grade,s.gender,existing.a):null;
+    const sNew=getScore(STR.testId,s.grade,s.gender,String(STR.count));
+    if(sExist!==null&&sNew!==null&&sExist>=sNew){
+      msg=`⚠ ${STR.lastSavedName} — הציון הקיים (${existing.a} חזרות) גבוה יותר, לא הוחלף`;
+    } else {
+      writeResult(STR.gid,STR.testId,idx,String(STR.count),'a');
+      saveState();
+      if(CUR.gid===STR.gid&&CUR.test===STR.testId)renderTable();
+      msg=`✓ ${STR.lastSavedName} — ${STR.count} חזרות`;
+    }
   }
-  const msg=`✓ ${STR.lastSavedName} — ${STR.count} חזרות`;
   document.getElementById('str-finish-row').style.display='none';
   document.getElementById('str-saved-msg').textContent=msg;
   document.getElementById('str-saved-row').style.display='';
