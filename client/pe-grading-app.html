@@ -118,6 +118,13 @@ header{background:#1a1510;padding:0 16px 0 20px;height:58px;display:flex;align-i
 .tab-cat-arrow.open{transform:rotate(90deg);}
 .tab-cat-body{display:flex;flex-wrap:wrap;gap:6px;padding:8px 4px 4px;}
 .tab-cat-extra{display:flex;flex-wrap:wrap;gap:6px;padding-top:4px;}
+/* CATEGORY-COLORED TABS */
+.tab.tab-strength{background:var(--abg);border-color:var(--abd);color:var(--ac);}
+.tab.tab-strength:hover,.tab.tab-strength.sel{background:var(--ac);color:#fff;border-color:var(--ac);}
+.tab.tab-speed{background:var(--gdbg);border-color:rgba(154,108,0,.25);color:var(--gd);}
+.tab.tab-speed:hover,.tab.tab-speed.sel{background:var(--gd);color:#fff;border-color:var(--gd);}
+.tab.tab-cardio{background:var(--blbg);border-color:rgba(26,78,138,.2);color:var(--bl);}
+.tab.tab-cardio:hover,.tab.tab-cardio.sel{background:var(--bl);color:#fff;border-color:var(--bl);}
 /* SB */
 .sb{background:var(--sf);border:1px solid var(--bd);border-radius:var(--r);padding:12px 18px;display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin-bottom:14px;box-shadow:var(--sh);}
 .ic{background:var(--bg);border:1px solid var(--bd);border-radius:6px;padding:4px 11px;font-size:12px;font-weight:500;color:var(--ink2);}
@@ -1513,7 +1520,16 @@ history.pushState(null,'',location.href);
   <div class="ms">הגדר 2 ערכי עוגן לפחות — האפליקציה תחשב את שאר הטבלה, כולל ציונים מתחת ל-60 באותו קצב</div>
   <div class="fr">
     <div class="fg"><label class="fl">שם המבחן</label><input type="text" class="fi2" id="cm-name" placeholder="לדוגמה: קפיצה למרחק"></div>
-    <div class="fg"><label class="fl">יחידת מדידה</label>
+    <div class="fg"><label class="fl">קטגוריה</label>
+      <select class="fsel" id="cm-group">
+        <option value="strength">💪 כוח וסבולת שרירים</option>
+        <option value="speed">⚡ מהירות וזריזות</option>
+        <option value="cardio">🫀 מבחנים אירוביים</option>
+      </select>
+    </div>
+  </div>
+  <div class="fr">
+    <div class="fg" style="flex:2"><label class="fl">יחידת מדידה</label>
       <select class="fsel" id="cm-unit" onchange="toggleCustomUnit()">
         <option value="חזרות">חזרות (גבוה = טוב)</option>
         <option value="מטרים">מטרים (גבוה = טוב)</option>
@@ -2714,17 +2730,19 @@ function buildTabs(){
         <span class="tab-cat-arrow${isOpen?' open':''}">‹</span>
       </div>
       <div class="tab-cat-body"${isOpen?'':' style="display:none"'}>
-        ${tests.map(t=>`<div class="tab${t.id===CUR.test?' sel':''}" onclick="selectTest('${t.id}')" id="tab-${t.id}">${t.label}</div>`).join('')}
+        ${tests.map(t=>`<div class="tab tab-${cat.key}${t.id===CUR.test?' sel':''}" onclick="selectTest('${t.id}')" id="tab-${t.id}">${t.label}</div>`).join('')}
+        ${Object.entries(S.customTests||{}).filter(([,ct])=>ct.group===cat.key).map(([id,ct])=>`<div class="tab tab-${cat.key} tab-custom${id===CUR.test?' sel':''}" style="display:flex;align-items:center;gap:4px;" id="tab-${id}"><span onclick="selectTest('${id}')" style="cursor:pointer;">${ct.name}</span><span onclick="deleteCustomTest('${id}')" style="cursor:pointer;opacity:.5;font-size:12px;padding:0 2px;" title="מחק מבחן">✕</span></div>`).join('')}
       </div>
     </div>`;
   }
   // Tools & Actions accordion
   const customIds=Object.keys(S.customTests||{});
-  const toolsActive=CUR.test==='__completion__'||CUR.test==='__entered__'||customIds.includes(CUR.test);
+  const ungroupedCustomIds=customIds.filter(id=>!S.customTests[id].group);
+  const toolsActive=CUR.test==='__completion__'||CUR.test==='__entered__'||ungroupedCustomIds.includes(CUR.test);
   if(toolsActive) tabGroupState.tools=true;
   const toolsOpen=tabGroupState.tools;
   let toolsHtml='';
-  customIds.forEach(id=>{
+  ungroupedCustomIds.forEach(id=>{
     const ct=S.customTests[id];
     toolsHtml+=`<div class="tab tab-custom${id===CUR.test?' sel':''}" style="display:flex;align-items:center;gap:4px;" id="tab-${id}">
       <span onclick="selectTest('${id}')" style="cursor:pointer;">${ct.name}</span>
@@ -3569,6 +3587,7 @@ function openCustomModal(editId){
   const ct=editId?S.customTests[editId]:null;
   document.getElementById('cm-title').textContent=ct?'ערוך מבחן':'יצירת מבחן חדש';
   document.getElementById('cm-name').value=ct?.name||'';
+  document.getElementById('cm-group').value=ct?.group||'strength';
   document.getElementById('cm-unit').value=ct?.unit||'חזרות';
   const scoreKeys={100:'v100m',90:'v90m',80:'v80m',70:'v70m',60:'v60m'};
   const fKeys={100:'v100f',90:'v90f',80:'v80f',70:'v70f',60:'v60f'};
@@ -3685,7 +3704,8 @@ function saveCustomTest(){
   const fTbl=fAnchors.length>=2?buildCustomTable(fAnchors,lb):null;
   if(!S.customTests)S.customTests={};
   const id=_editCT||('ct_'+Date.now());
-  S.customTests[id]={name,unit,customUnitName,lowerBetter:lb,table:mTbl,tablef:fTbl};
+  const group=document.getElementById('cm-group').value||'strength';
+  S.customTests[id]={name,unit,customUnitName,lowerBetter:lb,table:mTbl,tablef:fTbl,group};
   saveState();closeModal('custom-modal');buildTabs();selectTest(id);
   toast(`"${name}" ${_editCT?'עודכן':'נוסף'} ✓`);
 }
