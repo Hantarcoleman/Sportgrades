@@ -51,6 +51,7 @@ header{background:#1a1510;padding:0 16px 0 20px;height:58px;display:flex;align-i
 .con{max-width:1040px;margin:0 auto;padding:30px 18px 100px;}
 .view{display:none;animation:up .2s ease;}.view.active{display:block;}
 @keyframes up{from{opacity:0;transform:translateY(6px);}to{opacity:1;transform:none;}}
+@keyframes completionHighlight{0%{background:var(--gdbg);}100%{background:transparent;}}
 .pgh{margin-bottom:28px;}
 .pgt{font-family:'DM Serif Display',serif;font-size:32px;letter-spacing:-.4px;margin-bottom:4px;}
 .pgs{color:var(--ink3);font-size:14px;}
@@ -2230,7 +2231,12 @@ const TEST_LIST = [
 ];
 
 let tabGroupState = { strength: true, speed: true, cardio: true, tools: false };
-function toggleTabGroup(key) { tabGroupState[key] = !tabGroupState[key]; buildTabs(); }
+function toggleTabGroup(key) {
+  const wasOpen = tabGroupState[key];
+  if (!wasOpen) { Object.keys(tabGroupState).forEach(k => { tabGroupState[k] = false; }); }
+  tabGroupState[key] = !wasOpen;
+  buildTabs();
+}
 
 // FTI placeholders and examples per test
 const FTI_EXAMPLES = {
@@ -2738,7 +2744,6 @@ function buildTabs(){
   const customIds=Object.keys(S.customTests||{});
   const ungroupedCustomIds=customIds.filter(id=>!S.customTests[id].group);
   const toolsActive=CUR.test==='__completion__'||CUR.test==='__entered__'||ungroupedCustomIds.includes(CUR.test);
-  if(toolsActive) tabGroupState.tools=true;
   const toolsOpen=tabGroupState.tools;
   let toolsHtml='';
   ungroupedCustomIds.forEach(id=>{
@@ -2766,7 +2771,14 @@ function getTbl(testId){return TABLES[testId]||{};}
 
 function selectTest(testId){
   const _tEntry=TEST_LIST.find(t=>t.id===testId);
-  if(_tEntry) tabGroupState[_tEntry.group]=true;
+  if(_tEntry){
+    Object.keys(tabGroupState).forEach(k=>{tabGroupState[k]=false;});
+    tabGroupState[_tEntry.group]=true;
+  } else {
+    const _ct=S.customTests?.[testId];
+    if(_ct?.group){Object.keys(tabGroupState).forEach(k=>{tabGroupState[k]=false;});tabGroupState[_ct.group]=true;}
+    else {Object.keys(tabGroupState).forEach(k=>{tabGroupState[k]=false;});tabGroupState.tools=true;}
+  }
   setCUR({test:testId});
   document.getElementById('completion-view').style.display='none';
   document.getElementById('entered-view')&&(document.getElementById('entered-view').style.display='none');
@@ -4794,11 +4806,51 @@ function _buildGroupAnalytics(testId){
   studentRows.sort((a,b)=>b.vo2-a.vo2);
   const avgVO2=studentRows.reduce((s,r)=>s+r.vo2,0)/studentRows.length;
   const maxVO2=studentRows[0].vo2;
-  const minVO2=studentRows[studentRows.length-1].vo2;
+  // Extra stats per test type
+  let extraStatsHtml='';
+  if(RUN_DIST[testId]){
+    const timeSecs=studentRows.map(r=>_parseTimeToSecs(r.val)).filter(Boolean);
+    const paceArr=studentRows.filter(r=>r.pace!==null).map(r=>r.pace);
+    if(timeSecs.length){
+      const avgT=timeSecs.reduce((a,b)=>a+b,0)/timeSecs.length;
+      const bestT=Math.min(...timeSecs);
+      const avgP=paceArr.length?paceArr.reduce((a,b)=>a+b,0)/paceArr.length:null;
+      const bestP=paceArr.length?Math.min(...paceArr):null;
+      extraStatsHtml=`
+        <div class="sc"><div class="sv" style="font-size:18px;">${_fmtSecs(avgT)}</div><div class="sl">תוצאה ממוצעת</div></div>
+        <div class="sc"><div class="sv" style="font-size:18px;">${_fmtSecs(bestT)}</div><div class="sl">תוצאה מיטבית</div></div>
+        ${avgP?`<div class="sc"><div class="sv" style="font-size:16px;">${_fmtPace(avgP)}</div><div class="sl">קצב ממוצע</div></div>`:''}
+        ${bestP?`<div class="sc"><div class="sv" style="font-size:16px;">${_fmtPace(bestP)}</div><div class="sl">קצב מיטבי</div></div>`:''}`;
+    }
+  } else if(testId==='cooper'){
+    const distVals=studentRows.map(r=>parseFloat(r.val)).filter(Boolean);
+    const paceArr=studentRows.filter(r=>r.pace!==null).map(r=>r.pace);
+    if(distVals.length){
+      const avgD=distVals.reduce((a,b)=>a+b,0)/distVals.length;
+      const bestD=Math.max(...distVals);
+      const avgP=paceArr.length?paceArr.reduce((a,b)=>a+b,0)/paceArr.length:null;
+      const bestP=paceArr.length?Math.min(...paceArr):null;
+      extraStatsHtml=`
+        <div class="sc"><div class="sv">${Math.round(avgD)}</div><div class="sl">מטר ממוצע</div></div>
+        <div class="sc"><div class="sv">${Math.round(bestD)}</div><div class="sl">מטר מיטבי</div></div>
+        ${avgP?`<div class="sc"><div class="sv" style="font-size:16px;">${_fmtPace(avgP)}</div><div class="sl">קצב ממוצע</div></div>`:''}
+        ${bestP?`<div class="sc"><div class="sv" style="font-size:16px;">${_fmtPace(bestP)}</div><div class="sl">קצב מיטבי</div></div>`:''}`;
+    }
+  } else if(testId==='beep'){
+    const levels=studentRows.map(r=>parseFloat(r.val)).filter(Boolean);
+    if(levels.length){
+      const avgL=levels.reduce((a,b)=>a+b,0)/levels.length;
+      const bestL=Math.max(...levels);
+      extraStatsHtml=`
+        <div class="sc"><div class="sv">${avgL.toFixed(1)}</div><div class="sl">רמה ממוצעת</div></div>
+        <div class="sc"><div class="sv">${bestL.toFixed(1)}</div><div class="sl">רמה מיטבית</div></div>`;
+    }
+  }
   let html=`<div class="mt" style="padding-left:36px;margin-bottom:12px;">📈 ניתוח אירובי — ${testLabel}</div>
     <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-bottom:16px;">
       <div class="sc"><div class="sv">${avgVO2.toFixed(1)}</div><div class="sl">VO₂max ממוצע</div></div>
       <div class="sc"><div class="sv">${maxVO2.toFixed(1)}</div><div class="sl">VO₂max מקס׳</div></div>
+      ${extraStatsHtml}
     </div>
     <div style="font-size:11px;font-weight:800;color:var(--ink3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px;">טבלה אישית (${studentRows.length} תלמידים)</div>
     <div style="overflow-x:auto;"><table style="width:100%;border-collapse:collapse;font-size:12px;">
@@ -6587,6 +6639,7 @@ function unmarkAllEntered(testId){
 
 function selectEntered(){
   CUR.test='__entered__';
+  Object.keys(tabGroupState).forEach(k=>{tabGroupState[k]=false;}); tabGroupState.tools=true; buildTabs();
   document.querySelectorAll('.tab').forEach(t=>t.classList.remove('sel'));
   const tab=document.getElementById('tab-__entered__');if(tab)tab.classList.add('sel');
   document.getElementById('entered-view').style.display='block';
@@ -6803,6 +6856,7 @@ function undoLastEntered(){
 
 function selectCompletion(){
   CUR.test='__completion__';
+  Object.keys(tabGroupState).forEach(k=>{tabGroupState[k]=false;}); tabGroupState.tools=true; buildTabs();
   document.querySelectorAll('.tab').forEach(t=>t.classList.remove('sel'));
   const tab=document.getElementById('tab-__completion__');if(tab)tab.classList.add('sel');
   document.getElementById('completion-view').style.display='block';
@@ -6835,8 +6889,10 @@ function renderCompletion(){
     });
   });
   const cv=document.getElementById('completion-view');
+  const undoCount=(window._completionUndoStack||[]).length;
+  const undoBar=undoCount>0?`<div style="margin-bottom:10px;"><button class="btn bg2 bsm" onclick="undoCompletion()" style="font-size:12px;">↩ בטל אחרון (${undoCount})</button></div>`:'';
   if(!missing.length){
-    cv.innerHTML=`<div style="background:var(--gnbg);border:1px solid var(--gnbd);border-radius:var(--r);padding:20px;text-align:center;color:var(--gn);font-weight:700;">✓ כל התלמידים השלימו את כל המבחנים שהתחילו!</div>`;
+    cv.innerHTML=undoBar+`<div style="background:var(--gnbg);border:1px solid var(--gnbd);border-radius:var(--r);padding:20px;text-align:center;color:var(--gn);font-weight:700;">✓ כל התלמידים השלימו את כל המבחנים שהתחילו!</div>`;
     return;
   }
   const grouped={};
@@ -6844,7 +6900,7 @@ function renderCompletion(){
     if(!grouped[m.testId])grouped[m.testId]={label:m.testLabel,items:[]};
     grouped[m.testId].items.push(m);
   });
-  let html='<div style="font-size:13px;color:var(--ink2);margin-bottom:12px;">'+missing.length+' חוסרים ב-'+Object.keys(grouped).length+' מבחנים</div>';
+  let html=undoBar+'<div style="font-size:13px;color:var(--ink2);margin-bottom:12px;">'+missing.length+' חוסרים ב-'+Object.keys(grouped).length+' מבחנים</div>';
   Object.entries(grouped).forEach(([testId,{label,items}])=>{
     html+=`<div class="card" style="margin-bottom:10px;">
       <div class="ch" style="cursor:pointer;" onclick="selectTest('${testId}')">
@@ -6859,8 +6915,10 @@ function renderCompletion(){
           </tr></thead><tbody>`;
     items.forEach(m=>{
       const ph=getTbl(testId).ph||'';
-      html+=`<tr style="border-bottom:1px solid var(--bg2);">
-        <td style="padding:7px 8px;font-weight:700;">${m.name}</td>
+      const isHighlighted=window._lastUndoneCompletion?.testId===testId&&window._lastUndoneCompletion?.studentIdx===m.studentIdx;
+      if(isHighlighted)window._lastUndoneCompletion=null;
+      html+=`<tr style="border-bottom:1px solid var(--bg2);${isHighlighted?'animation:completionHighlight 2.5s forwards;':''}" >
+        <td style="padding:7px 8px;font-weight:700;">${isHighlighted?'<span style="color:var(--gd);margin-left:4px;">→</span> ':''} ${m.name}</td>
         <td style="padding:7px 8px;font-size:12px;color:var(--ink3);">${m.grade}${m.cls}</td>
         <td style="padding:7px 8px;">
           <input type="text" placeholder="${ph||'ערך'}" style="width:90px;padding:5px 8px;background:var(--bg);border:1.5px solid var(--bd2);border-radius:6px;font-family:Heebo,sans-serif;font-size:13px;font-weight:700;text-align:center;"
@@ -6873,9 +6931,12 @@ function renderCompletion(){
   cv.innerHTML=html;
 }
 
+window._completionUndoStack=[];
 function completionSave(testId,studentIdx,val,grade,gender,inputEl){
   if(!val.trim())return;
   const round=CUR.semester==='b'?'b':'a';
+  const key=round==='b'?'results_b':'results';
+  window._completionUndoStack.push({gid:CUR.gid,testId,studentIdx,key});
   writeResult(CUR.gid,testId,studentIdx,val,round);
   saveState();
   const score=getScore(testId,grade,gender,val);
@@ -6891,6 +6952,18 @@ function completionSave(testId,studentIdx,val,grade,gender,inputEl){
     }
   }
   setTimeout(()=>renderCompletion(),300);
+}
+function undoCompletion(){
+  const last=window._completionUndoStack.pop();
+  if(!last){toast('אין מה לבטל');return;}
+  const g=S.groups[last.gid];if(!g)return;
+  const d=g[last.key]?.[last.testId]?.[last.studentIdx];
+  if(d){d.a='';d.b='';delete d._ts;}
+  saveState();
+  window._lastUndoneCompletion={testId:last.testId,studentIdx:last.studentIdx};
+  renderCompletion();
+  const s=g.students[last.studentIdx];
+  toast(`↩ ${s?.name} — הוחזר לרשימת ההשלמות`);
 }
 
 // ── NEW GROUP MANUAL CREATION ────────────────────────────────
