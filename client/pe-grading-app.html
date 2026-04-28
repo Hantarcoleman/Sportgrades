@@ -5028,9 +5028,22 @@ function spSplit(){
   if(!SR.running)return;
   const rawMs=performance.now()-SR.startTime;
   SR.splits.push({rawMs,name:''});
-  const secs=(rawMs/1000).toFixed(2);
+  const i=SR.splits.length-1;
+  const secs=rawMs/1000;
+  const s=Math.floor(secs);
+  const c=Math.floor((secs-s)*100);
+  const timeStr=String(s).padStart(2,'0')+'.'+String(c).padStart(2,'0');
+  const el=document.getElementById('sp-results');
+  if(i===0){
+    el.innerHTML='<div style="font-size:11px;font-weight:800;color:var(--ink3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px;">תוצאות — מלא שמות</div>';
+    el.style.display='';
+  }
+  const row=document.createElement('div');
+  row.style.cssText='display:flex;align-items:center;gap:8px;margin-bottom:8px;';
+  row.innerHTML=`<div style="font-size:17px;font-weight:800;color:var(--ac);font-family:'DM Serif Display',serif;min-width:62px;">${timeStr}</div><input type="text" list="sp-names-list" id="sp-name-${i}" value="" placeholder="שם נבחן ${i+1}" autocomplete="off" oninput="SR.splits[${i}].name=this.value.trim()" onkeydown="if(event.key==='Enter'){SR.splits[${i}].name=this.value.trim();const nx=document.getElementById('sp-name-${i+1}');if(nx)nx.focus();else spSaveAll();}" style="flex:1;padding:8px 10px;font-size:14px;font-family:'Heebo',sans-serif;border:1.5px solid var(--bd2);border-radius:var(--rs);background:var(--sf);color:var(--ink);direction:rtl;box-sizing:border-box;">`;
+  el.appendChild(row);
   document.getElementById('sp-split-count').textContent=SR.splits.length+' מסיימים';
-  document.getElementById('sp-last-split').textContent='#'+SR.splits.length+' — '+secs+' שנ׳';
+  document.getElementById('sp-last-split').textContent='#'+SR.splits.length+' — '+timeStr+' שנ׳';
   const btn=document.getElementById('sp-split-btn');
   btn.style.transform='scale(1.09)';
   setTimeout(()=>btn.style.transform='',70);
@@ -5052,24 +5065,14 @@ function spRenderResults(){
     el.innerHTML='<div style="text-align:center;padding:12px;color:var(--ink3);">לא נרשמו פיצולים</div>';
     el.style.display='';return;
   }
-  let html='<div style="font-size:11px;font-weight:800;color:var(--ink3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px;">תוצאות — מלא שמות</div>';
-  SR.splits.forEach((sp,i)=>{
-    const secs=sp.rawMs/1000;
-    const s=Math.floor(secs);
-    const c=Math.floor((secs-s)*100);
-    const timeStr=String(s).padStart(2,'0')+'.'+String(c).padStart(2,'0');
-    html+=`<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
-      <div style="font-size:17px;font-weight:800;color:var(--ac);font-family:'DM Serif Display',serif;min-width:62px;">${timeStr}</div>
-      <input type="text" list="sp-names-list" id="sp-name-${i}" value="" placeholder="שם נבחן ${i+1}" autocomplete="off"
-        oninput="SR.splits[${i}].name=this.value.trim()"
-        onkeydown="if(event.key==='Enter'){SR.splits[${i}].name=this.value.trim();const nx=document.getElementById('sp-name-${i+1}');if(nx)nx.focus();else spSaveAll();}"
-        style="flex:1;padding:8px 10px;font-size:14px;font-family:'Heebo',sans-serif;border:1.5px solid var(--bd2);border-radius:var(--rs);background:var(--sf);color:var(--ink);direction:rtl;box-sizing:border-box;" />
-    </div>`;
-  });
-  el.innerHTML=html;
-  el.style.display='';
+  // Rows already rendered live in spSplit(); just show save and focus first empty
   document.getElementById('sp-save-row').style.display='';
-  setTimeout(()=>document.getElementById('sp-name-0')?.focus(),150);
+  setTimeout(()=>{
+    for(let i=0;i<SR.splits.length;i++){
+      const inp=document.getElementById(`sp-name-${i}`);
+      if(inp&&!inp.value){inp.focus();break;}
+    }
+  },150);
 }
 
 function spSaveAll(){
@@ -5102,7 +5105,8 @@ function spSaveAll(){
 }
 
 function spNew(){
-  if(!confirm('להתחיל מבחן חדש? תוצאות שלא נשמרו יאבדו.'))return;
+  const hasUnsaved=SR.splits.length>0&&SR.splits.some(sp=>!sp.name);
+  if(hasUnsaved&&!confirm('יש נבחנים שלא הוזנו שמותיהם. להתחיל מבחן חדש?'))return;
   if(SR.raf){cancelAnimationFrame(SR.raf);SR.raf=null;}
   SR.running=false;SR.splits=[];
   spRenderReset();
@@ -5110,6 +5114,8 @@ function spNew(){
 
 function spClose(){
   if(SR.running&&!confirm('המבחן עדיין פועל. האם לסגור?'))return;
+  const hasUnsaved=SR.splits.length>0&&SR.splits.some(sp=>!sp.name);
+  if(hasUnsaved&&!confirm('יש נבחנים שלא הוזנו שמותיהם. האם לסגור?'))return;
   if(SR.raf){cancelAnimationFrame(SR.raf);SR.raf=null;}
   SR.running=false;
   closeModal('sprint-live-modal');
