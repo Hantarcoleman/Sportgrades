@@ -141,12 +141,12 @@ header{background:#1a1510;padding:0 16px 0 20px;height:58px;display:flex;align-i
 .fti::placeholder{color:var(--ink3);}
 /* REF */
 .ref{background:var(--blbg);border:1px solid rgba(26,78,138,.15);border-radius:var(--rs);padding:13px 16px;font-size:12px;margin-bottom:14px;}
-.reft{font-family:'DM Serif Display',serif;font-size:14px;color:var(--bl);margin-bottom:7px;}
-.refrow{display:flex;align-items:center;gap:5px;flex-wrap:wrap;margin-bottom:4px;}
-.refg{font-weight:700;font-size:11px;padding:2px 7px;border-radius:4px;flex-shrink:0;}
+.reft{font-family:'DM Serif Display',serif;font-size:15px;color:var(--bl);margin-bottom:7px;}
+.refrow{display:flex;align-items:center;gap:7px;flex-wrap:wrap;margin-bottom:5px;}
+.refg{font-weight:700;font-size:12px;padding:3px 9px;border-radius:4px;flex-shrink:0;}
 .refm{background:rgba(26,78,138,.1);color:var(--bl);}
 .reff{background:rgba(180,50,130,.1);color:#b43282;}
-.rc{background:var(--sf);border:1px solid var(--bd2);border-radius:5px;padding:2px 8px;font-size:11px;font-weight:600;color:var(--ink2);}
+.rc{background:var(--sf);border:1px solid var(--bd2);border-radius:6px;padding:4px 11px;font-size:13px;font-weight:600;color:var(--ink2);}
 .rc b{color:var(--ac);}
 .ref-more{display:inline-flex;align-items:center;gap:4px;background:var(--abg);border:1px solid var(--abd);border-radius:5px;padding:2px 9px;font-size:11px;font-weight:700;color:var(--ac);cursor:pointer;font-family:'Heebo',sans-serif;}
 .ref-more:hover{background:var(--ac);color:#fff;}
@@ -2083,13 +2083,13 @@ const TABLES = {
     יא:{m:[[55,100],[48,90],[41,80],[34,70],[27,60]],f:[[25,100],[22,91],[19,82],[16,72],[12,60]]},
     יב:{m:[[65,100],[58,90],[50,80],[43,70],[35,60]],f:[[25,100],[22,91],[19,82],[16,72],[12,60]]},
   }},
-  pushups_metro:{ lb:false, ph:'20', unit:'חזרות', maleOnly:true, grades:{
-    ז:{m:[[10,100],[9,90],[8,80],[7,70],[6,60]]},
-    ח:{m:[[15,100],[14,94],[12,81],[10,68],[9,61]]},
-    ט:{m:[[20,100],[18,90],[16,80],[14,70],[12,60]]},
-    י:{m:[[25,100],[23,92],[20,80],[18,72],[15,60]]},
-    יא:{m:[[30,100],[27,90],[24,80],[21,70],[18,60]]},
-    יב:{m:[[35,100],[32,91],[28,80],[25,71],[21,60]]},
+  pushups_metro:{ lb:false, ph:'20', unit:'חזרות', grades:{
+    ז:{m:[[10,100],[9,90],[8,80],[7,70],[6,60]],f:[[7,100],[6,90],[5,80],[4,70],[3,60]]},
+    ח:{m:[[15,100],[14,94],[12,81],[10,68],[9,61]],f:[[10,100],[9,90],[8,80],[6,70],[5,60]]},
+    ט:{m:[[20,100],[18,90],[16,80],[14,70],[12,60]],f:[[14,100],[12,90],[10,80],[8,70],[6,60]]},
+    י:{m:[[25,100],[23,92],[20,80],[18,72],[15,60]],f:[[16,100],[14,90],[12,80],[9,70],[7,60]]},
+    יא:{m:[[30,100],[27,90],[24,80],[21,70],[18,60]],f:[[20,100],[17,90],[14,80],[11,70],[8,60]]},
+    יב:{m:[[35,100],[32,91],[28,80],[25,71],[21,60]],f:[[22,100],[19,90],[16,80],[13,70],[10,60]]},
   }},
   pullups:{ lb:false, ph:'7', unit:'עליות / שניות', grades:{
     ז:{m:[[7,100],[6,92],[5,86],[4,80],[3,74],[2,68],[1,62]],f:[[15,100],[14,90],[13,80],[11,70],[9,60]]},
@@ -2827,20 +2827,28 @@ function updateRef(){
     if(hasMale&&mPts.length){html+=`<div class="refrow"><span class="refg refm">ז׳</span>${mPts.map(([v,s])=>`<span class="rc"><b>${fmt(v)}</b>=${s}</span>`).join('')}<button class="ref-more" onclick="showFullTbl('${CUR.test}','')">📋</button></div>`;}
     if(hasFemale&&fPts.length){html+=`<div class="refrow"><span class="refg reff">נ׳</span>${fPts.map(([v,s])=>`<span class="rc"><b>${fmt(v)}</b>=${s}</span>`).join('')}</div>`;}
   } else {
+    const _refPts=(anchors)=>{
+      const std=[60,70,80,90,100];
+      return std.map(sc=>{
+        const exact=(anchors||[]).find(([,s])=>Math.round(s)===sc);
+        if(exact)return exact;
+        if((anchors||[]).length>1){const v=interpolateForScore(anchors,sc,T.lb);if(v!=null&&!isNaN(v))return[v,sc];}
+        return null;
+      }).filter(Boolean);
+    };
     grades.forEach(g=>{
       const gd=T.grades?.[g];if(!gd)return;
       html+=`<div style="margin-bottom:${grades.length>1?'10px':'0'}"><div class="reft">כיתה ${g}</div>`;
-      if(hasMale&&!T.maleOnly){
-        const pts=(gd.m||[]).filter(([,s])=>s%10===0&&s>=60).slice(0,5);
+      if(hasMale){
+        const pts=_refPts(gd.m);
         html+=`<div class="refrow"><span class="refg refm">ז׳</span>${pts.map(([v,s])=>`<span class="rc"><b>${fmt(v)}</b>=${s}</span>`).join('')}<button class="ref-more" onclick="showFullTbl('${CUR.test}','${g}')">📋 מלאה</button></div>`;
       }
-      if(hasFemale&&!T.maleOnly&&gd.f){
-        const pts=(gd.f||[]).filter(([,s])=>s%10===0&&s>=60).slice(0,5);
+      if(hasFemale&&gd.f){
+        const pts=_refPts(gd.f);
         html+=`<div class="refrow"><span class="refg reff">נ׳</span>${pts.map(([v,s])=>`<span class="rc"><b>${fmt(v)}</b>=${s}</span>`).join('')}</div>`;
       }
       html+='</div>';
     });
-    if(T.maleOnly)html+=`<div style="font-size:11px;color:var(--gd);margin-top:4px;">⚠ מבחן זה לבנים בלבד</div>`;
   }
   document.getElementById('ref').innerHTML=html||'';
   const RUN_ANALYTICS_TESTS=['beep','cooper','run1000','run2000','run3000','run60','run100','run4x10'];
@@ -3257,12 +3265,20 @@ function submitFTI(){
     }
   }
 
-  // Apply unambiguous results
-  if(results.length){
-    results.forEach(({idx,numStr})=>{ r(idx).a=numStr; });
-    saveState();renderTable();
-    results.forEach(({idx})=>highlightRow(idx));
-  }
+  // Apply unambiguous results (skip if no score improvement)
+  const savedIdxs=[];const skippedNames=[];
+  results.forEach(({idx,numStr})=>{
+    const s=students[idx];
+    const existing=r(idx).a;
+    if(existing!==''&&existing!==undefined&&existing!==null){
+      const existScore=getScore(CUR.test,s.grade,s.gender,String(existing));
+      const newScore=getScore(CUR.test,s.grade,s.gender,numStr);
+      if(existScore!==null&&newScore!==null&&newScore<=existScore){skippedNames.push(s.name);return;}
+    }
+    r(idx).a=numStr;savedIdxs.push(idx);
+  });
+  if(savedIdxs.length){saveState();renderTable();savedIdxs.forEach(idx=>highlightRow(idx));}
+  if(skippedNames.length)toast(`⚠ דולג: ${skippedNames.slice(0,3).join(', ')}${skippedNames.length>3?` +${skippedNames.length-3}`:''} (אין שיפור בציון)`);
 
   // Clear input
   document.getElementById('fti').value='';
