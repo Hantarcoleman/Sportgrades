@@ -1760,7 +1760,7 @@ history.pushState(null,'',location.href);
 </div></div>
 
 <!-- RUN ANALYTICS MODAL -->
-<div class="mbg" id="run-analytics-modal" style="align-items:flex-start;padding:56px 16px 20px;overflow-y:auto;"><div class="mod mod-wide" onclick="event.stopPropagation()" style="max-width:700px;width:100%;position:relative;">
+<div class="mbg" id="run-analytics-modal" style="align-items:flex-start;padding:56px 16px 20px;overflow-y:auto;" onclick="closeModal('run-analytics-modal')"><div class="mod mod-wide" onclick="event.stopPropagation()" style="max-width:700px;width:100%;position:relative;">
   <button onclick="closeModal('run-analytics-modal')" style="position:absolute;top:10px;left:10px;background:var(--bg3);border:1.5px solid var(--bd2);color:var(--ink);border-radius:50%;width:30px;height:30px;cursor:pointer;font-size:15px;line-height:1;display:flex;align-items:center;justify-content:center;font-family:'Heebo',sans-serif;z-index:2;" title="סגור">✕</button>
   <div id="ran-content"></div>
 </div></div>
@@ -2727,7 +2727,7 @@ function buildTabs(){
   extraHtml+=`<div class="tab tab-new${CUR.test==='__completion__'?' sel':''}" onclick="selectCompletion()" id="tab-__completion__" style="background:rgba(239,68,68,.1);border-color:rgba(239,68,68,.25);color:#ef4444;">⚠ השלמת מבחנים</div>`;
   extraHtml+=`<div class="tab tab-new${CUR.test==='__entered__'?' sel':''}" onclick="selectEntered()" id="tab-__entered__" style="background:rgba(21,128,61,.1);border-color:rgba(21,128,61,.3);color:#15803d;font-size:11px;">✓ תיעוד הזנות למערכת ביה"ס</div>`;
   extraHtml+=`<div class="tab tab-new" onclick="openCustomModal()">＋ יצירת מבחן חדש</div>`;
-  extraHtml+=`<div class="tab" onclick="showGroupEditView()" style="background:rgba(124,58,237,.1);border-color:rgba(124,58,237,.25);color:#a78bfa;padding:5px 10px;" title="עריכת קבוצה">עריכת קבוצה</div>`;
+  extraHtml+=`<div class="tab" onclick="showGroupEditView()" title="עריכת קבוצה">✏ עריכת קבוצה</div>`;
   if(extraHtml) html+=`<div class="tab-cat-extra">${extraHtml}</div>`;
   document.getElementById('test-tabs').innerHTML=html;
 }
@@ -3006,22 +3006,31 @@ function applyColVis(){
 }
 function openColsMenu(ev){
   ev&&ev.stopPropagation();
+  const btn=document.getElementById('btn-cols');
   let menu=document.getElementById('col-menu');
-  if(menu){menu.classList.toggle('open');return;}
+  if(menu){
+    const wasOpen=menu.classList.contains('open');
+    menu.classList.toggle('open');
+    if(!wasOpen) _attachColsMenuClose(menu,btn);
+    return;
+  }
   menu=document.createElement('div');menu.id='col-menu';menu.className='open';
   const v=loadColVis();
   menu.innerHTML=COL_DEFS.map(function(c){
     return '<label><input type="checkbox" data-col="'+c.key+'" '+(v[c.key]!==false?'checked':'')+'>'+c.label+'</label>';
   }).join('');
-  const btn=document.getElementById('btn-cols');
   btn.parentElement.appendChild(menu);
   menu.addEventListener('change',function(e){
     const k=e.target.dataset.col;if(!k)return;
     const cur=loadColVis();cur[k]=e.target.checked;saveColVis(cur);applyColVis();
   });
-  document.addEventListener('click',function h(e){
-    if(!menu.contains(e.target)&&e.target!==btn){menu.classList.remove('open');document.removeEventListener('click',h);}
-  });
+  _attachColsMenuClose(menu,btn);
+}
+function _attachColsMenuClose(menu,btn){
+  setTimeout(function(){
+    function h(e){if(!menu.contains(e.target)&&e.target!==btn){menu.classList.remove('open');document.removeEventListener('click',h);}}
+    document.addEventListener('click',h);
+  },0);
 }
 
 function onLive(e){const i=parseInt(e.target.dataset.idx),f=e.target.dataset.f;r(i)[f]=e.target.value;refreshRow(i);}
