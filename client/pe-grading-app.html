@@ -147,6 +147,11 @@ header{background:#1a1510;padding:0 16px 0 20px;height:58px;display:flex;align-i
 .refm{background:rgba(26,78,138,.1);color:var(--bl);}
 .reff{background:rgba(180,50,130,.1);color:#b43282;}
 .rc{background:var(--sf);border:1px solid var(--bd2);border-radius:6px;padding:4px 11px;font-size:13px;font-weight:600;color:var(--ink2);}
+.test-hint-row{margin-top:8px;border-top:1px solid var(--bd2);padding-top:6px;}
+.test-hint-row summary{font-size:11px;color:var(--ink3);cursor:pointer;list-style:none;display:flex;align-items:center;gap:5px;user-select:none;}
+.test-hint-row summary::-webkit-details-marker{display:none;}
+.test-hint-row[open] summary{color:var(--ink2);}
+.test-hint-body{margin-top:6px;font-size:12px;color:var(--ink2);line-height:1.7;padding:8px 10px;background:var(--bg2);border-radius:var(--rs);border:1px solid var(--bd2);}
 .rc b{color:var(--ac);}
 .ref-more{display:inline-flex;align-items:center;gap:4px;background:var(--abg);border:1px solid var(--abd);border-radius:5px;padding:2px 9px;font-size:11px;font-weight:700;color:var(--ac);cursor:pointer;font-family:'Heebo',sans-serif;}
 .ref-more:hover{background:var(--ac);color:#fff;}
@@ -2233,6 +2238,25 @@ const TEST_LIST = [
 let tabGroupState = { strength: true, speed: true, cardio: true, tools: false };
 function toggleTabGroup(key) { tabGroupState[key] = !tabGroupState[key]; buildTabs(); }
 
+// Brief how-to-conduct instructions per test (shown inline near score scale)
+const TEST_HINTS = {
+  pushups:       'גוף ישר לאורך כל התרגיל. ירידה עד כיפוף 90° במרפקים. פסילה: ישבן מורם, בטן שוקעת, כתפיים מגיעות לרצפה לפני החזה.',
+  pushups_metro: 'כמו שכיבות חופשי — אך הקצב מוכתב ע"י המטרונום. חזרה שאינה בקצב: אזהרה פעם ראשונה, לאחר מכן — פסילה.',
+  pullups:       'תפיסה עליונה (כפות ידיים קדימה). ירידה מלאה עד זרועות ישרות, עלייה עד סנטר מעל המוט. נדנוד / תנועת מטוטלת — פסולה.',
+  crunches:      'שכיבה על הגב, ברכיים כפופות, ידיים על החזה/ראש. עלייה עד כתפיים מהרצפה, ירידה מלאה. מדידה: 30 שניות.',
+  skiprope:      'קפיצות ברצף (30 או 60 שניות לפי בחירה). רגליים יחד, חבל עוקף מתחת לרגליים. ספירה לפי מגע בקרקע.',
+  plank:         'שכיבה על אמות + קדמת כפות רגליים. גוף ישר כמו קרש. עצור כאשר ירכיים שוקעות מטה / ישבן מורם. מדידה: שניות.',
+  run60:         'ספרינט ישר 60מ׳. מדידה: שעון S/S.cc. לחץ "טיימר חי", עצור לכל נבחן ורשום שם.',
+  run100:        'ספרינט 100מ׳. מדידה: שעון S.cc. לחץ "טיימר חי", עצור לכל נבחן ורשום שם.',
+  run4x10:       'שני קווים במרחק 10מ׳. הנבחן רץ הלוך-חזור ×2 ואוסף חפץ בכל פנייה. מדידה: שעון SS.cc. לחץ "טיימר חי".',
+  beep:          'לחץ "ביפ חי". תלמידים רצים הלוך-חזור בין קווים (20מ׳) לקצב הביפ. לחץ על קלף תלמיד ברגע שנפסל.',
+  cooper:        'ריצה חופשית למשך 12 דקות. תוצאה = מרחק במטרים. לחץ "ריצה חי" ועצור אחרי 12:00.',
+  xtest:         'שלושה קווים במרחק 5מ׳ כל אחד. הנבחן רץ הלוך-חזור כמה שיותר פעמים בזמן הנתון.',
+  run1000:       'לחץ "ריצה חי" — השעון מתחיל. לחץ על קלף כל נבחן עם חציית קו הסיום. תוצאה: MM:SS.',
+  run2000:       'לחץ "ריצה חי". לחץ על קלף כל נבחן עם חציית קו הסיום. תוצאה: MM:SS.',
+  run3000:       'לבנים כיתות יא-יב בלבד. לחץ "ריצה חי". לחץ על קלף כל נבחן עם חציית הסיום. תוצאה: MM:SS.',
+};
+
 // FTI placeholders and examples per test
 const FTI_EXAMPLES = {
   pushups:'כהן 28',pushups_metro:'לוי 22',
@@ -2838,6 +2862,8 @@ function updateRef(){
       html+='</div>';
     });
   }
+  const hint=TEST_HINTS[CUR.test];
+  if(hint) html+=`<details class="test-hint-row"><summary>📋 אופן ביצוע</summary><div class="test-hint-body">${hint}</div></details>`;
   document.getElementById('ref').innerHTML=html||'';
   const RUN_ANALYTICS_TESTS=['beep','cooper','run1000','run2000','run3000','run60','run100','run4x10'];
   const raBtn=document.getElementById('run-analytics-btn');
@@ -11337,119 +11363,175 @@ function openTournamentManager(){
 
 <!-- ══ GUIDE MODAL ══════════════════════════════════════════ -->
 <div class="mbg" id="guide-modal" style="align-items:flex-start;padding:20px 16px;overflow-y:auto;">
-<div style="background:var(--ink);border-radius:14px;padding:28px;max-width:700px;width:100%;margin:auto;position:relative;direction:rtl;font-family:'Heebo',sans-serif;">
+<div style="background:var(--ink);border-radius:14px;padding:28px 24px;max-width:720px;width:100%;margin:auto;position:relative;direction:rtl;font-family:'Heebo',sans-serif;">
   <button onclick="closeModal('guide-modal')" style="position:absolute;top:16px;left:16px;background:rgba(255,255,255,.08);border:none;color:rgba(255,255,255,.5);font-size:18px;padding:4px 10px;border-radius:6px;cursor:pointer;">✕</button>
-  <div style="font-family:'DM Serif Display',serif;font-size:24px;color:#fff;margin-bottom:4px;">📖 מדריך למורה</div>
-  <div style="font-size:12px;color:rgba(255,255,255,.35);margin-bottom:24px;">SportGrade · ניהול מבחני כושר</div>
+  <div style="font-family:'DM Serif Display',serif;font-size:26px;color:#fff;margin-bottom:3px;">📖 מדריך למורה</div>
+  <div style="font-size:12px;color:rgba(255,255,255,.35);margin-bottom:22px;">SportGrade · ניהול מבחני כושר · עדכני לתשפ"ו</div>
 
   <div style="display:flex;flex-direction:column;gap:0;">
 
-    <!-- Section helper -->
+    <!-- ═══ 1. התחלה מהירה ═══ -->
+    <details open style="border-bottom:1px solid rgba(255,255,255,.08);padding:14px 0;">
+      <summary style="cursor:pointer;font-weight:700;font-size:15px;color:#fff;list-style:none;display:flex;align-items:center;gap:8px;">
+        <span>🚀</span> התחלה מהירה — 5 צעדים
+      </summary>
+      <div style="margin-top:12px;font-size:13px;color:rgba(255,255,255,.65);line-height:2.1;">
+        <div style="display:grid;gap:10px;">
+          <div style="display:flex;gap:10px;align-items:flex-start;"><span style="background:rgba(249,115,22,.2);color:#fb923c;border-radius:50%;width:22px;height:22px;display:flex;align-items:center;justify-content:center;font-weight:800;flex-shrink:0;font-size:12px;">1</span><span><b style="color:#fff;">צור קבוצה</b> — לחץ "+ קבוצה חדשה" בדף הבית. העלה קובץ Excel (עמודות: שם, מין, כיתה) או הוסף תלמידים ידנית.</span></div>
+          <div style="display:flex;gap:10px;align-items:flex-start;"><span style="background:rgba(249,115,22,.2);color:#fb923c;border-radius:50%;width:22px;height:22px;display:flex;align-items:center;justify-content:center;font-weight:800;flex-shrink:0;font-size:12px;">2</span><span><b style="color:#fff;">בחר מחצית</b> — א׳ או ב׳. כל מחצית שמורה בנפרד; ניתן לעבור ביניהן בכל עת.</span></div>
+          <div style="display:flex;gap:10px;align-items:flex-start;"><span style="background:rgba(249,115,22,.2);color:#fb923c;border-radius:50%;width:22px;height:22px;display:flex;align-items:center;justify-content:center;font-weight:800;flex-shrink:0;font-size:12px;">3</span><span><b style="color:#fff;">בחר מבחן</b> — לחץ על לשונית המבחן הרצוי (מקבצים ניתן לפתוח/לסגור).</span></div>
+          <div style="display:flex;gap:10px;align-items:flex-start;"><span style="background:rgba(249,115,22,.2);color:#fb923c;border-radius:50%;width:22px;height:22px;display:flex;align-items:center;justify-content:center;font-weight:800;flex-shrink:0;font-size:12px;">4</span><span><b style="color:#fff;">הזן תוצאות</b> — בשדה מועד א׳ לכל תלמיד. הזן ביצוע גולמי (שניות, כמות חזרות, מ׳) — הציון מחושב אוטומטית.</span></div>
+          <div style="display:flex;gap:10px;align-items:flex-start;"><span style="background:rgba(249,115,22,.2);color:#fb923c;border-radius:50%;width:22px;height:22px;display:flex;align-items:center;justify-content:center;font-weight:800;flex-shrink:0;font-size:12px;">5</span><span><b style="color:#fff;">ייצא ל-Excel</b> — גלול לתחתית הטבלה ולחץ "ייצא כל המבחנים" לקבלת גיליון מלא.</span></div>
+        </div>
+      </div>
+    </details>
+
+    <!-- ═══ 2. הזנת ציונים ═══ -->
     <details style="border-bottom:1px solid rgba(255,255,255,.08);padding:14px 0;">
       <summary style="cursor:pointer;font-weight:700;font-size:15px;color:#fff;list-style:none;display:flex;align-items:center;gap:8px;">
-        <span>📁</span> העלאת אלפון וייבוא תלמידים
+        <span>📋</span> הזנת תוצאות
       </summary>
       <div style="margin-top:10px;font-size:13px;color:rgba(255,255,255,.65);line-height:2;">
-        לחץ על <b>"+ קבוצה חדשה"</b> בדף הבית → העלה קובץ Excel עם רשימת תלמידים. כל קובץ יוצר קבוצה עצמאית.
-        הקובץ צריך לכלול עמודות: <b>שם, מין, כיתה</b>. ניתן לייצא גיבוי מלא ולטעון אותו בהמשך.
+        <b style="color:#fff;">הזנה ידנית:</b> לחץ על שדה מועד א׳ לתלמיד → הזן ערך גולמי → Enter. הציון מחושב ומוצג מיד.<br>
+        <b style="color:#fff;">הזנה מהירה (⚡):</b> כתוב "שם תוצאה" בשורת הטקסט הצהובה — לדוגמה <b style="color:#fb923c;">כהן 28</b> — ולחץ Enter. המערכת מאתרת את התלמיד לפי שם ושומרת. מספר תלמידים בשורה אחת: <b style="color:#fb923c;">כהן 28, לוי 31</b>.<br>
+        <b style="color:#fff;">בונוס:</b> ניתן להוסיף % בונוס לכל תלמיד (לדוגמה: ניסיון ראשון, מאמץ יוצא דופן). הציון הסופי לא יעלה על 100.<br>
+        <b style="color:#fff;">מועד ב׳:</b> הציון לתעודה = max(מועד א׳, מועד ב׳). שיפור מוצג בירוק, ירידה באדום.<br>
+        <b style="color:#fff;">השלמות:</b> לשונית "השלמת מבחנים" מציגה רשימת תלמידים ללא ציון לפי מבחן — נוח לאחר שיעורים.
+      </div>
+    </details>
+
+    <!-- ═══ 3. מבחנים חיים ═══ -->
+    <details style="border-bottom:1px solid rgba(255,255,255,.08);padding:14px 0;">
+      <summary style="cursor:pointer;font-weight:700;font-size:15px;color:#fff;list-style:none;display:flex;align-items:center;gap:8px;">
+        <span>⚡</span> מבחנים חיים
+      </summary>
+      <div style="margin-top:12px;font-size:13px;color:rgba(255,255,255,.65);line-height:2.1;display:grid;gap:12px;">
+
+        <div style="background:rgba(255,255,255,.04);border-radius:8px;padding:12px 14px;">
+          <div style="color:#fff;font-weight:700;margin-bottom:4px;">🔊 ביפ טסט</div>
+          לחץ <b>"ביפ חי"</b>. כשתלמיד נפסל — לחץ על הקלף שלו. תלמידים שלא לחצת עליהם נשארים ריקים.
+          בסוף לחץ <b>"סיום מבחן"</b> — הציונים נשמרים אוטומטית.
+          ניתן להוסיף <b>אורחים</b> מקבוצות אחרות; ציונם יירשם בקבוצה המקורית.
+        </div>
+
+        <div style="background:rgba(255,255,255,.04);border-radius:8px;padding:12px 14px;">
+          <div style="color:#fff;font-weight:700;margin-bottom:4px;">🏃 ריצות ארוכות (1000 / 2000 / 3000מ׳) + קופר</div>
+          לחץ <b>"ריצה חי"</b>. לחץ <b>"התחל"</b> — שעון מתחיל. כל רץ שחוצה את הסיום — לחץ על הקלף שלו.
+          ניתן <b>Undo</b> לחיצה אחרונה. לחץ <b>"סיים"</b> → שמור.
+        </div>
+
+        <div style="background:rgba(255,255,255,.04);border-radius:8px;padding:12px 14px;">
+          <div style="color:#fff;font-weight:700;margin-bottom:4px;">🎵 שכיבות סמיכה — מטרונום</div>
+          המטרונום מתחיל בפתיחה. לחץ <b>"התחל בדיקה"</b> לספירה. כשתלמיד נפסל — לחץ <b>"פיצול"</b> ורשום שמו.
+          ניתן לכוונן BPM ועוצמה. לחץ <b>"שמור"</b> בסוף.
+        </div>
+
+        <div style="background:rgba(255,255,255,.04);border-radius:8px;padding:12px 14px;">
+          <div style="color:#fff;font-weight:700;margin-bottom:4px;">⏱ פלנק + ריצות קצרות (60 / 100 / 4×10מ׳)</div>
+          לחץ <b>"טיימר חי"</b>. לחץ <b>עצור</b> לכל תלמיד/ת — נוצר ספליט. הזן שם לכל ספליט. לחץ <b>"שמור"</b>.
+          ניתן להדביק תוצאות מ-Stopwatch אנדרואיד דרך כפתור <b>"📱 הדבק לאפס"</b>.
+        </div>
+
+        <div style="background:rgba(255,255,255,.04);border-radius:8px;padding:12px 14px;">
+          <div style="color:#fff;font-weight:700;margin-bottom:4px;">🎲 קבוצה אקראית</div>
+          לבדיקת תלמידים ללא רשימה (ממלאי מקום, חניכים חיצוניים). פתח מ<b>"קבוצה אקראית"</b> בתפריט → בחר מבחן → שמות הנבחנים נרשמים תוך כדי. התוצאות נשמרות עד מחיקה ידנית.
+        </div>
+      </div>
+    </details>
+
+    <!-- ═══ 4. מבחנים — סקירה מהירה ═══ -->
+    <details style="border-bottom:1px solid rgba(255,255,255,.08);padding:14px 0;">
+      <summary style="cursor:pointer;font-weight:700;font-size:15px;color:#fff;list-style:none;display:flex;align-items:center;gap:8px;">
+        <span>💪</span> מדריך מבחנים — כוח וסבולת
+      </summary>
+      <div style="margin-top:12px;font-size:12px;color:rgba(255,255,255,.6);line-height:1.9;display:grid;gap:8px;">
+        <div><b style="color:#fb923c;">שכיבות סמיכה חופשי</b> — גוף ישר לאורך כל התרגיל, ירידה עד 90° במרפק. פסילה: ישבן מורם / בטן שוקעת / כתפיים קודמות לחזה.</div>
+        <div><b style="color:#fb923c;">שכיבות סמיכה מטרונום</b> — כנ"ל, אך כל חזרה בקצב הביפ. חריגה מהקצב: אזהרה → פסילה. הפעל דרך "מטרונום חי" לניהול אוטומטי.</div>
+        <div><b style="color:#fb923c;">מתח / מתח סטטי</b> — תפיסה עליונה (pronated). ירידה מלאה עד זרועות ישרות. עלייה עד סנטר מעל המוט. נדנוד פסול.</div>
+        <div><b style="color:#fb923c;">כפיפות בטן</b> — שכיבה, ברכיים כפופות, ידיים על החזה/ראש. כתפיים עולות מהרצפה + ירידה מלאה. 30 שניות.</div>
+        <div><b style="color:#fb923c;">קפיצה בדלגית</b> — 30 / 60 שניות ברצף. רגליים יחד. ספירה לפי מגע בקרקע.</div>
+        <div><b style="color:#fb923c;">פלנק</b> — שכיבה על אמות + קדמת כפות רגליים. גוף ישר. עצור: ירכיים שוקעות / ישבן מורם. תוצאה: שניות.</div>
       </div>
     </details>
 
     <details style="border-bottom:1px solid rgba(255,255,255,.08);padding:14px 0;">
       <summary style="cursor:pointer;font-weight:700;font-size:15px;color:#fff;list-style:none;display:flex;align-items:center;gap:8px;">
-        <span>📋</span> הזנה ידנית של ציונים
+        <span>⚡</span> מדריך מבחנים — מהירות וזריזות
       </summary>
-      <div style="margin-top:10px;font-size:13px;color:rgba(255,255,255,.65);line-height:2;">
-        לאחר בחירת קבוצה ומחצית, בחר מבחן מהלשוניות העליונות. לכל תלמיד יש שדות <b>מועד א׳</b> ו-<b>מועד ב׳</b>.
-        הזן את הביצוע הגולמי (זמן, כמות, מרחק) — הציון מחושב אוטומטית לפי מחוון. ניתן להוסיף <b>בונוס %</b> ידנית.
-        הציון לתעודה = ה-max בין מועד א׳ למועד ב׳. שיפור מוצג בירוק, ירידה באדום.
+      <div style="margin-top:12px;font-size:12px;color:rgba(255,255,255,.6);line-height:1.9;display:grid;gap:8px;">
+        <div><b style="color:#fb923c;">ריצת 60מ׳</b> — ספרינט ישר. הזן שניות (לדוגמה: 9.4). הפעל "טיימר חי" לניהול מרוץ. פסק עם חציית קו הסיום.</div>
+        <div><b style="color:#fb923c;">ריצת 100מ׳</b> — ספרינט 100מ׳. הזן שניות (לדוגמה: 15.8). הפעל "טיימר חי".</div>
+        <div><b style="color:#fb923c;">ריצת 4×10מ׳</b> — שני קווים 10מ׳ זה מזה. הנבחן רץ הלוך-חזור ×2, אוסף חפץ בכל פנייה. הזן שניות (לדוגמה: 11.80).</div>
       </div>
     </details>
 
     <details style="border-bottom:1px solid rgba(255,255,255,.08);padding:14px 0;">
       <summary style="cursor:pointer;font-weight:700;font-size:15px;color:#fff;list-style:none;display:flex;align-items:center;gap:8px;">
-        <span>🔊</span> ביפ טסט חי
+        <span>❤️</span> מדריך מבחנים — אירוביים
       </summary>
-      <div style="margin-top:10px;font-size:13px;color:rgba(255,255,255,.65);line-height:2;">
-        לחץ <b>"ביפ חי"</b> בלשונית ביפ טסט. התלמידים מוצגים כקלפים. כשתלמיד נפסל — לחץ על הקלף שלו.
-        <b>רק תלמידים שלחצת עליהם מקבלים ציון</b>. תלמיד שלא לחצת עליו — ציונו יישאר ריק (הזן ידנית אם צריך).
-        בסוף לחץ <b>"סיום מבחן"</b> → הציונים נשמרים אוטומטית.
+      <div style="margin-top:12px;font-size:12px;color:rgba(255,255,255,.6);line-height:1.9;display:grid;gap:8px;">
+        <div><b style="color:#fb923c;">ביפ טסט</b> — הרצה הלוך-חזור בין קווים (20מ׳) בקצב עולה. תוצאה: רמה.חזרה (לדוגמה: 9.2). הפעל "ביפ חי" לניהול אוטומטי.</div>
+        <div><b style="color:#fb923c;">קופר 12 דקות</b> — ריצה חופשית 12 דקות. תוצאה: מרחק במטרים. ניתן לשלב עם "ריצה חי" + עצור אחרי 12:00.</div>
+        <div><b style="color:#fb923c;">מבחן איקסים</b> — שלושה קווים במרחק 5מ׳ כל אחד (סה"כ 10מ׳). נבחן רץ הלוך-חזור כמה שיותר פעמים בזמן קבוע. תוצאה: כמות מעברים.</div>
+        <div><b style="color:#fb923c;">ריצות 1000 / 2000 / 3000מ׳</b> — ריצה רציפה. תוצאה: MM:SS (לדוגמה: 3:45). הפעל "ריצה חי" ולחץ על כל נבחן עם חציית הסיום.</div>
+        <div style="font-size:11px;color:rgba(255,255,255,.35);">ריצת 3000מ׳ — לבנים כיתות יא-יב בלבד לפי מחוון.</div>
       </div>
     </details>
 
+    <!-- ═══ 5. ציונים ומחצאות ═══ -->
     <details style="border-bottom:1px solid rgba(255,255,255,.08);padding:14px 0;">
       <summary style="cursor:pointer;font-weight:700;font-size:15px;color:#fff;list-style:none;display:flex;align-items:center;gap:8px;">
-        <span>🏃</span> ריצות ארוכות חי (1000/2000/3000מ׳)
+        <span>📊</span> ציונים, מחצאות וייצוא
       </summary>
       <div style="margin-top:10px;font-size:13px;color:rgba(255,255,255,.65);line-height:2;">
-        לחץ <b>"ריצה חי"</b>. הפעל שעון עם <b>"התחל"</b>. כשרץ עובר את קו הסיום — לחץ על הקלף שלו לרישום הזמן.
-        סיים עם <b>"סיים"</b>. ניתן לבטל לחיצה אחרונה עם Undo. הציונים נשמרים אוטומטית.
+        <b style="color:#fff;">מחצאות:</b> א׳ וב׳ נשמרות בנפרד. ציון לתעודה = max(מח׳ א׳, מח׳ ב׳). בלשונית מחצית ב׳ מוצגת עמודת "מח׳ א׳" לעיון בלבד.<br>
+        <b style="color:#fff;">מדרג ציונים:</b> לחץ 📋 ליד מדרג הציונים לצפייה בטבלה המלאה (ציונים 0–100).<br>
+        <b style="color:#fff;">ניתוח תוצאות:</b> לחץ "ניתוח" ⬆ לפי מבחן לסטטיסטיקות קבוצתיות וגרפי ביצוע.<br>
+        <b style="color:#fff;">ייצוא Excel:</b> בתחתית הטבלה — "ייצא מבחן זה" (עמודה אחת) או "ייצא כל המבחנים" (גיליון מלא).<br>
+        <b style="color:#fff;">הדפסה:</b> לחץ "הדפס" לדף מעוצב ללא ממשק עריכה — מתאים לשמירת רשומות.
       </div>
     </details>
 
+    <!-- ═══ 6. גיבוי וסנכרון ═══ -->
     <details style="border-bottom:1px solid rgba(255,255,255,.08);padding:14px 0;">
       <summary style="cursor:pointer;font-weight:700;font-size:15px;color:#fff;list-style:none;display:flex;align-items:center;gap:8px;">
-        <span>🎵</span> שכיבות סמיכה — מטרונום
+        <span>💾</span> גיבוי, ייבוא וסנכרון
       </summary>
       <div style="margin-top:10px;font-size:13px;color:rgba(255,255,255,.65);line-height:2;">
-        המטרונום מתחיל אוטומטית בפתיחה. לחץ <b>"התחל בדיקה"</b> לתחילת ספירה לתלמיד הנוכחי.
-        כשתלמיד נפסל — לחץ <b>"פיצול"</b> לרישום תוצאתו. הזן שם בשדה שמופיע. המשך לתלמיד הבא.
-        ניתן לכוונן BPM ועוצמה. הציונים נשמרים בלחיצת "שמור".
+        <b style="color:#fff;">כל הנתונים נשמרים אוטומטית</b> ב-localStorage של הדפדפן — ללא חיבור אינטרנט.<br>
+        <b style="color:#fff;">גיבוי JSON:</b> בדף הבית לחץ <b>"💾 ייצא נתונים"</b> לשמירת קובץ JSON. לטעינה: לחץ <b>"📂 ייבא נתונים"</b>.<br>
+        <b style="color:#fff;">עצות:</b> גבה לפני כל עדכון תוכנה. הקובץ תואם לכל מכשיר עם Chrome / Edge עדכני.<br>
+        <b style="color:#fff;">ארכיון שנים קודמות:</b> בסיום שנה ניתן להעביר נתונים לארכיון (תפריט ← "ארכיון") — הנתונים נשמרים לצפייה ולא נמחקים.
       </div>
     </details>
 
+    <!-- ═══ 7. מבחנים מותאמים אישית ═══ -->
     <details style="border-bottom:1px solid rgba(255,255,255,.08);padding:14px 0;">
       <summary style="cursor:pointer;font-weight:700;font-size:15px;color:#fff;list-style:none;display:flex;align-items:center;gap:8px;">
-        <span>⏱</span> פלנק וריצות קצרות (60/100/4×10)
+        <span>✏️</span> מבחנים מותאמים אישית
       </summary>
       <div style="margin-top:10px;font-size:13px;color:rgba(255,255,255,.65);line-height:2;">
-        לחץ <b>"טיימר חי"</b>. הפעל, ועצור לכל תלמיד. כל עצירה יוצרת ספליט עם שדה שם.
-        הזן שם תלמיד לכל ספליט. הציונים נשמרים בלחיצת "שמור".
+        לחץ <b>"+ מבחן חדש"</b> בלשוניות הכלים → הגדר שם, יחידת מידה וטבלת ניקוד (לפחות 2 עוגנים).<br>
+        המבחן יופיע אוטומטית ברשימת המבחנים לכל הקבוצות.<br>
+        ניתן להגדיר טבלה נפרדת לבנות. ניתן לערוך / למחוק מבחן בכל עת.
       </div>
     </details>
 
-    <details style="border-bottom:1px solid rgba(255,255,255,.08);padding:14px 0;">
-      <summary style="cursor:pointer;font-weight:700;font-size:15px;color:#fff;list-style:none;display:flex;align-items:center;gap:8px;">
-        <span>🎲</span> קבוצה אקראית
-      </summary>
-      <div style="margin-top:10px;font-size:13px;color:rgba(255,255,255,.65);line-height:2;">
-        מיועד לבדיקה של תלמידים שאינם שייכים לקבוצה קיימת (ממלאי מקום, חניכים חיצוניים).
-        פתח מ<b>"קבוצה אקראית"</b> בתפריט. בחר מבחן → שמות הנבחנים נרשמים תוך כדי המבחן.
-        התוצאות נשמרות עד מחיקה ידנית.
-      </div>
-    </details>
-
-    <details style="border-bottom:1px solid rgba(255,255,255,.08);padding:14px 0;">
-      <summary style="cursor:pointer;font-weight:700;font-size:15px;color:#fff;list-style:none;display:flex;align-items:center;gap:8px;">
-        <span>👥</span> אורחים בין קבוצות
-      </summary>
-      <div style="margin-top:10px;font-size:13px;color:rgba(255,255,255,.65);line-height:2;">
-        בביפ חי ניתן להוסיף תלמיד מקבוצה אחרת כ<b>"אורח"</b>. הוא מופיע בביפ ותוצאתו תירשם אצל הקבוצה המקורית שלו.
-        בטבלת הציונים, אורח מופיע רק בשדה המבחן שבו השתתף. לאחר עדכון המורה שלו — מחק אותו מהקבוצה.
-      </div>
-    </details>
-
-    <details style="border-bottom:1px solid rgba(255,255,255,.08);padding:14px 0;">
-      <summary style="cursor:pointer;font-weight:700;font-size:15px;color:#fff;list-style:none;display:flex;align-items:center;gap:8px;">
-        <span>📊</span> טבלאות, ציונים ומחציות
-      </summary>
-      <div style="margin-top:10px;font-size:13px;color:rgba(255,255,255,.65);line-height:2;">
-        בפתיחת קבוצה בחר <b>מחצית א׳ או ב׳</b>. כל מחצית שומרת נתונים עצמאיים.
-        בלשונית מחצית ב׳ מוצגת עמודת "מח׳ א׳" לצפייה בלבד.
-        ציון לתעודה = max(מחצית א׳, מחצית ב׳).
-        ייצוא ל-Excel זמין בתחתית הטבלה — ייצוא מבחן זה או כל המבחנים.
-      </div>
-    </details>
-
+    <!-- ═══ 8. טיפים ═══ -->
     <details style="padding:14px 0;">
       <summary style="cursor:pointer;font-weight:700;font-size:15px;color:#fff;list-style:none;display:flex;align-items:center;gap:8px;">
-        <span>💡</span> טיפים כלליים
+        <span>💡</span> טיפים וקיצורי מקלדת
       </summary>
-      <div style="margin-top:10px;font-size:13px;color:rgba(255,255,255,.65);line-height:2;">
-        • כל הנתונים נשמרים אוטומטית ב-localStorage של הדפדפן — אין צורך בחיבור אינטרנט.<br>
-        • גיבוי: לחץ <b>"💾 ייצא נתונים"</b> בדף הבית לשמירת קובץ JSON. טען אותו בכל מכשיר.<br>
-        • מבחנים חיים (ביפ, ריצות, מטרונום, פלנק) נשמרים אוטומטית בסיום.<br>
-        • ניתן לערוך ציון בכל עת ישירות בטבלה — הציון הגבוה תמיד נשמר.
+      <div style="margin-top:10px;font-size:13px;color:rgba(255,255,255,.65);line-height:2.1;">
+        <b style="color:#fff;">מבחנים חיים — בקרה:</b> לא ניתן לבטל קלף לאחר השמירה. הזן ידנית אם טעית.<br>
+        <b style="color:#fff;">חיפוש מהיר:</b> לחץ Ctrl+F (בדפדפן) לחיפוש תלמיד בטבלה.<br>
+        <b style="color:#fff;">מיון:</b> א-ב / שונו לאחרונה / ציון ↓↑. "ציון ↓↑" לחיצה כפולה = עולה (מקל על מציאת חסרים).<br>
+        <b style="color:#fff;">הזנה מהירה — Enter:</b> כתוב שם+תוצאה → Enter לאישור מיידי. פסיקים להפרדה בין מספר תלמידים.<br>
+        <b style="color:#fff;">בונוס:</b> ניתן לאפס בונוסים לכל הקבוצה בכפתור "נקה" בתחתית.<br>
+        <b style="color:#fff;">טבלת שיאים:</b> עוקבת אחר הישגי שיא לפי מבחן ומין — נגישה דרך תפריט הצד.<br>
+        <div style="margin-top:8px;padding:10px 12px;background:rgba(249,115,22,.1);border-radius:6px;border:1px solid rgba(249,115,22,.2);font-size:12px;color:rgba(255,255,255,.5);">
+          ⚠ אל תסגור את הכרטיסייה בדפדפן במהלך מבחן חי — הנתונים נשמרים רק לאחר לחיצת "שמור" או "סיום מבחן".
+        </div>
       </div>
     </details>
 
