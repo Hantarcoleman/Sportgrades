@@ -100,7 +100,7 @@ header{background:#1a1510;padding:0 16px 0 20px;height:58px;display:flex;align-i
 .bc{display:flex;align-items:center;gap:7px;margin-bottom:20px;font-size:13px;color:var(--ink3);}
 .bc a{color:var(--ac);text-decoration:none;font-weight:600;cursor:pointer;}.bc a:hover{text-decoration:underline;}
 /* TABS */
-.tabs{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:16px;}
+.tabs{display:flex;flex-direction:column;gap:4px;margin-bottom:16px;}
 .tab{padding:8px 15px;font-size:12px;font-weight:700;cursor:pointer;transition:all var(--t);color:var(--ink2);background:var(--bg2);border:1px solid var(--bd);border-radius:var(--rx);font-family:'Heebo',sans-serif;}
 .tab:hover{border-color:var(--ac);color:var(--ac);}
 .tab.sel{background:var(--ac);color:#fff;border-color:var(--ac);}
@@ -109,6 +109,15 @@ header{background:#1a1510;padding:0 16px 0 20px;height:58px;display:flex;align-i
 .tab-new.sel{background:var(--pu);color:#fff;border-color:var(--pu);}
 .tab-custom{background:var(--pubg);border-color:var(--pubd);color:var(--pu);}
 .tab-custom.sel{background:var(--pu);color:#fff;}
+/* ACCORDION CATEGORIES */
+.tab-cat{margin-bottom:4px;}
+.tab-cat-hdr{display:flex;align-items:center;justify-content:space-between;padding:8px 14px;font-size:12px;font-weight:800;background:var(--bg2);border:1px solid var(--bd);border-radius:var(--rx);cursor:pointer;color:var(--ink2);font-family:'Heebo',sans-serif;transition:all var(--t);user-select:none;}
+.tab-cat-hdr:hover{border-color:var(--ac);color:var(--ac);}
+.tab-cat-hdr.has-active{border-color:var(--ac);color:var(--ac);background:var(--abg);}
+.tab-cat-arrow{font-size:18px;font-weight:400;transform:rotate(-90deg);transition:transform .2s;display:inline-block;line-height:1;}
+.tab-cat-arrow.open{transform:rotate(90deg);}
+.tab-cat-body{display:flex;flex-wrap:wrap;gap:6px;padding:8px 4px 4px;}
+.tab-cat-extra{display:flex;flex-wrap:wrap;gap:6px;padding-top:4px;}
 /* SB */
 .sb{background:var(--sf);border:1px solid var(--bd);border-radius:var(--r);padding:12px 18px;display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin-bottom:14px;box-shadow:var(--sh);}
 .ic{background:var(--bg);border:1px solid var(--bd);border-radius:6px;padding:4px 11px;font-size:12px;font-weight:500;color:var(--ink2);}
@@ -2186,22 +2195,25 @@ const TABLES = {
 };
 
 const TEST_LIST = [
-  {id:'pushups',label:'שכיבות סמיכה חופשי',group:'כוח'},
-  {id:'pushups_metro',label:'שכיבות סמיכה מטרונום',group:'כוח'},
-  {id:'pullups',label:'מתח / מתח סטטי',group:'כוח'},
-  {id:'crunches',label:'כפיפות בטן',group:'כוח'},
-  {id:'skiprope',label:'קפיצה בדלגית',group:'כוח'},
-  {id:'plank',label:'פלנק',group:'כוח'},
-  {id:'beep',label:'ביפ טסט',group:'ריצה'},
-  {id:'cooper',label:'קופר (12 דק׳)',group:'ריצה'},
-  {id:'xtest',label:'מבחן איקסים',group:'ריצה'},
-  {id:'run60',label:'ריצת 60מ׳',group:'ריצה'},
-  {id:'run100',label:'ריצת 100מ׳',group:'ריצה'},
-  {id:'run4x10',label:'ריצת 4×10מ׳',group:'ריצה'},
-  {id:'run1000',label:'ריצת 1000מ׳',group:'ריצה'},
-  {id:'run2000',label:'ריצת 2000מ׳',group:'ריצה'},
-  {id:'run3000',label:'ריצת 3000מ׳ (בנים יא-יב)',group:'ריצה'},
+  {id:'pushups',label:'שכיבות סמיכה חופשי',group:'strength'},
+  {id:'pushups_metro',label:'שכיבות סמיכה מטרונום',group:'strength'},
+  {id:'pullups',label:'מתח / מתח סטטי',group:'strength'},
+  {id:'crunches',label:'כפיפות בטן',group:'strength'},
+  {id:'skiprope',label:'קפיצה בדלגית',group:'strength'},
+  {id:'plank',label:'פלנק',group:'strength'},
+  {id:'run60',label:'ריצת 60מ׳',group:'speed'},
+  {id:'run100',label:'ריצת 100מ׳',group:'speed'},
+  {id:'run4x10',label:'ריצת 4×10מ׳',group:'speed'},
+  {id:'beep',label:'ביפ טסט',group:'cardio'},
+  {id:'cooper',label:'קופר (12 דק׳)',group:'cardio'},
+  {id:'xtest',label:'מבחן איקסים',group:'cardio'},
+  {id:'run1000',label:'ריצת 1000מ׳',group:'cardio'},
+  {id:'run2000',label:'ריצת 2000מ׳',group:'cardio'},
+  {id:'run3000',label:'ריצת 3000מ׳ (בנים יא-יב)',group:'cardio'},
 ];
+
+let tabGroupState = { strength: true, speed: true, cardio: true };
+function toggleTabGroup(key) { tabGroupState[key] = !tabGroupState[key]; buildTabs(); }
 
 // FTI placeholders and examples per test
 const FTI_EXAMPLES = {
@@ -2684,25 +2696,40 @@ function confirmSemester(sem){
 }
 
 function buildTabs(){
+  const CAT_CONFIG=[
+    {key:'strength',label:'מבחני כוח וסבולת שרירים',icon:'💪'},
+    {key:'speed',   label:'מבחני מהירות וזריזות',    icon:'⚡'},
+    {key:'cardio',  label:'מבחנים אירוביים',         icon:'🫀'},
+  ];
   let html='';
-  const grps={'כוח':[],'ריצה':[]};
-  TEST_LIST.forEach(t=>grps[t.group]?.push(t));
-  for(const [,tests] of Object.entries(grps)){
-    tests.forEach(t=>{html+=`<div class="tab${t.id===CUR.test?' sel':''}" onclick="selectTest('${t.id}')" id="tab-${t.id}">${t.label}</div>`;});
-    html+=`<span style="flex-basis:100%;height:0;display:block;"></span>`;
+  for(const cat of CAT_CONFIG){
+    const tests=TEST_LIST.filter(t=>t.group===cat.key);
+    const hasActive=tests.some(t=>t.id===CUR.test);
+    if(hasActive) tabGroupState[cat.key]=true;
+    const isOpen=tabGroupState[cat.key];
+    html+=`<div class="tab-cat">
+      <div class="tab-cat-hdr${hasActive?' has-active':''}" onclick="toggleTabGroup('${cat.key}')">
+        <span>${cat.icon} ${cat.label}</span>
+        <span class="tab-cat-arrow${isOpen?' open':''}">‹</span>
+      </div>
+      <div class="tab-cat-body"${isOpen?'':' style="display:none"'}>
+        ${tests.map(t=>`<div class="tab${t.id===CUR.test?' sel':''}" onclick="selectTest('${t.id}')" id="tab-${t.id}">${t.label}</div>`).join('')}
+      </div>
+    </div>`;
   }
   // Custom tests
+  let extraHtml='';
   Object.entries(S.customTests||{}).forEach(([id,ct])=>{
-    html+=`<div class="tab tab-custom${id===CUR.test?' sel':''}" style="display:flex;align-items:center;gap:4px;" id="tab-${id}">
+    extraHtml+=`<div class="tab tab-custom${id===CUR.test?' sel':''}" style="display:flex;align-items:center;gap:4px;" id="tab-${id}">
       <span onclick="selectTest('${id}')" style="cursor:pointer;">${ct.name}</span>
       <span onclick="deleteCustomTest('${id}')" style="cursor:pointer;opacity:.5;font-size:12px;padding:0 2px;" title="מחק מבחן">✕</span>
     </div>`;
   });
-  // "Create new" button — always last
-  html+=`<div class="tab tab-new${CUR.test==='__completion__'?' sel':''}" onclick="selectCompletion()" id="tab-__completion__" style="background:rgba(239,68,68,.1);border-color:rgba(239,68,68,.25);color:#ef4444;">⚠ השלמת מבחנים</div>`;
-  html+=`<div class="tab tab-new${CUR.test==='__entered__'?' sel':''}" onclick="selectEntered()" id="tab-__entered__" style="background:rgba(21,128,61,.1);border-color:rgba(21,128,61,.3);color:#15803d;font-size:11px;">✓ תיעוד הזנות למערכת ביה"ס</div>`;
-  html+=`<div class="tab tab-new" onclick="openCustomModal()">＋ יצירת מבחן חדש</div>`;
-  html+=`<div class="tab" onclick="showGroupEditView()" style="background:rgba(124,58,237,.1);border-color:rgba(124,58,237,.25);color:#a78bfa;padding:5px 10px;" title="עריכת קבוצה">עריכת קבוצה</div>`;
+  extraHtml+=`<div class="tab tab-new${CUR.test==='__completion__'?' sel':''}" onclick="selectCompletion()" id="tab-__completion__" style="background:rgba(239,68,68,.1);border-color:rgba(239,68,68,.25);color:#ef4444;">⚠ השלמת מבחנים</div>`;
+  extraHtml+=`<div class="tab tab-new${CUR.test==='__entered__'?' sel':''}" onclick="selectEntered()" id="tab-__entered__" style="background:rgba(21,128,61,.1);border-color:rgba(21,128,61,.3);color:#15803d;font-size:11px;">✓ תיעוד הזנות למערכת ביה"ס</div>`;
+  extraHtml+=`<div class="tab tab-new" onclick="openCustomModal()">＋ יצירת מבחן חדש</div>`;
+  extraHtml+=`<div class="tab" onclick="showGroupEditView()" style="background:rgba(124,58,237,.1);border-color:rgba(124,58,237,.25);color:#a78bfa;padding:5px 10px;" title="עריכת קבוצה">עריכת קבוצה</div>`;
+  if(extraHtml) html+=`<div class="tab-cat-extra">${extraHtml}</div>`;
   document.getElementById('test-tabs').innerHTML=html;
 }
 
