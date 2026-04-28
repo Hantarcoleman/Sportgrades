@@ -2705,7 +2705,6 @@ function buildTabs(){
   for(const cat of CAT_CONFIG){
     const tests=TEST_LIST.filter(t=>t.group===cat.key);
     const hasActive=tests.some(t=>t.id===CUR.test);
-    if(hasActive) tabGroupState[cat.key]=true;
     const isOpen=tabGroupState[cat.key];
     html+=`<div class="tab-cat">
       <div class="tab-cat-hdr${hasActive?' has-active':''}" onclick="toggleTabGroup('${cat.key}')">
@@ -2736,6 +2735,8 @@ function buildTabs(){
 function getTbl(testId){return TABLES[testId]||{};}
 
 function selectTest(testId){
+  const _tEntry=TEST_LIST.find(t=>t.id===testId);
+  if(_tEntry) tabGroupState[_tEntry.group]=true;
   setCUR({test:testId});
   document.getElementById('completion-view').style.display='none';
   document.getElementById('entered-view')&&(document.getElementById('entered-view').style.display='none');
@@ -2798,7 +2799,7 @@ function updateRef(){
     if(T.maleOnly)html+=`<div style="font-size:11px;color:var(--gd);margin-top:4px;">⚠ מבחן זה לבנים בלבד</div>`;
   }
   document.getElementById('ref').innerHTML=html||'';
-  const RUN_ANALYTICS_TESTS=['beep','cooper','run1000','run2000','run3000'];
+  const RUN_ANALYTICS_TESTS=['beep','cooper','run1000','run2000','run3000','run60','run100','run4x10'];
   const raBtn=document.getElementById('run-analytics-btn');
   if(raBtn) raBtn.style.display=RUN_ANALYTICS_TESTS.includes(CUR.test)?'':'none';
 }
@@ -4606,7 +4607,9 @@ function buildRunAnalyticsHtml(testId,val,grade,gender,mode){
   if(mode==='group') return _buildGroupAnalytics(testId);
   if(!val)return '';
   let rows=[];
+  let sectionTitle='📈 ניתוח אירובי';
   const RUN_DIST={run1000:1000,run2000:2000,run3000:3000};
+  const SHORT_RUN_DIST={run60:60,run100:100,run4x10:40};
   try{
     if(testId==='cooper'){
       const distM=parseFloat(String(val).replace(',',''))||0;
@@ -4638,6 +4641,17 @@ function buildRunAnalyticsHtml(testId,val,grade,gender,mode){
         ['METs',`${Math.max(0,mets).toFixed(1)}`,''],
         ['סף חומצת חלב',_fmtPace(ltPace)+' (88% מהירות)',''],
       ];
+    } else if(SHORT_RUN_DIST[testId]){
+      sectionTitle='📈 ניתוח מהירות';
+      const dist=SHORT_RUN_DIST[testId];
+      const secs=parseFloat(String(val))||null;
+      if(!secs)return '';
+      const speedKmh=dist*3.6/secs;
+      rows=[
+        ['מרחק',`${dist} מ׳`,''],
+        ['זמן',`${secs} שניות`,''],
+        ['מהירות ממוצעת',`${speedKmh.toFixed(1)} ק"מ/ש`,''],
+      ];
     } else if(RUN_DIST[testId]){
       const dist=RUN_DIST[testId];
       const secs=_parseTimeToSecs(val);
@@ -4662,7 +4676,7 @@ function buildRunAnalyticsHtml(testId,val,grade,gender,mode){
   }catch(e){return '';}
   if(!rows.length)return '';
   return `<div style="background:var(--bg2);border:1px solid var(--bd);border-radius:var(--rs);padding:12px;margin-top:10px;">
-    <div style="font-size:11px;font-weight:800;color:var(--ink3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px;">📈 ניתוח אירובי</div>
+    <div style="font-size:11px;font-weight:800;color:var(--ink3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px;">${sectionTitle}</div>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;">
       ${rows.map(([lbl,val])=>`<div style="background:var(--sf);border-radius:6px;padding:7px 10px;">
         <div style="font-size:10px;color:var(--ink3);margin-bottom:2px;">${lbl}</div>
@@ -4677,7 +4691,43 @@ function _buildGroupAnalytics(testId){
   const key=resKey();
   const res=g[key]?.[testId]||{};
   const RUN_DIST={run1000:1000,run2000:2000,run3000:3000};
+  const SHORT_RUN_DIST={run60:60,run100:100,run4x10:40};
   const testLabel=TEST_LIST.find(t=>t.id===testId)?.label||testId;
+  // ── Short-run group analytics (km/h) ──
+  if(SHORT_RUN_DIST[testId]){
+    const dist=SHORT_RUN_DIST[testId];
+    const rows=[];
+    g.students.forEach((s,idx)=>{
+      const d=res[idx];if(!d||d.a==='')return;
+      const secs=parseFloat(String(d.a))||null;if(!secs)return;
+      rows.push({name:s.name,grade:s.grade,val:d.a,speed:dist*3.6/secs});
+    });
+    if(!rows.length)return '<div style="padding:20px;text-align:center;color:var(--ink3);">אין ציונים מוזנים לניתוח</div>';
+    rows.sort((a,b)=>b.speed-a.speed);
+    const avgSpeed=rows.reduce((s,r)=>s+r.speed,0)/rows.length;
+    const maxSpeed=rows[0].speed;
+    return `<div class="mt" style="padding-left:36px;margin-bottom:12px;">📈 ניתוח מהירות — ${testLabel}</div>
+      <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-bottom:16px;">
+        <div class="sc"><div class="sv">${avgSpeed.toFixed(1)}</div><div class="sl">קמ"ש ממוצע</div></div>
+        <div class="sc"><div class="sv">${maxSpeed.toFixed(1)}</div><div class="sl">קמ"ש מקסימלי</div></div>
+      </div>
+      <div style="font-size:11px;font-weight:800;color:var(--ink3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px;">טבלה אישית (${rows.length} תלמידים)</div>
+      <div style="overflow-x:auto;"><table style="width:100%;border-collapse:collapse;font-size:12px;">
+        <thead><tr style="background:var(--bg2);">
+          <th style="padding:6px 8px;text-align:right;font-weight:800;color:var(--ink3);">#</th>
+          <th style="padding:6px 8px;text-align:right;font-weight:800;color:var(--ink3);">שם</th>
+          <th style="padding:6px 8px;text-align:center;font-weight:800;color:var(--ink3);">זמן (שנ׳)</th>
+          <th style="padding:6px 8px;text-align:center;font-weight:800;color:var(--ink3);">קמ"ש</th>
+        </tr></thead><tbody>
+        ${rows.slice(0,20).map((r,i)=>`<tr style="border-bottom:1px solid var(--bd);">
+          <td style="padding:5px 8px;color:var(--ink3);">${i+1}</td>
+          <td style="padding:5px 8px;font-weight:600;">${r.name}</td>
+          <td style="padding:5px 8px;text-align:center;color:var(--ink2);">${r.val}</td>
+          <td style="padding:5px 8px;text-align:center;font-weight:700;color:var(--ac);">${r.speed.toFixed(1)}</td>
+        </tr>`).join('')}
+        </tbody></table></div>
+      <div class="mf" style="margin-top:14px;"><button class="btn bg2" onclick="closeModal('run-analytics-modal')">סגור</button></div>`;
+  }
   const studentRows=[];
   g.students.forEach((s,idx)=>{
     const d=res[idx];if(!d||d.a==='')return;
@@ -4723,8 +4773,8 @@ function _buildGroupAnalytics(testId){
 }
 
 function openRunAnalytics(){
-  const RUN_ANALYTICS_TESTS=['beep','cooper','run1000','run2000','run3000'];
-  if(!RUN_ANALYTICS_TESTS.includes(CUR.test)){toast('מבחן זה אינו נתמך לניתוח אירובי');return;}
+  const RUN_ANALYTICS_TESTS=['beep','cooper','run1000','run2000','run3000','run60','run100','run4x10'];
+  if(!RUN_ANALYTICS_TESTS.includes(CUR.test)){toast('מבחן זה אינו נתמך לניתוח');return;}
   document.getElementById('ran-content').innerHTML=_buildGroupAnalytics(CUR.test);
   openModal('run-analytics-modal');
 }
