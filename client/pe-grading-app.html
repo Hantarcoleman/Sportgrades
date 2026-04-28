@@ -4774,6 +4774,7 @@ function srlNewTest(){
 }
 
 function srlClose(){
+  if(SRL.running&&!confirm('המבחן עדיין פועל. האם לסגור?'))return;
   if(SRL.interval){clearInterval(SRL.interval);SRL.interval=null;}
   SRL.running=false;SRL.paused=false;
   closeModal('skiprope-live-modal');
@@ -6126,13 +6127,7 @@ function renderEntered(){
     <div style="background:var(--bg2);border:1px solid var(--bd);border-radius:var(--rs);padding:14px 18px;margin-bottom:16px;display:flex;align-items:center;gap:16px;flex-wrap:wrap;">
       <div>
         <div style="font-size:11px;color:var(--ink3);font-weight:700;text-transform:uppercase;letter-spacing:.5px;">מבחנים שטרם הוזנו במערכת</div>
-        <div style="font-size:26px;font-weight:800;color:${pendingCount===0?'var(--gn)':'var(--ac)'};">${pendingCount}<span style="font-size:14px;color:var(--ink3);font-weight:400;"> / ${totalCards}</span></div>
-      </div>
-      <div style="flex:1;min-width:140px;">
-        <div style="height:8px;background:var(--bd2);border-radius:4px;overflow:hidden;">
-          <div style="height:100%;width:${pct}%;background:var(--gn);border-radius:4px;transition:width .4s;"></div>
-        </div>
-        <div style="font-size:11px;color:var(--ink3);margin-top:4px;">${pct}% הושלם</div>
+        <div style="font-size:26px;font-weight:800;color:${pendingCount===0?'var(--gn)':'var(--ac)'};">${pendingCount}</div>
       </div>
       ${undoCount>0?`<button class="btn bg2 bsm" onclick="undoLastEntered()" style="font-size:12px;">↩ בטל אחרון (${undoCount})</button>`:''}
     </div>`;
