@@ -1213,12 +1213,12 @@ history.pushState(null,'',location.href);
     </div>
   </div>
 
-  <!-- Remaining counter -->
-  <div style="background:var(--sf);border:1px solid var(--bd);border-radius:var(--r);padding:14px 18px;margin-bottom:14px;display:flex;align-items:center;gap:16px;box-shadow:var(--sh);">
-    <div>
-      <div id="fti-remaining-count" style="font-family:'DM Serif Display',serif;font-size:30px;color:var(--ac);line-height:1;">—</div>
-      <div style="font-size:10px;color:var(--ink3);margin-top:3px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;">חסרים במבחן</div>
-    </div>
+  <!-- Stats -->
+  <div class="sr">
+    <div class="sc"><div class="sv" id="s-avg">—</div><div class="sl">ממוצע</div></div>
+    <div class="sc"><div class="sv" id="s-max">—</div><div class="sl">מקסימום</div></div>
+    <div class="sc"><div class="sv" id="s-min">—</div><div class="sl">מינימום</div></div>
+    <div class="sc"><div class="sv" id="s-100">0</div><div class="sl">קיבלו 100</div></div>
   </div>
 
   <!-- Fast entry + filter + sort -->
@@ -3152,9 +3152,11 @@ function updateStats(){
     if(fin!==null)finals.push(fin);
   });
   document.getElementById('ient').textContent=entered;
-  const remaining=students.length-entered;
-  const remEl=document.getElementById('fti-remaining-count');
-  if(remEl){remEl.textContent=remaining;remEl.style.color=remaining===0?'var(--gn)':'var(--ac)';}
+  if(!finals.length){['s-avg','s-max','s-min','s-100'].forEach(id=>{const el=document.getElementById(id);if(el)el.textContent='—';});return;}
+  document.getElementById('s-avg').textContent=(finals.reduce((a,b)=>a+b,0)/finals.length).toFixed(1);
+  document.getElementById('s-max').textContent=Math.max(...finals);
+  document.getElementById('s-min').textContent=Math.min(...finals);
+  document.getElementById('s-100').textContent=finals.filter(f=>f===100).length;
 }
 function setSemester(sem){
   setCUR({semester:sem});
@@ -6888,17 +6890,23 @@ function renderCompletion(){
   });
   const cv=document.getElementById('completion-view');
   const undoCount=(window._completionUndoStack||[]).length;
-  const undoBar=undoCount>0?`<div style="margin-bottom:10px;"><button class="btn bg2 bsm" onclick="undoCompletion()" style="font-size:12px;">↩ בטל אחרון (${undoCount})</button></div>`:'';
-  if(!missing.length){
-    cv.innerHTML=undoBar+`<div style="background:var(--gnbg);border:1px solid var(--gnbd);border-radius:var(--r);padding:20px;text-align:center;color:var(--gn);font-weight:700;">✓ כל התלמידים השלימו את כל המבחנים שהתחילו!</div>`;
-    return;
-  }
   const grouped={};
   missing.forEach(m=>{
     if(!grouped[m.testId])grouped[m.testId]={label:m.testLabel,items:[]};
     grouped[m.testId].items.push(m);
   });
-  let html=undoBar+'<div style="font-size:13px;color:var(--ink2);margin-bottom:12px;">'+missing.length+' חוסרים ב-'+Object.keys(grouped).length+' מבחנים</div>';
+  const counterHtml=`<div style="background:var(--bg2);border:1px solid var(--bd);border-radius:var(--rs);padding:14px 18px;margin-bottom:16px;display:flex;align-items:center;gap:16px;flex-wrap:wrap;">
+    <div>
+      <div style="font-size:11px;color:var(--ink3);font-weight:700;text-transform:uppercase;letter-spacing:.5px;">מבחנים שטרם הושלמו</div>
+      <div style="font-size:26px;font-weight:800;color:${missing.length===0?'var(--gn)':'var(--ac)'};">${missing.length}${missing.length>0?` <span style="font-size:13px;font-weight:600;color:var(--ink3);">חוסרים ב-${Object.keys(grouped).length} מבחנים</span>`:''}</div>
+    </div>
+    ${undoCount>0?`<button class="btn bg2 bsm" onclick="undoCompletion()" style="font-size:12px;">↩ בטל אחרון (${undoCount})</button>`:''}
+  </div>`;
+  if(!missing.length){
+    cv.innerHTML=counterHtml+`<div style="background:var(--gnbg);border:1px solid var(--gnbd);border-radius:var(--r);padding:20px;text-align:center;color:var(--gn);font-weight:700;">✓ כל התלמידים השלימו את כל המבחנים שהתחילו!</div>`;
+    return;
+  }
+  let html=counterHtml;
   Object.entries(grouped).forEach(([testId,{label,items}])=>{
     html+=`<div class="card" style="margin-bottom:10px;">
       <div class="ch" style="cursor:pointer;" onclick="selectTest('${testId}')">
