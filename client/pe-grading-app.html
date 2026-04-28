@@ -1743,7 +1743,7 @@ history.pushState(null,'',location.href);
 </div>
 
 <!-- STUDENT REPORT MODAL -->
-<div class="mbg" id="student-report-modal" style="align-items:flex-start;padding:20px 16px;overflow-y:auto;"><div class="mod mod-wide" onclick="event.stopPropagation()" style="max-width:760px;width:100%;position:relative;">
+<div class="mbg" id="student-report-modal" style="align-items:flex-start;padding:56px 16px 20px;overflow-y:auto;"><div class="mod mod-wide" onclick="event.stopPropagation()" style="max-width:760px;width:100%;position:relative;">
   <button onclick="closeModal('student-report-modal')" style="position:absolute;top:10px;left:10px;background:var(--bg3);border:1.5px solid var(--bd2);color:var(--ink);border-radius:50%;width:30px;height:30px;cursor:pointer;font-size:15px;line-height:1;display:flex;align-items:center;justify-content:center;font-family:'Heebo',sans-serif;z-index:2;" title="סגור">✕</button>
   <div class="mt" id="srm-title">דוח תלמיד</div>
   <div id="srm-content" style="margin-top:12px;"></div>
@@ -4174,6 +4174,11 @@ let LT2={studentIdx:0,testId:'',gid:''};
 
 function openLiveTest2(){
   if(!CUR.gid||!S.groups[CUR.gid]){toast('פתח קבוצה תחילה');return;}
+  // Route to dedicated live test if available
+  const _liveRoutes={beep:()=>openBeepLive(),pushups_metro:()=>openMetronome(),
+    plank:()=>openTimer(),run1000:()=>openTimer(),run2000:()=>openTimer(),run3000:()=>openTimer(),
+    skiprope:()=>openSkipropeLive()};
+  if(_liveRoutes[CUR.test]){_liveRoutes[CUR.test]();return;}
   LT2.gid=CUR.gid;
   LT2.testId=CUR.test;
   LT2.studentIdx=0;
