@@ -1183,7 +1183,6 @@ history.pushState(null,'',location.href);
       <span class="ic">הוזנו: <strong id="ient">0</strong></span>
     </div>
     <div style="display:flex;gap:8px;margin-right:auto;flex-wrap:wrap;">
-      <button class="btn bs bsm" onclick="openAddModal()">+ הוסף תלמיד</button>
       <button class="btn bd2 bsm" onclick="clearAll()">🗑 נקה</button>
     </div>
   </div>
@@ -1491,7 +1490,10 @@ history.pushState(null,'',location.href);
 <div class="mbg" id="add-modal"><div class="mod" onclick="event.stopPropagation()">
   <div class="mt">הוסף תלמיד לקבוצה</div>
   <div class="ms" id="add-modal-group-label" style="color:var(--ac);font-weight:700;margin-bottom:10px;"></div>
-  <div class="fg"><label class="fl">שם תלמיד</label><input type="text" class="fi2" id="an" placeholder="שם פרטי ושם משפחה"></div>
+  <div class="fr">
+    <div class="fg"><label class="fl">שם משפחה</label><input type="text" class="fi2" id="an-last" placeholder="כהן" onkeydown="if(event.key==='Enter')document.getElementById('an-first').focus()"></div>
+    <div class="fg"><label class="fl">שם פרטי</label><input type="text" class="fi2" id="an-first" placeholder="יוסי" onkeydown="if(event.key==='Enter')addStudent()"></div>
+  </div>
   <div class="fr">
     <div class="fg"><label class="fl">מין</label><select class="fsel" id="ag"><option value="ז">ז — בן</option><option value="נ">נ — בת</option></select></div>
     <div class="fg"><label class="fl">שכבה</label>
@@ -3538,17 +3540,21 @@ function openAddModal(){
   // Detect group's grade from students
   const grades=[...new Set((g.students||[]).map(s=>s.grade))];
   const groupGrade = grades.length===1 ? grades[0] : (g.students[0]?.grade||'ט');
-  document.getElementById('an').value='';
+  document.getElementById('an-last').value='';
+  document.getElementById('an-first').value='';
   document.getElementById('ac3').value='';
   document.getElementById('agr').value=groupGrade;
   const gradeMap={'ז':'ז׳','ח':'ח׳','ט':'ט׳','י':'י׳','יא':'י"א','יב':'י"ב'};
   document.getElementById('agr-locked-label').textContent=gradeMap[groupGrade]||groupGrade;
   document.getElementById('add-modal-group-label').textContent='קבוצה: '+g.name;
   openModal('add-modal');
-  setTimeout(()=>document.getElementById('an').focus(),60);
+  setTimeout(()=>document.getElementById('an-last').focus(),60);
 }
 function addStudent(){
-  const name=document.getElementById('an').value.trim();if(!name){toast('נא להזין שם');return;}
+  const last=document.getElementById('an-last').value.trim();
+  const first=document.getElementById('an-first').value.trim();
+  const name=last&&first?`${last} ${first}`:(last||first);
+  if(!name){toast('נא להזין שם');return;}
   const gender=document.getElementById('ag').value;const grade=document.getElementById('agr').value;const cls=document.getElementById('ac3').value.trim();
   S.groups[CUR.gid].students.push({name,gender,grade,cls});
   S.groups[CUR.gid].classes=[...new Set(S.groups[CUR.gid].students.map(s=>s.grade+s.cls))].sort((a,b)=>a.localeCompare(b,'he')).join(', ');
