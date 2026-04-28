@@ -1225,7 +1225,6 @@ history.pushState(null,'',location.href);
       <button class="sort-btn on" id="sort-alpha-btn" onclick="setSort('alpha')">א-ב</button>
       <button class="sort-btn" id="sort-recent-btn" onclick="setSort('recent')">שונו לאחרונה</button>
       <button class="sort-btn" id="sort-score-btn" onclick="setSort('score')">ציון ↓↑</button>
-      <button class="sort-btn" id="sort-todo-btn" onclick="setSort('todo')">טרם ביצעו</button>
       <button class="sort-btn" onclick="showKbHelp()" title="קיצורי מקלדת" style="opacity:.5;">⌨</button>
     </div>
     <div style="font-size:12px;color:var(--ink3);" id="filter-count"></div>
@@ -1763,7 +1762,7 @@ history.pushState(null,'',location.href);
 <!-- SKIPROPE LIVE TEST MODAL -->
 <div class="mbg" id="skiprope-live-modal" style="align-items:flex-start;padding:56px 16px 20px;overflow-y:auto;"><div class="mod" onclick="event.stopPropagation()" style="max-width:420px;width:100%;position:relative;text-align:center;">
   <button onclick="srlClose()" style="position:absolute;top:10px;left:10px;background:var(--bg3);border:1.5px solid var(--bd2);color:var(--ink);border-radius:50%;width:30px;height:30px;cursor:pointer;font-size:15px;line-height:1;display:flex;align-items:center;justify-content:center;font-family:'Heebo',sans-serif;z-index:2;" title="סגור">✕</button>
-  <div class="mt" style="margin-bottom:12px;">🪢 מבחן קפיצה בדלגית</div>
+  <div class="mt" style="margin-bottom:12px;">מבחן קפיצה בדלגית</div>
   <!-- Timer -->
   <div id="srl-timer" style="font-family:'DM Serif Display',serif;font-size:72px;line-height:1;color:var(--ac);margin-bottom:4px;">1:00</div>
   <div style="font-size:11px;color:var(--ink3);margin-bottom:12px;">דקה</div>
@@ -6115,17 +6114,19 @@ function renderEntered(){
     return;
   }
 
-  // Global summary
-  const totalAll=cards.reduce((a,c)=>a+c.rows.length,0);
-  const enteredAll=cards.reduce((a,c)=>a+c.rows.filter(r=>r.d._entered).length,0);
-  const pct=totalAll?Math.round(enteredAll/totalAll*100):0;
+  // Split into pending and done cards
+  const pendingCards=cards.filter(c=>c.rows.some(r=>!r.d._entered));
+  const doneCards=cards.filter(c=>c.rows.every(r=>r.d._entered));
+  const totalCards=cards.length;
+  const pendingCount=pendingCards.length;
+  const pct=totalCards?Math.round((totalCards-pendingCount)/totalCards*100):0;
 
   const undoCount=(window._enteredUndoStack||[]).length;
   let html=`
     <div style="background:var(--bg2);border:1px solid var(--bd);border-radius:var(--rs);padding:14px 18px;margin-bottom:16px;display:flex;align-items:center;gap:16px;flex-wrap:wrap;">
       <div>
-        <div style="font-size:11px;color:var(--ink3);font-weight:700;text-transform:uppercase;letter-spacing:.5px;">סה"כ הוזן למערכת</div>
-        <div style="font-size:26px;font-weight:800;color:var(--gn);">${enteredAll}<span style="font-size:14px;color:var(--ink3);font-weight:400;"> / ${totalAll}</span></div>
+        <div style="font-size:11px;color:var(--ink3);font-weight:700;text-transform:uppercase;letter-spacing:.5px;">מבחנים שטרם הוזנו במערכת</div>
+        <div style="font-size:26px;font-weight:800;color:${pendingCount===0?'var(--gn)':'var(--ac)'};">${pendingCount}<span style="font-size:14px;color:var(--ink3);font-weight:400;"> / ${totalCards}</span></div>
       </div>
       <div style="flex:1;min-width:140px;">
         <div style="height:8px;background:var(--bd2);border-radius:4px;overflow:hidden;">
@@ -6136,15 +6137,12 @@ function renderEntered(){
       ${undoCount>0?`<button class="btn bg2 bsm" onclick="undoLastEntered()" style="font-size:12px;">↩ בטל אחרון (${undoCount})</button>`:''}
     </div>`;
 
-  // Split into pending and done cards
-  const pendingCards=cards.filter(c=>c.rows.some(r=>!r.d._entered));
-  const doneCards=cards.filter(c=>c.rows.every(r=>r.d._entered));
-
-  if(pendingCards.length){
-    html+=`<div style="font-size:11px;font-weight:800;color:var(--ac);text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px;">⏳ ממתינים להזנה (${pendingCards.reduce((a,c)=>a+c.rows.filter(r=>!r.d._entered).length,0)} ציונים)</div>`;
+  if(pendingCount===0){
+    html+=`<div style="text-align:center;padding:16px;color:var(--gn);font-weight:700;font-size:14px;margin-bottom:12px;">✅ כל הציונים הוזנו למערכת!</div>`;
+    ev.innerHTML=html;return;
   }
 
-  cards.forEach((card,cardIdx)=>{
+  pendingCards.forEach((card,cardIdx)=>{
     const {testId,testLabel,cls,rows}=card;
     const enteredRows=rows.filter(r=>r.d._entered);
     const pendingRows=rows.filter(r=>!r.d._entered);
@@ -6214,26 +6212,8 @@ function renderEntered(){
   // Store cards data for markCardEntered/unmarkCardEntered
   window._enteredCards=cards;
 
-  // Add section divider between pending and done
-  if(pendingCards.length && doneCards.length){
-    // Insert divider HTML between the two sections
-    const divider=`<div style="margin:20px 0 14px;padding:10px 0;border-top:2px solid var(--bd);display:flex;align-items:center;gap:10px;">
-      <span style="font-size:11px;font-weight:800;color:var(--gn);text-transform:uppercase;letter-spacing:.5px;">✅ הוזנו במערכת (${doneCards.reduce((a,c)=>a+c.rows.length,0)} ציונים)</span>
-    </div>`;
-    // Find position after last pending card in HTML
-    const lastPendingId='entered-card-'+(cards.indexOf(pendingCards[pendingCards.length-1]));
-    const marker=`id="${lastPendingId}"`;
-    const markerIdx=html.lastIndexOf(marker);
-    if(markerIdx>-1){
-      // Find closing </div> after this card
-      const afterCard=html.indexOf('</div>\n    </div>\n\n    ',markerIdx);
-      if(afterCard>-1){
-        const insertAt=afterCard+html.slice(afterCard).indexOf('</div>')+6;
-        html=html.slice(0,insertAt)+divider+html.slice(insertAt);
-      }
-    }
-  } else if(!pendingCards.length && doneCards.length){
-    html=`<div style="text-align:center;padding:16px;color:var(--gn);font-weight:700;font-size:14px;margin-bottom:12px;">✅ כל הציונים הוזנו במערכת!</div>`+html;
+  if(doneCards.length){
+    html+=`<div style="margin-top:8px;font-size:12px;color:var(--ink3);text-align:center;">✅ ${doneCards.length} מבחנים הוזנו במלואם</div>`;
   }
 
   ev.innerHTML=html;
