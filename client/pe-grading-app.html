@@ -1176,7 +1176,7 @@ history.pushState(null,'',location.href);
     <div style="display:flex;gap:8px;margin-right:auto;flex-wrap:wrap;">
       <button class="btn bs bsm" onclick="openAddModal()">+ הוסף תלמיד</button>
       <button class="btn bs bsm" onclick="openFreeEntryModal()">✏ הזנת ציון במלל חופשי</button>
-      <button class="btn bsm" id="timer-btn" onclick="openTimer()" style="background:#1a1510;color:#fff;">⏱ טיימר</button>
+      <button class="btn bsm" id="timer-btn" onclick="openTimer()" style="display:none;background:#1a1510;color:#fff;">⏱ טיימר</button>
       <button class="btn bsm" id="beep-live-btn" onclick="openBeepLive()" style="display:none;background:#7c3aed;color:#fff;">🏃 ביפ חי</button>
       <button class="btn bsm" id="long-run-live-btn" onclick="openLongRunLive()" style="display:none;background:#1a4e8a;color:#fff;">🏃 ריצה חי</button>
       <button class="btn bsm" id="metro-btn" onclick="openMetronome()" style="display:none;background:#2d7a5e;color:#fff;">🎵 מטרונום</button>
@@ -2650,6 +2650,8 @@ function selectTest(testId){
   if(longRunLiveBtn)longRunLiveBtn.style.display=isLongRun?'':'none';
   const metroBtn=document.getElementById('metro-btn');
   if(metroBtn)metroBtn.style.display=isMetro?'':'none';
+  const timerBtn=document.getElementById('timer-btn');
+  if(timerBtn)timerBtn.style.display=timerSupported(testId)?'':'none';
   const ftiEx=ct?`${S.groups[CUR.gid]?.students[0]?.name||'גל'} עשה X ${ct.unit.replace('-','')}`:(FTI_EXAMPLES[testId]||'');
   document.getElementById('fti').placeholder=ftiEx?`לדוגמה: "${ftiEx}"`:label;
   document.getElementById('fti-test-label').textContent=label;
@@ -4956,7 +4958,7 @@ const TMR={
   lowerBetter:false,refGrade:null,refGender:null,
   stoppedOnce:false,
 };
-const TIMER_TESTS=['plank','run60','run100','run4x10','run1000','run2000','run3000'];
+const TIMER_TESTS=['plank','run1000','run2000','run3000'];
 const TIMER_LS='sg_timer_history';
 
 function timerSupported(testId){return TIMER_TESTS.includes(testId)||(S.customTests&&S.customTests[testId]&&['שניות','שניות-','דקות-'].includes(S.customTests[testId].unit));}
