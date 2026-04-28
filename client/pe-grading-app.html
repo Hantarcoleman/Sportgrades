@@ -4233,9 +4233,9 @@ function openDistribution(){
   setTimeout(()=>{
     const ctx=document.getElementById('dist-chart').getContext('2d');
     if(window._distChart) window._distChart.destroy();
-    const isDark=window.matchMedia('(prefers-color-scheme:dark)').matches;
-    const gridColor=isDark?'rgba(255,255,255,.08)':'rgba(0,0,0,.06)';
-    const textColor=isDark?'rgba(255,255,255,.5)':'rgba(0,0,0,.45)';
+    const isDark=document.documentElement.getAttribute('data-theme')==='dark';
+    const gridColor=isDark?'rgba(255,255,255,.1)':'rgba(0,0,0,.08)';
+    const textColor=isDark?'rgba(255,255,255,.75)':'rgba(0,0,0,.65)';
 
     // Normal curve overlay (Gaussian)
     const avgN=parseFloat(avg),sdN=parseFloat(sd);
