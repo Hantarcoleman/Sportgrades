@@ -11,7 +11,7 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Heebo:wght@300;400;500;600;700;800;900&family=DM+Serif+Display:ital@0;1&display=swap');
-[data-theme="dark"]{--bg:#1a1a2e;--bg2:#16213e;--ink:#1a1510;--ink2:#94a3b8;--ink3:#64748b;--bd:rgba(255,255,255,.1);--bd2:rgba(255,255,255,.15);--abg:rgba(200,64,26,.15);--abd:rgba(200,64,26,.3);--ac:#e87c5a;--gn:#22c55e;--gnbg:rgba(34,197,94,.15);color:#e2e8f0;}
+[data-theme="dark"]{--bg:#1a1a2e;--bg2:#16213e;--ink:#e2e8f0;--ink2:#94a3b8;--ink3:#64748b;--bd:rgba(255,255,255,.1);--bd2:rgba(255,255,255,.15);--abg:rgba(200,64,26,.15);--abd:rgba(200,64,26,.3);--ac:#e87c5a;--gn:#22c55e;--gnbg:rgba(34,197,94,.15);color:#e2e8f0;}
 [data-theme="dark"] header{background:#0f0f23;}
 [data-theme="dark"] .gc{background:#16213e;}
 [data-theme="dark"] .card{background:#16213e;}
@@ -30,24 +30,13 @@
   --r:12px;--rs:8px;--rx:30px;--t:.16s ease;
 }
 *{box-sizing:border-box;margin:0;padding:0;}
-@media(prefers-color-scheme:dark){[data-theme="dark"]{--bg:#1a1a2e;--bg2:#16213e;--ink:#1a1510;--ink2:#94a3b8;--ink3:#64748b;--bd:rgba(255,255,255,.1);--bd2:rgba(255,255,255,.15);--abg:rgba(200,64,26,.15);--abd:rgba(200,64,26,.3);--ac:#e87c5a;--gn:#22c55e;--gnbg:rgba(34,197,94,.15);color:#e2e8f0;}
-[data-theme="dark"] header{background:#0f0f23;}
-[data-theme="dark"] .gc{background:#16213e;}
-[data-theme="dark"] .card{background:#16213e;}
-[data-theme="dark"] .ri{background:#1a1a2e;color:#e2e8f0;}
-:root{--bg:#faf7f2!important;--bg2:#f2ede4!important;--bg3:#e8e1d6!important;--sf:#fff!important;--bd:#ddd6ca!important;--bd2:#c8bfb0!important;--ink:#1a1510!important;--ink2:#6b5f52!important;--ink3:#a8998a!important;}body{background:#faf7f2!important;color:#1a1510!important;}}
 @media(prefers-color-scheme:dark){
-  [data-theme="dark"]{--bg:#1a1a2e;--bg2:#16213e;--ink:#1a1510;--ink2:#94a3b8;--ink3:#64748b;--bd:rgba(255,255,255,.1);--bd2:rgba(255,255,255,.15);--abg:rgba(200,64,26,.15);--abd:rgba(200,64,26,.3);--ac:#e87c5a;--gn:#22c55e;--gnbg:rgba(34,197,94,.15);color:#e2e8f0;}
-[data-theme="dark"] header{background:#0f0f23;}
-[data-theme="dark"] .gc{background:#16213e;}
-[data-theme="dark"] .card{background:#16213e;}
-[data-theme="dark"] .ri{background:#1a1a2e;color:#e2e8f0;}
-:root{
-    --bg:#faf7f2!important;--bg2:#f2ede4!important;--bg3:#e8e1d6!important;--sf:#fff!important;
-    --bd:#ddd6ca!important;--bd2:#c8bfb0!important;
-    --ink:#1a1510!important;--ink2:#6b5f52!important;--ink3:#a8998a!important;
+  html:not([data-theme="dark"]){
+    --bg:#faf7f2;--bg2:#f2ede4;--bg3:#e8e1d6;--sf:#fff;
+    --bd:#ddd6ca;--bd2:#c8bfb0;
+    --ink:#1a1510;--ink2:#6b5f52;--ink3:#a8998a;
   }
-  body{background:#faf7f2!important;color:#1a1510!important;}
+  html:not([data-theme="dark"]) body{background:#faf7f2;color:#1a1510;}
 }
 body{font-family:'Heebo',sans-serif;background:var(--bg);color:var(--ink);min-height:100vh;font-size:14px;line-height:1.6;}
 body::after{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;opacity:.5;
@@ -151,7 +140,7 @@ header{background:#1a1510;padding:0 16px 0 20px;height:58px;display:flex;align-i
 .tc{background:var(--sf);border:1px solid var(--bd);border-radius:var(--r);overflow:hidden;box-shadow:var(--sh);}
 .th{padding:13px 20px;border-bottom:1px solid var(--bd);display:flex;align-items:center;justify-content:space-between;background:var(--bg);gap:10px;flex-wrap:wrap;}
 .tt{font-family:'DM Serif Display',serif;font-size:17px;}
-.tw{overflow:auto;position:relative;overscroll-behavior-x:contain;max-height:calc(100vh - 200px);}
+.tw{overflow:auto;position:relative;overscroll-behavior-x:contain;}
 .tw thead{position:sticky;top:0;z-index:101;}
 .tw thead th{position:sticky;top:0;z-index:100;background:var(--bg2);box-shadow:0 1px 0 var(--bd);}
 .tw tbody td:first-child,.tw thead th:first-child{position:sticky;right:0;z-index:3;}
@@ -312,6 +301,9 @@ tr.highlighted td{background:rgba(200,64,26,.06)!important;transition:background
   .ri{width:64px;}.tabs{gap:4px;}.tab{padding:6px 10px;font-size:11px;}
   .bonw,.bb{display:none!important;}
   .tw table td:last-child,.tw table th:last-child{display:none!important;}
+  .th{padding:10px 8px;}
+  .th>div:last-child{flex-wrap:wrap;gap:4px;}
+  .th .btn.bsm{font-size:10px;padding:4px 7px;}
 }
 /* ── TIMER ── */
 .timer-modal-bg{position:fixed;inset:0;background:rgba(10,8,6,.95);z-index:600;display:flex;flex-direction:column;align-items:center;justify-content:flex-start;padding:20px 16px 100px;overflow-y:auto;opacity:0;pointer-events:none;transition:opacity .12s linear;}
@@ -4523,7 +4515,7 @@ function setFontSize(delta){
 
 function applyFontSize(pct, silent=false){
   _fontSize=pct;
-  document.documentElement.style.fontSize=pct+'%';
+  document.body.style.zoom=(pct/100).toString();
 }
 
 // Close a11y panel on outside click
@@ -8060,7 +8052,8 @@ function init_tm(){
 // TOURNAMENT CREATION
 // ══════════════════════════════════════════════════════════════
 function generateTeamNames(){
-  const grade = document.getElementById('nt-grade').value;
+  const gradeEl = document.querySelector('#nt-grades-wrap input:checked');
+  const grade = gradeEl ? gradeEl.value : 'ח';
   const count = parseInt(document.getElementById('nt-teams-count').value)||6;
   const grid = document.getElementById('team-names-grid');
   // Preserve existing values
@@ -8125,9 +8118,14 @@ function createTournament(){
 
   const legs = type==='league' ? (parseInt(document.getElementById('nt-legs')?.value)||1) : 1;
   const gender = document.getElementById('nt-gender')?.value||'boys';
+  const sport = document.getElementById('nt-sport')?.value||'soccer';
+  const grades = [...document.querySelectorAll('#nt-grades-wrap input:checked')].map(c=>c.value);
+  const grade = grades[0]||'ח';
   T = {
     id: Date.now(),
-    name, grade: document.getElementById('nt-grade').value,
+    name, grade,
+    grades: grades.length ? grades : [grade],
+    sport,
     gender,
     type, teams, matchTime, days,
     startDate,
@@ -8135,7 +8133,7 @@ function createTournament(){
     matches: [],
     blockedDays: [],
     scorers: {},
-    teamRosters: {}, // { teamId: ['שם1','שם2',...] }
+    teamRosters: {},
   };
 
   // Generate schedule
@@ -8275,11 +8273,16 @@ function dateStr(d){ return d.toISOString().slice(0,10); }
 // ══════════════════════════════════════════════════════════════
 function loadTournament(){
   if(!T) return;
+  if(!T.matches) T.matches=[];
+  if(!T.teams) T.teams=[];
+  if(!T.scorers) T.scorers={};
+  if(!T.blockedDays) T.blockedDays=[];
   renderHomeView(); // update home grid
   document.getElementById('hdr-tournament-name').textContent = T.name;
   const genderBadge = document.getElementById('hdr-gender-badge');
   if(genderBadge){
-    const gMap={boys:'⚽ בנים',girls:'⚽ בנות',mixed:'⚽ מעורב'};
+    const sEmoji=(typeof SPORT_EMOJI!=='undefined'&&SPORT_EMOJI[T.sport])||'⚽';
+    const gMap={boys:sEmoji+' בנים',girls:sEmoji+' בנות',mixed:sEmoji+' מעורב'};
     genderBadge.innerHTML = T.gender?`<span class="gender-badge">${gMap[T.gender]||T.gender}</span>`:'';
   }
   document.getElementById('sb-tournament-section').style.display = '';
@@ -8347,9 +8350,9 @@ function renderDashboard(){
     </div>
   `;
   // Next match
-  const next = T.matches.filter(m=>m.status==='pending').sort((a,b)=>a.date.localeCompare(b.date))[0];
+  const next = T.matches.filter(m=>m.status==='pending').sort((a,b)=>(a.date||'').localeCompare(b.date||''))[0];
   const nextBody = document.getElementById('dash-next-body');
-  if(next){
+  if(next&&nextBody){
     const h = teamById(next.home), a = teamById(next.away);
     nextBody.innerHTML = `
       <div style="display:flex;align-items:center;gap:16px;padding:8px 0;">
@@ -8363,10 +8366,10 @@ function renderDashboard(){
         <div class="match-team-crest ${a?.color||'crest-1'}">${(a?.name||'?')[0]}</div>
       </div>
       <div style="text-align:center;margin-top:10px;">
-        <button class="btn btn-primary btn-sm" onclick="openMatchModal(${next.id})">⚽ הזן תוצאה</button>
+        <button class="btn btn-primary btn-sm" onclick="openMatchModal(${next.id})">${(typeof SPORT_EMOJI!=='undefined'&&SPORT_EMOJI[T?.sport])||'⚽'} הזן תוצאה</button>
       </div>
     `;
-  } else {
+  } else if(nextBody) {
     nextBody.innerHTML = '<div style="color:var(--ink3);font-size:13px;">כל המשחקים הושלמו! 🎉</div>';
   }
   // Recent results
@@ -8885,7 +8888,8 @@ function saveSettings(){
   document.getElementById('hdr-tournament-name').textContent = T.name;
   const genderBadge = document.getElementById('hdr-gender-badge');
   if(genderBadge){
-    const gMap={boys:'⚽ בנים',girls:'⚽ בנות',mixed:'⚽ מעורב'};
+    const sEmoji=(typeof SPORT_EMOJI!=='undefined'&&SPORT_EMOJI[T.sport])||'⚽';
+    const gMap={boys:sEmoji+' בנים',girls:sEmoji+' בנות',mixed:sEmoji+' מעורב'};
     genderBadge.innerHTML = T.gender?`<span class="gender-badge">${gMap[T.gender]||T.gender}</span>`:'';
   }
   saveData(); refreshAll(); toast('✓ הגדרות נשמרו');
@@ -9073,7 +9077,9 @@ function openNewTournament(){
   if(lbl) lbl.textContent='6';
   const bar=document.getElementById('nt-teams-bar');
   if(bar) bar.style.width='27%';
-  document.getElementById('nt-grade').value='ח';
+  document.querySelectorAll('#nt-grades-wrap input').forEach(cb=>{ cb.checked = cb.value==='ח'; });
+  const ntSport=document.getElementById('nt-sport');
+  if(ntSport) ntSport.value='soccer';
   document.getElementById('nt-type').value='league';
   document.getElementById('nt-gender').value='boys';
   document.getElementById('nt-legs').value='1';
@@ -9086,8 +9092,52 @@ function openNewTournament(){
   // Clear team names grid completely — generateTeamNames will repopulate
   const grid=document.getElementById('team-names-grid');
   if(grid) grid.innerHTML='';
+  const ntNameInp=document.getElementById('nt-name');
+  if(ntNameInp) delete ntNameInp.dataset.userEdited;
   generateTeamNames();
+  updateGamesCalc();
   openModal('new-tournament-modal');
+}
+
+const SPORT_LABELS={soccer:'כדורגל',basketball:'כדורסל',volleyball:'כדורעף',handball:'כדוריד'};
+const SPORT_EMOJI={soccer:'⚽',basketball:'🏀',volleyball:'🏐',handball:'🤾'};
+
+function autoFillTournamentName(){
+  const sport=document.getElementById('nt-sport')?.value||'soccer';
+  const grades=[...document.querySelectorAll('#nt-grades-wrap input:checked')].map(c=>c.value);
+  const grade=grades[0]||'ח';
+  const gender=document.getElementById('nt-gender')?.value||'boys';
+  const {label:yr}=getCurrentAcademicYear();
+  const gMap={boys:'בנים',girls:'בנות',mixed:'מעורב'};
+  const gradeStr=grades.length>1?grades.join('+'):grade;
+  const name=`טורניר ${SPORT_LABELS[sport]||sport} ${gMap[gender]||''} שכבה ${gradeStr}׳ ${yr}`.trim();
+  const inp=document.getElementById('nt-name');
+  if(inp&&!inp.dataset.userEdited) inp.value=name;
+  const titleEl=document.getElementById('nt-modal-title');
+  if(titleEl) titleEl.textContent=(SPORT_EMOJI[sport]||'⚽')+' טורניר חדש';
+}
+
+function updateGamesCalc(){
+  const grades=[...document.querySelectorAll('#nt-grades-wrap input:checked')].map(c=>c.value);
+  const teamsCount=Number(document.getElementById('nt-teams-count')?.value)||6;
+  const legs=Number(document.getElementById('nt-legs')?.value)||1;
+  const fmt=document.getElementById('nt-multigrade-format')?.value||'separate';
+  const daysChecked=document.querySelectorAll('#nt-days input:checked').length||2;
+  let games=0;
+  if(grades.length<=1||fmt==='mixed'){
+    const n=teamsCount*(grades.length>1?grades.length:1);
+    games=n*(n-1)/2*legs;
+  } else {
+    grades.forEach(()=>{ games+=teamsCount*(teamsCount-1)/2*legs; });
+    games+=teamsCount;
+  }
+  const weeks=daysChecked>0?Math.ceil(games/daysChecked):games;
+  const el=document.getElementById('nt-calc-result');
+  if(el) el.textContent=grades.length>1?`${games} משחקים ~ ${weeks} שבועות (${daysChecked} ימי משחק בשבוע)`:'';
+  const mo=document.getElementById('nt-multigrade-opts');
+  if(mo) mo.style.display=grades.length>1?'':'none';
+  generateTeamNames();
+  autoFillTournamentName();
 }
 
 var _tm_tt;
@@ -10107,7 +10157,8 @@ function renderHomeView(){
     const pct=total?Math.round(done/total*100):0;
     const isActive=T&&T.id===t.id;
     const overdue=(t.matches||[]).filter(m=>m.status==='pending'&&m.date<today).length;
-    const gMap={boys:'⚽ בנים',girls:'⚽ בנות',mixed:'⚽ מעורב'};
+    const sEmoji=(typeof SPORT_EMOJI!=='undefined'&&SPORT_EMOJI[T.sport])||'⚽';
+    const gMap={boys:sEmoji+' בנים',girls:sEmoji+' בנות',mixed:sEmoji+' מעורב'};
     return `<div class="card" style="cursor:pointer;border-color:${isActive?'var(--ac)':'var(--bd)'};transition:border-color .2s;" onclick="switchTournament('${t.id}')">
       <div class="card-head" style="gap:8px;">
         <div class="card-title" style="flex:1;">${t.name}</div>
@@ -10582,6 +10633,11 @@ body::after{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;
 .tm-wrap .form-input {background:var(--bg3);border:1px solid var(--bd2);border-radius:var(--rs);color:var(--ink);font-family:'Heebo',sans-serif;font-size:14px;padding:9px 12px;transition:border-color var(--t);}
 .tm-wrap .form-input:focus {outline:none;border-color:var(--ac);}
 .tm-wrap .form-input::placeholder {color:var(--ink3);}
+.tm-wrap input[type="date"],.tm-wrap input[type="time"]{color-scheme:dark;}
+.tm-wrap input,.tm-wrap select,.tm-wrap textarea{color:var(--ink)!important;}
+.grade-cb{display:flex;align-items:center;gap:5px;cursor:pointer;font-size:13px;background:var(--bg3);border:1.5px solid var(--bd2);border-radius:8px;padding:5px 10px;transition:all .15s;color:var(--ink);}
+.grade-cb input{accent-color:var(--ac);}
+.grade-cb:has(input:checked){border-color:var(--ac);background:rgba(0,230,118,.1);}
 .tm-wrap select.form-input option {background:var(--bg2);color:var(--ink);}
 
 /* ── TOAST ─────────────────────────────────── */
@@ -11455,33 +11511,50 @@ body::after{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;
 <!-- ══ NEW TOURNAMENT MODAL ══ -->
 <div class="modal-bg" id="new-tournament-modal">
 <div class="modal" style="max-width:600px;">
-  <div class="modal-title">⚽ טורניר חדש</div>
+  <div class="modal-title" id="nt-modal-title">⚽ טורניר חדש</div>
   <div class="modal-sub">הגדר את פרטי הטורניר — הלוח ייוצר אוטומטית</div>
 
   <div class="form-row triple">
     <div class="form-group">
       <label class="form-label">שם הטורניר</label>
-      <input type="text" class="form-input" id="nt-name" placeholder="ליגת כיתות ח׳ — תשפ״ו">
+      <input type="text" class="form-input" id="nt-name" placeholder="ליגת כיתות ח׳ — תשפ״ו" oninput="this.dataset.userEdited='1'">
     </div>
     <div class="form-group">
-      <label class="form-label">שכבה</label>
-      <select class="form-input" id="nt-grade" onchange="generateTeamNames()">
-        <option value="ז">כיתות ז׳</option>
-        <option value="ח" selected>כיתות ח׳</option>
-        <option value="ט">כיתות ט׳</option>
-        <option value="י">כיתות י׳</option>
-        <option value="יא">כיתות י״א</option>
-        <option value="יב">כיתות י״ב</option>
+      <label class="form-label">ענף ספורט</label>
+      <select class="form-input" id="nt-sport" onchange="autoFillTournamentName()">
+        <option value="soccer">⚽ כדורגל</option>
+        <option value="basketball">🏀 כדורסל</option>
+        <option value="volleyball">🏐 כדורעף</option>
+        <option value="handball">🤾 כדוריד</option>
       </select>
     </div>
     <div class="form-group">
       <label class="form-label">מין השחקנים</label>
-      <select class="form-input" id="nt-gender">
+      <select class="form-input" id="nt-gender" onchange="autoFillTournamentName()">
         <option value="boys">בנים (ז׳)</option>
         <option value="girls">בנות (נ׳)</option>
         <option value="mixed">מעורב</option>
       </select>
     </div>
+  </div>
+  <div class="form-group" style="margin-bottom:16px;">
+    <label class="form-label">שכבה (ניתן לסמן כמה)</label>
+    <div id="nt-grades-wrap" style="display:flex;flex-wrap:wrap;gap:8px;padding:6px 0;">
+      <label class="grade-cb"><input type="checkbox" name="nt-grade" value="ז" onchange="updateGamesCalc()"> ז׳</label>
+      <label class="grade-cb"><input type="checkbox" name="nt-grade" value="ח" checked onchange="updateGamesCalc()"> ח׳</label>
+      <label class="grade-cb"><input type="checkbox" name="nt-grade" value="ט" onchange="updateGamesCalc()"> ט׳</label>
+      <label class="grade-cb"><input type="checkbox" name="nt-grade" value="י" onchange="updateGamesCalc()"> י׳</label>
+      <label class="grade-cb"><input type="checkbox" name="nt-grade" value="יא" onchange="updateGamesCalc()"> יא׳</label>
+      <label class="grade-cb"><input type="checkbox" name="nt-grade" value="יב" onchange="updateGamesCalc()"> יב׳</label>
+    </div>
+    <div id="nt-multigrade-opts" style="display:none;margin-top:10px;">
+      <label class="form-label">פורמט ליגה מרובת שכבות</label>
+      <select id="nt-multigrade-format" class="form-input" onchange="updateGamesCalc()">
+        <option value="separate">ליגות נפרדות לכל שכבה + גמר משותף</option>
+        <option value="mixed">ליגה מעורבת — כל הקבוצות ביחד</option>
+      </select>
+    </div>
+    <div id="nt-calc-result" style="font-size:12px;color:var(--ink3);padding:4px 0;margin-top:4px;"></div>
   </div>
 
   <div class="form-row triple">
@@ -11698,7 +11771,8 @@ function init(){
 // TOURNAMENT CREATION
 // ══════════════════════════════════════════════════════════════
 function generateTeamNames(){
-  const grade = document.getElementById('nt-grade').value;
+  const gradeEl = document.querySelector('#nt-grades-wrap input:checked');
+  const grade = gradeEl ? gradeEl.value : 'ח';
   const count = parseInt(document.getElementById('nt-teams-count').value)||6;
   const grid = document.getElementById('team-names-grid');
   // Preserve existing values
@@ -11763,9 +11837,16 @@ function createTournament(){
 
   const legs = type==='league' ? (parseInt(document.getElementById('nt-legs')?.value)||1) : 1;
   const gender = document.getElementById('nt-gender')?.value||'boys';
+  const sport = document.getElementById('nt-sport')?.value||'soccer';
+  const grades = [...document.querySelectorAll('#nt-grades-wrap input:checked')].map(c=>c.value);
+  const grade = grades[0]||'ח';
+  const multigradeFormat = document.getElementById('nt-multigrade-format')?.value||'separate';
   T = {
     id: Date.now(),
-    name, grade: document.getElementById('nt-grade').value,
+    name, grade,
+    grades: grades.length ? grades : [grade],
+    sport,
+    multigradeFormat,
     gender,
     type, teams, matchTime, days,
     startDate,
@@ -11773,14 +11854,14 @@ function createTournament(){
     matches: [],
     blockedDays: [],
     scorers: {},
-    teamRosters: {}, // { teamId: ['שם1','שם2',...] }
+    teamRosters: {},
   };
 
   // Generate schedule
   generateSchedule();
   saveData();
   closeModal('new-tournament-modal');
-  saveData(); // ensure saved to all-tournaments store
+  saveData();
   loadTournament();
   showView('dashboard');
   toast('✓ הטורניר נוצר! '+T.matches.length+' משחקים שובצו');
@@ -11913,11 +11994,16 @@ function dateStr(d){ return d.toISOString().slice(0,10); }
 // ══════════════════════════════════════════════════════════════
 function loadTournament(){
   if(!T) return;
+  if(!T.matches) T.matches=[];
+  if(!T.teams) T.teams=[];
+  if(!T.scorers) T.scorers={};
+  if(!T.blockedDays) T.blockedDays=[];
   renderHomeView(); // update home grid
   document.getElementById('hdr-tournament-name').textContent = T.name;
   const genderBadge = document.getElementById('hdr-gender-badge');
   if(genderBadge){
-    const gMap={boys:'⚽ בנים',girls:'⚽ בנות',mixed:'⚽ מעורב'};
+    const sEmoji=(typeof SPORT_EMOJI!=='undefined'&&SPORT_EMOJI[T.sport])||'⚽';
+    const gMap={boys:sEmoji+' בנים',girls:sEmoji+' בנות',mixed:sEmoji+' מעורב'};
     genderBadge.innerHTML = T.gender?`<span class="gender-badge">${gMap[T.gender]||T.gender}</span>`:'';
   }
   document.getElementById('sb-tournament-section').style.display = '';
@@ -11985,9 +12071,9 @@ function renderDashboard(){
     </div>
   `;
   // Next match
-  const next = T.matches.filter(m=>m.status==='pending').sort((a,b)=>a.date.localeCompare(b.date))[0];
+  const next = T.matches.filter(m=>m.status==='pending').sort((a,b)=>(a.date||'').localeCompare(b.date||''))[0];
   const nextBody = document.getElementById('dash-next-body');
-  if(next){
+  if(next&&nextBody){
     const h = teamById(next.home), a = teamById(next.away);
     nextBody.innerHTML = `
       <div style="display:flex;align-items:center;gap:16px;padding:8px 0;">
@@ -12001,10 +12087,10 @@ function renderDashboard(){
         <div class="match-team-crest ${a?.color||'crest-1'}">${(a?.name||'?')[0]}</div>
       </div>
       <div style="text-align:center;margin-top:10px;">
-        <button class="btn btn-primary btn-sm" onclick="openMatchModal(${next.id})">⚽ הזן תוצאה</button>
+        <button class="btn btn-primary btn-sm" onclick="openMatchModal(${next.id})">${(typeof SPORT_EMOJI!=='undefined'&&SPORT_EMOJI[T?.sport])||'⚽'} הזן תוצאה</button>
       </div>
     `;
-  } else {
+  } else if(nextBody) {
     nextBody.innerHTML = '<div style="color:var(--ink3);font-size:13px;">כל המשחקים הושלמו! 🎉</div>';
   }
   // Recent results
@@ -12523,7 +12609,8 @@ function saveSettings(){
   document.getElementById('hdr-tournament-name').textContent = T.name;
   const genderBadge = document.getElementById('hdr-gender-badge');
   if(genderBadge){
-    const gMap={boys:'⚽ בנים',girls:'⚽ בנות',mixed:'⚽ מעורב'};
+    const sEmoji=(typeof SPORT_EMOJI!=='undefined'&&SPORT_EMOJI[T.sport])||'⚽';
+    const gMap={boys:sEmoji+' בנים',girls:sEmoji+' בנות',mixed:sEmoji+' מעורב'};
     genderBadge.innerHTML = T.gender?`<span class="gender-badge">${gMap[T.gender]||T.gender}</span>`:'';
   }
   saveData(); refreshAll(); toast('✓ הגדרות נשמרו');
