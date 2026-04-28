@@ -147,6 +147,18 @@ header{background:#1a1510;padding:0 16px 0 20px;height:58px;display:flex;align-i
 .refm{background:rgba(26,78,138,.1);color:var(--bl);}
 .reff{background:rgba(180,50,130,.1);color:#b43282;}
 .rc{background:var(--sf);border:1px solid var(--bd2);border-radius:6px;padding:4px 11px;font-size:13px;font-weight:600;color:var(--ink2);}
+.srm-tab{padding:8px 14px;font-size:13px;font-weight:600;cursor:pointer;border:none;background:none;color:var(--ink3);border-bottom:2px solid transparent;margin-bottom:-2px;font-family:'Heebo',sans-serif;transition:color .15s;}
+.srm-tab:hover{color:var(--ink);}
+.srm-tab.act{color:var(--ac);border-bottom-color:var(--ac);}
+.srm-radar-wrap{display:flex;flex-direction:column;align-items:center;gap:14px;padding:16px 0;}
+.srm-radar-legend{display:flex;flex-wrap:wrap;gap:10px;justify-content:center;font-size:12px;}
+.srm-radar-cat{display:flex;align-items:center;gap:5px;}
+.srm-cmp-row{display:flex;align-items:center;gap:8px;padding:8px 10px;border-bottom:1px solid var(--bd2);font-size:13px;}
+.srm-cmp-row:last-child{border:none;}
+.srm-cmp-label{flex:1;font-weight:600;color:var(--ink);}
+.srm-cmp-val{font-size:12px;color:var(--ink3);min-width:60px;text-align:center;}
+.srm-cmp-score{font-weight:700;min-width:36px;text-align:center;font-size:14px;}
+.srm-cmp-arrow{font-size:14px;font-weight:800;min-width:30px;text-align:center;}
 .test-hint-row{margin-top:8px;border-top:1px solid var(--bd2);padding-top:6px;}
 .test-hint-row summary{font-size:11px;color:var(--ink3);cursor:pointer;list-style:none;display:flex;align-items:center;gap:5px;user-select:none;}
 .test-hint-row summary::-webkit-details-marker{display:none;}
@@ -591,6 +603,28 @@ tr.has-result td:first-child{border-right:3px solid var(--gn);}
 #sidebar.pinned{position:fixed;top:0;right:0;height:100vh;transform:none!important;box-shadow:-4px 0 20px rgba(0,0,0,.25);border-left:1px solid rgba(255,255,255,.08);}
 body.sb-pinned .sb-backdrop{display:none!important;}
 #sb-pin-btn.active{color:var(--ac);}
+
+/* ── CSS UTILITY CLASSES ───────────────────────────────────── */
+.text-xs{font-size:11px;}
+.text-sm{font-size:12px;}
+.text-13{font-size:13px;}
+.text-muted{color:var(--ink3);}
+.text-muted2{color:var(--ink2);}
+.text-accent{color:var(--ac);}
+.text-green{color:var(--gn);}
+.fw600{font-weight:600;}
+.fw700{font-weight:700;}
+.fw800{font-weight:800;}
+.uppercase{text-transform:uppercase;letter-spacing:.5px;}
+.flex-row{display:flex;align-items:center;gap:8px;}
+.flex-wrap{display:flex;flex-wrap:wrap;gap:8px;}
+.mt8{margin-top:8px;}
+.mt12{margin-top:12px;}
+.mt16{margin-top:16px;}
+.mb8{margin-bottom:8px;}
+.mb12{margin-bottom:12px;}
+.mb16{margin-bottom:16px;}
+.card-plain{background:var(--bg2);border:1px solid var(--bd2);border-radius:var(--rs);padding:12px 14px;}
 </style>
 
 <!-- ══ SUPABASE SYNC LAYER ══════════════════════════════════ -->
@@ -772,7 +806,18 @@ async function sbSignOut() {
 }
 
 // ── Start ────────────────────────────────────────────────────
-window.addEventListener('DOMContentLoaded', ()=>{ sbInit(); loadA11ySettings(); });
+async function loadStandards(){
+  try{
+    const r=await fetch('standards.json?v=1');
+    if(!r.ok)return;
+    const data=await r.json();
+    if(data&&typeof data==='object'&&Object.keys(data).length>0){
+      TABLES=data;
+      console.log('[SportGrade] standards.json loaded ✓');
+    }
+  }catch(e){ /* use inline fallback silently */ }
+}
+window.addEventListener('DOMContentLoaded', ()=>{ loadStandards(); sbInit(); loadA11ySettings(); });
 
 // ── Offline Detection & Queue ─────────────────────────────────
 let _offlineQueue = []; // gids waiting to sync
@@ -870,10 +915,6 @@ history.pushState(null,'',location.href);
     <div class="sb-divider"></div>
     <div class="sb-section">
       <div class="sb-section-label">כלים</div>
-      <div class="sb-item" onclick="openTournamentManager()">
-        <span class="sb-item-icon">🏆</span><span>ניהול טורנירים</span>
-      </div>
-      <div id="sb-tourn-list"></div>
       <div class="sb-item" onclick="sbOpenRecords()">
         <span class="sb-item-icon">🏆</span><span>טבלת שיאים</span>
       </div>
@@ -1772,6 +1813,7 @@ history.pushState(null,'',location.href);
 <div class="mbg" id="student-report-modal" style="align-items:flex-start;padding:56px 16px 20px;overflow-y:auto;"><div class="mod mod-wide" onclick="event.stopPropagation()" style="max-width:760px;width:100%;position:relative;">
   <button onclick="closeModal('student-report-modal')" style="position:absolute;top:10px;left:10px;background:var(--bg3);border:1.5px solid var(--bd2);color:var(--ink);border-radius:50%;width:30px;height:30px;cursor:pointer;font-size:15px;line-height:1;display:flex;align-items:center;justify-content:center;font-family:'Heebo',sans-serif;z-index:2;" title="סגור">✕</button>
   <div class="mt" id="srm-title">דוח תלמיד</div>
+  <div style="display:flex;gap:4px;margin:10px 0 0;border-bottom:2px solid var(--bd2);" id="srm-tab-nav"></div>
   <div id="srm-content" style="margin-top:12px;"></div>
   <div class="mf"><button class="btn bg2" onclick="closeModal('student-report-modal')">סגור</button></div>
 </div></div>
@@ -2079,7 +2121,7 @@ history.pushState(null,'',location.href);
 // For lower-is-better: sorted low-to-high by value.
 // Include 0 explicitly where value=0 means score=0.
 
-const TABLES = {
+const TABLES_INLINE = {
   pushups: { lb:false, ph:'15', unit:'חזרות', grades:{
     ז:{m:[[15,100],[13,90],[11,80],[9,70],[7,60]],f:[[5,100],[4,90],[3,80],[2,70],[1,60]]},
     ח:{m:[[25,100],[22,91],[19,82],[15,70],[12,60]],f:[[10,100],[8.5,93],[7,80],[5.5,73],[4,60]]},
@@ -2217,6 +2259,9 @@ const TABLES = {
   }},
 };
 
+// TABLES starts as inline fallback; loadStandards() overwrites from standards.json if available
+let TABLES = TABLES_INLINE;
+
 const TEST_LIST = [
   {id:'pushups',label:'שכיבות סמיכה חופשי',group:'strength'},
   {id:'pushups_metro',label:'שכיבות סמיכה מטרונום',group:'strength'},
@@ -2237,6 +2282,32 @@ const TEST_LIST = [
 
 let tabGroupState = { strength: true, speed: true, cardio: true, tools: false };
 function toggleTabGroup(key) { tabGroupState[key] = !tabGroupState[key]; buildTabs(); }
+
+// Plausible input ranges for anomaly detection (parsed numeric values)
+const PLAUSIBLE_RANGE = {
+  pushups:       {min:1,   max:80  },
+  pushups_metro: {min:1,   max:80  },
+  pullups:       {min:0,   max:40  },
+  crunches:      {min:1,   max:80  },
+  skiprope:      {min:5,   max:350 },
+  plank:         {min:3,   max:600 },
+  run60:         {min:6.5, max:22  },
+  run100:        {min:11,  max:38  },
+  run4x10:       {min:9,   max:28  },
+  beep:          {min:2.1, max:18  },
+  cooper:        {min:600, max:4500},
+  xtest:         {min:3,   max:35  },
+  run1000:       {min:150, max:540 },
+  run2000:       {min:330, max:1200},
+  run3000:       {min:540, max:2100},
+};
+function checkAnomalous(testId, rawVal){
+  const range=PLAUSIBLE_RANGE[testId];
+  if(!range||rawVal===''||rawVal===null||rawVal===undefined)return false;
+  const num=parseInputVal(testId,rawVal);
+  if(num===null||isNaN(num))return false;
+  return num<range.min||num>range.max;
+}
 
 // Brief how-to-conduct instructions per test (shown inline near score scale)
 const TEST_HINTS = {
@@ -3104,6 +3175,12 @@ function onFC(e){
   if(f==='bonusA'){r(i).bonusA=parseFloat(v)||0;saveState();refreshRow(i);return;}
   if(f==='a'){
     const prev=e.target.dataset.orig||'';
+    // Anomaly check — warn if value seems implausible
+    if(v!==''&&checkAnomalous(CUR.test,v)){
+      if(!confirm(`הערך "${v}" נראה לא הגיוני עבור מבחן זה.\nהאם להמשיך ולשמור?`)){
+        e.target.value=prev;r(i)[f]=prev;refreshRow(i);return;
+      }
+    }
     // If new value lowers the score compared to saved, ask for confirmation
     if(prev!==''&&v!==''&&v!==prev){
       const s=S.groups[CUR.gid]?.students[i];
@@ -3279,6 +3356,13 @@ function submitFTI(){
     } else if(matched){
       results.push(matched);
     }
+  }
+
+  // Anomaly pre-check for FTI batch
+  const anomalous=results.filter(({numStr})=>checkAnomalous(CUR.test,numStr));
+  if(anomalous.length>0){
+    const names=anomalous.map(x=>{const s=students[x.idx];return `${s?.name||'?'}: ${x.numStr}`;}).join('\n');
+    if(!confirm(`הערכים הבאים נראים לא הגיוניים:\n${names}\n\nהאם לשמור בכל זאת?`))return;
   }
 
   // Apply unambiguous results (skip if no score improvement)
@@ -7171,22 +7255,59 @@ function sortedStudents(){
   return all;
 }
 
+// Radar chart category definitions
+const RADAR_CATS=[
+  {key:'strength', label:'כוח', tests:['pushups','pushups_metro','pullups'], color:'#f97316'},
+  {key:'muscular', label:'סבולת שריר', tests:['crunches','skiprope','plank'],   color:'#8b5cf6'},
+  {key:'speed',    label:'מהירות',     tests:['run60','run100','run4x10'],       color:'#3b82f6'},
+  {key:'aerobic',  label:'סבולת אירובית', tests:['beep','cooper','xtest','run1000','run2000','run3000'], color:'#10b981'},
+];
+
+let _srmState={gid:null,idx:null,tab:0};
+
 function openStudentReport(studentIdx){
   const g=S.groups[CUR.gid];if(!g)return;
   const s=g.students[studentIdx];if(!s)return;
+  _srmState={gid:CUR.gid,idx:studentIdx,tab:0};
+  document.getElementById('srm-title').textContent=s.name;
+  _srmRenderTabs();
+  history.pushState(null,'',location.href);
+  openModal('student-report-modal');
+}
+
+function _srmRenderTabs(){
+  const tabs=[{icon:'📋',label:'ציונים'},{icon:'🕸',label:'פרופיל כושר'},{icon:'↔',label:'השוואת מחציות'}];
+  document.getElementById('srm-tab-nav').innerHTML=tabs.map((t,i)=>
+    `<button class="srm-tab${_srmState.tab===i?' act':''}" onclick="_srmSetTab(${i})">${t.icon} ${t.label}</button>`
+  ).join('');
+  _srmRenderContent();
+}
+
+function _srmSetTab(i){_srmState.tab=i;_srmRenderTabs();}
+
+function _srmRenderContent(){
+  const {gid,idx,tab}=_srmState;
+  const g=S.groups[gid];if(!g)return;
+  const s=g.students[idx];if(!s)return;
   const isFem=s.gender==='נ'||s.gender==='f';
   const allTests=[...TEST_LIST,...Object.entries(S.customTests||{}).map(([id,ct])=>({id,label:ct.name}))];
+  if(tab===0) _srmTab0(g,s,idx,isFem,allTests);
+  else if(tab===1) _srmTab1Radar(g,s,idx,isFem);
+  else _srmTab2Compare(g,s,idx,isFem,allTests);
+}
+
+function _srmTab0(g,s,idx,isFem,allTests){
   let scores=[],html='';
   html+=`<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:16px;">`;
   html+=`<div class="sc"><div class="sv" style="font-size:20px;">${s.grade}${s.cls}</div><div class="sl">כיתה</div></div>`;
   html+=`<div class="sc"><div class="sv" style="font-size:20px;">${isFem?'נ':'ז'}</div><div class="sl">מין</div></div>`;
-  const doneCount=allTests.filter(t=>{const d=g.results?.[t.id]?.[studentIdx];return d&&d.a!=='';}).length;
+  const doneCount=allTests.filter(t=>{const d=g.results?.[t.id]?.[idx];return d&&d.a!=='';}).length;
   html+=`<div class="sc"><div class="sv" style="font-size:20px;">${doneCount}</div><div class="sl">מבחנים</div></div></div>`;
   html+='<table style="width:100%;border-collapse:collapse;font-size:13px;">';
   html+='<thead><tr><th style="text-align:right;padding:7px 12px;background:var(--bg2);font-size:10px;color:var(--ink3);font-weight:800;letter-spacing:.5px;text-transform:uppercase;">מבחן</th><th style="text-align:right;padding:7px 12px;background:var(--bg2);font-size:10px;color:var(--ink3);font-weight:800;">תוצאה</th><th style="text-align:center;padding:7px 12px;background:var(--bg2);font-size:10px;color:var(--ink3);font-weight:800;">ציון</th><th style="text-align:right;padding:7px 12px;background:var(--bg2);font-size:10px;color:var(--ink3);font-weight:800;">תאריך</th></tr></thead><tbody>';
   allTests.forEach(({id,label})=>{
-    const da=g.results?.[id]?.[studentIdx];
-    const db=g.results_b?.[id]?.[studentIdx];
+    const da=g.results?.[id]?.[idx];
+    const db=g.results_b?.[id]?.[idx];
     const d=CUR.semester==='b'?(db||da):da;
     if(!d||d.a===''){
       const hasAny=Object.values(g.results?.[id]||{}).some(x=>x&&x.a!=='');
@@ -7202,128 +7323,146 @@ function openStudentReport(studentIdx){
     if(fin!==null)scores.push(fin);
     const scCls=spCls(fin);
     const dateStr=d._ts?new Date(d._ts).toLocaleDateString('he-IL',{day:'2-digit',month:'2-digit',year:'2-digit'}):'—';
-    html+=`<tr style="border-bottom:1px solid var(--bg2);">
-      <td style="padding:7px 12px;font-weight:600;">${label}</td>
-      <td style="padding:7px 12px;color:var(--ink2);">${d.a}${d.b?` / ${d.b}`:''}${d.bonusA?` +${d.bonusA}%`:''}</td>
-      <td style="padding:7px 12px;text-align:center;"><span class="sp ${scCls}">${fin!==null?fin:'—'}</span></td>
-      <td style="padding:7px 12px;font-size:11px;color:var(--ink3);">${dateStr}</td>
-    </tr>`;
+    html+=`<tr style="border-bottom:1px solid var(--bg2);"><td style="padding:7px 12px;font-weight:600;">${label}</td><td style="padding:7px 12px;color:var(--ink2);">${d.a}${d.b?` / ${d.b}`:''}${d.bonusA?` +${d.bonusA}%`:''}</td><td style="padding:7px 12px;text-align:center;"><span class="sp ${scCls}">${fin!==null?fin:'—'}</span></td><td style="padding:7px 12px;font-size:11px;color:var(--ink3);">${dateStr}</td></tr>`;
   });
   html+='</tbody></table>';
   if(scores.length){
     const avg=(scores.reduce((a,b)=>a+b,0)/scores.length).toFixed(1);
-    html+=`<div style="margin-top:14px;background:var(--abg);border:1px solid var(--abd);border-radius:var(--rs);padding:12px 16px;display:flex;align-items:center;justify-content:space-between;">
-      <span style="font-weight:700;color:var(--ink);">ממוצע כל המבחנים</span>
-      <span style="font-family:'DM Serif Display',serif;font-size:28px;color:var(--ac);">${avg}</span>
-    </div>`;
+    html+=`<div style="margin-top:14px;background:var(--abg);border:1px solid var(--abd);border-radius:var(--rs);padding:12px 16px;display:flex;align-items:center;justify-content:space-between;"><span style="font-weight:700;color:var(--ink);">ממוצע כל המבחנים</span><span style="font-family:'DM Serif Display',serif;font-size:28px;color:var(--ac);">${avg}</span></div>`;
   }
-  // Score history across all tests
   const allHistEntries=[];
   allTests.forEach(({id,label})=>{
     [0,1].forEach(semIdx=>{
       const key='results'+(semIdx?'_b':'');
-      const d=g[key]?.[id]?.[studentIdx];
+      const d=g[key]?.[id]?.[idx];
       if(d?._hist) d._hist.forEach(h=>allHistEntries.push({...h,testLabel:label,testId:id}));
     });
   });
-  // Multi-year archive history
   const archHist=getStudentArchiveHistory(s.name);
   if(archHist.length){
-    html+=`<div style="margin-top:16px;">
-      <div style="font-size:11px;font-weight:800;color:#7c3aed;text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px;">📦 היסטוריה רב-שנתית (ארכיון)</div>
-      <div style="background:rgba(124,58,237,.06);border:1px solid rgba(124,58,237,.15);border-radius:var(--rs);overflow:hidden;">
-        ${archHist.map(yr=>`
-          <div style="padding:10px 14px;border-bottom:1px solid rgba(124,58,237,.1);">
-            <div style="font-size:11px;font-weight:800;color:#7c3aed;margin-bottom:6px;">
-              שנת ${yr.yearLabel} · כיתה ${yr.grade}${yr.cls}
-            </div>
-            <div style="display:flex;flex-wrap:wrap;gap:8px;">
-              ${yr.testResults.map(t=>`
-                <div style="background:var(--bg2);border:1px solid var(--bd);border-radius:8px;padding:5px 10px;font-size:12px;">
-                  <span style="font-weight:700;color:var(--ink2);">${t.label}:</span>
-                  <span style="color:var(--ink3);margin-right:4px;">${t.val}</span>
-                  ${t.score!==null?`<span class="sp ${spCls(t.score)}" style="font-size:11px;">${t.score}</span>`:''}
-                </div>`).join('')}
-            </div>
-          </div>`).join('')}
-      </div>
-    </div>`;
+    html+=`<div style="margin-top:16px;"><div style="font-size:11px;font-weight:800;color:#7c3aed;text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px;">📦 היסטוריה רב-שנתית (ארכיון)</div><div style="background:rgba(124,58,237,.06);border:1px solid rgba(124,58,237,.15);border-radius:var(--rs);overflow:hidden;">${archHist.map(yr=>`<div style="padding:10px 14px;border-bottom:1px solid rgba(124,58,237,.1);"><div style="font-size:11px;font-weight:800;color:#7c3aed;margin-bottom:6px;">שנת ${yr.yearLabel} · כיתה ${yr.grade}${yr.cls}</div><div style="display:flex;flex-wrap:wrap;gap:8px;">${yr.testResults.map(t=>`<div style="background:var(--bg2);border:1px solid var(--bd);border-radius:8px;padding:5px 10px;font-size:12px;"><span style="font-weight:700;color:var(--ink2);">${t.label}:</span> <span style="color:var(--ink3);">${t.val}</span>${t.score!==null?` <span class="sp ${spCls(t.score)}" style="font-size:11px;">${t.score}</span>`:''}</div>`).join('')}</div></div>`).join('')}</div></div>`;
   }
-
   if(allHistEntries.length){
     allHistEntries.sort((a,b)=>b.ts-a.ts);
-    html+=`<div style="margin-top:16px;">
-      <div style="font-size:11px;font-weight:800;color:var(--ink3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px;">📋 היסטוריית שינויים (${allHistEntries.length})</div>
-      <div style="background:var(--bg2);border-radius:var(--rs);overflow:hidden;">`;
+    html+=`<div style="margin-top:16px;"><div style="font-size:11px;font-weight:800;color:var(--ink3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px;">📋 היסטוריית שינויים (${allHistEntries.length})</div><div style="background:var(--bg2);border-radius:var(--rs);overflow:hidden;">`;
     allHistEntries.slice(0,20).forEach(h=>{
       const dateStr=new Date(h.ts).toLocaleDateString('he-IL',{day:'2-digit',month:'2-digit',year:'2-digit',hour:'2-digit',minute:'2-digit'});
-      const semLabel=h.sem==='b'?'מחצית ב׳':'מחצית א׳';
-      const fldLabel=h.field==='b'?'מועד ב׳':'מועד א׳';
-      html+=`<div style="display:flex;align-items:center;gap:8px;padding:7px 12px;border-bottom:1px solid var(--bd);font-size:12px;">
-        <span style="color:var(--ink3);flex:0 0 120px;">${dateStr}</span>
-        <span style="flex:1;color:var(--ink2);">${h.testLabel} · ${semLabel} · ${fldLabel}</span>
-        <span style="font-family:monospace;background:rgba(239,68,68,.1);color:#dc2626;padding:2px 8px;border-radius:4px;font-size:11px;">${h.val}</span>
-      </div>`;
+      html+=`<div style="display:flex;align-items:center;gap:8px;padding:7px 12px;border-bottom:1px solid var(--bd);font-size:12px;"><span style="color:var(--ink3);flex:0 0 120px;">${dateStr}</span><span style="flex:1;color:var(--ink2);">${h.testLabel} · ${h.sem==='b'?'מח׳ ב׳':'מח׳ א׳'} · ${h.field==='b'?'מועד ב׳':'מועד א׳'}</span><span style="font-family:monospace;background:rgba(239,68,68,.1);color:#dc2626;padding:2px 8px;border-radius:4px;font-size:11px;">${h.val}</span></div>`;
     });
     html+='</div></div>';
   }
-  // Progress chart: scores across tests, A vs B
-  const chartData = [];
+  // Progress bar chart
+  const chartData=[];
   allTests.forEach(({id,label})=>{
-    const da=g.results?.[id]?.[studentIdx];
-    const db=g.results_b?.[id]?.[studentIdx];
+    const da=g.results?.[id]?.[idx];
+    const db=g.results_b?.[id]?.[idx];
     const sA=da?.a?getScore(id,s.grade,s.gender,da.a):null;
     const sB=db?.a?getScore(id,s.grade,s.gender,db.a):null;
     if(sA!==null||sB!==null) chartData.push({label:label.length>8?label.slice(0,8)+'…':label,sA,sB});
   });
-
   if(chartData.length>=2){
-    html+=`<div style="margin-top:16px;">
-      <div style="font-size:11px;font-weight:800;color:var(--ink3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px;">📈 גרף התקדמות</div>
-      <div style="background:var(--bg2);border-radius:var(--rs);padding:16px;position:relative;">
-        <canvas id="srm-chart" height="180"></canvas>
-      </div>
-    </div>`;
+    html+=`<div style="margin-top:16px;"><div style="font-size:11px;font-weight:800;color:var(--ink3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px;">📈 גרף התקדמות</div><div style="background:var(--bg2);border-radius:var(--rs);padding:16px;position:relative;"><canvas id="srm-chart" height="180"></canvas></div></div>`;
   }
-
-  document.getElementById('srm-title').textContent=s.name;
   document.getElementById('srm-content').innerHTML=html;
-
-  // Draw chart after DOM update
   if(chartData.length>=2){
     setTimeout(()=>{
       const ctx=document.getElementById('srm-chart')?.getContext('2d');
       if(!ctx)return;
-      // Destroy old chart if exists
       if(window._srmChart) window._srmChart.destroy();
       const isDark=document.documentElement.getAttribute('data-theme')==='dark';
       const gridColor=isDark?'rgba(255,255,255,.1)':'rgba(0,0,0,.08)';
       const textColor=isDark?'rgba(255,255,255,.75)':'rgba(0,0,0,.65)';
-      window._srmChart=new Chart(ctx,{
-        type:'bar',
-        data:{
-          labels:chartData.map(d=>d.label),
-          datasets:[
-            {label:'מחצית א׳',data:chartData.map(d=>d.sA??null),backgroundColor:'rgba(200,64,26,.8)',borderRadius:4,borderSkipped:false},
-            {label:'מחצית ב׳',data:chartData.map(d=>d.sB??null),backgroundColor:'rgba(79,128,255,.8)',borderRadius:4,borderSkipped:false},
-          ]
-        },
-        options:{
-          responsive:true,maintainAspectRatio:false,
-          plugins:{
-            legend:{labels:{color:textColor,font:{family:'Heebo',size:12},boxWidth:14,padding:12}},
-            tooltip:{rtl:true,callbacks:{label:ctx=>` ${ctx.dataset.label}: ${ctx.parsed.y}`}}
-          },
-          scales:{
-            y:{min:0,max:100,grid:{color:gridColor},ticks:{color:textColor,stepSize:20,font:{size:11}}},
-            x:{grid:{display:false},ticks:{color:textColor,font:{size:10},maxRotation:30}}
-          }
-        }
-      });
+      window._srmChart=new Chart(ctx,{type:'bar',data:{labels:chartData.map(d=>d.label),datasets:[{label:'מחצית א׳',data:chartData.map(d=>d.sA??null),backgroundColor:'rgba(200,64,26,.8)',borderRadius:4,borderSkipped:false},{label:'מחצית ב׳',data:chartData.map(d=>d.sB??null),backgroundColor:'rgba(79,128,255,.8)',borderRadius:4,borderSkipped:false}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{labels:{color:textColor,font:{family:'Heebo',size:12},boxWidth:14,padding:12}},tooltip:{rtl:true,callbacks:{label:ctx=>` ${ctx.dataset.label}: ${ctx.parsed.y}`}}},scales:{y:{min:0,max:100,grid:{color:gridColor},ticks:{color:textColor,stepSize:20,font:{size:11}}},x:{grid:{display:false},ticks:{color:textColor,font:{size:10},maxRotation:30}}}}});
     },80);
   }
-  history.pushState(null,'',location.href);
-  openModal('student-report-modal');
+}
+
+function _srmTab1Radar(g,s,idx,isFem){
+  // Compute average score per category
+  const catScores=RADAR_CATS.map(cat=>{
+    const vals=cat.tests.map(tid=>{
+      const d=g.results?.[tid]?.[idx];if(!d||d.a==='')return null;
+      const T=getTbl(tid);if(T.maleOnly&&isFem)return null;
+      const sc=getScore(tid,s.grade,s.gender,d.a);
+      return sc!==null?calcFinal(sc,d.bonusA||0,0):null;
+    }).filter(v=>v!==null);
+    return {key:cat.key,label:cat.label,color:cat.color,avg:vals.length?Math.round(vals.reduce((a,b)=>a+b,0)/vals.length):null,n:vals.length};
+  });
+  const available=catScores.filter(c=>c.avg!==null);
+  if(available.length<2){
+    document.getElementById('srm-content').innerHTML=`<div style="text-align:center;padding:40px;color:var(--ink3);">אין מספיק נתונים לפרופיל כושר.<br><span style="font-size:12px;">נדרשים לפחות 2 קטגוריות עם ציונים.</span></div>`;
+    return;
+  }
+  // Draw SVG radar
+  const N=catScores.length;
+  const cx=160,cy=160,R=110,size=320;
+  const angles=catScores.map((_,i)=>(-Math.PI/2)+(2*Math.PI*i/N));
+  const pt=(r,i)=>`${cx+r*Math.cos(angles[i])},${cy+r*Math.sin(angles[i])}`;
+  // Grid rings
+  let svg=`<svg viewBox="0 0 ${size} ${size}" width="${size}" height="${size}" style="max-width:100%;overflow:visible;">`;
+  // Background rings 20/40/60/80/100
+  [20,40,60,80,100].forEach(v=>{
+    const pts=catScores.map((_,i)=>pt(R*v/100,i)).join(' ');
+    svg+=`<polygon points="${pts}" fill="none" stroke="var(--bd2)" stroke-width="${v===100?1.5:.8}"/>`;
+    svg+=`<text x="${cx}" y="${cy-R*v/100-3}" text-anchor="middle" font-size="9" fill="var(--ink3)" font-family="Heebo">${v}</text>`;
+  });
+  // Axis lines
+  catScores.forEach((_,i)=>{svg+=`<line x1="${cx}" y1="${cy}" x2="${cx+R*Math.cos(angles[i])}" y2="${cy+R*Math.sin(angles[i])}" stroke="var(--bd2)" stroke-width=".8"/>`;});
+  // Data polygon
+  const dataPoints=catScores.map((c,i)=>pt(c.avg!==null?R*c.avg/100:0,i)).join(' ');
+  svg+=`<polygon points="${dataPoints}" fill="rgba(249,115,22,.15)" stroke="#f97316" stroke-width="2" stroke-linejoin="round"/>`;
+  // Data dots
+  catScores.forEach((c,i)=>{
+    if(c.avg===null)return;
+    const x=cx+R*c.avg/100*Math.cos(angles[i]);
+    const y=cy+R*c.avg/100*Math.sin(angles[i]);
+    svg+=`<circle cx="${x}" cy="${y}" r="5" fill="${c.color}" stroke="#fff" stroke-width="1.5"/>`;
+    svg+=`<title>${c.label}: ${c.avg}</title>`;
+  });
+  // Labels
+  catScores.forEach((c,i)=>{
+    const lx=cx+(R+22)*Math.cos(angles[i]);
+    const ly=cy+(R+22)*Math.sin(angles[i]);
+    const anchor=Math.cos(angles[i])>0.1?'start':Math.cos(angles[i])<-0.1?'end':'middle';
+    svg+=`<text x="${lx}" y="${ly+4}" text-anchor="${anchor}" font-size="11" font-weight="700" fill="${c.avg!==null?c.color:'var(--ink3)'}" font-family="Heebo">${c.label}${c.avg!==null?` (${c.avg})`:''}</text>`;
+  });
+  svg+='</svg>';
+  // Summary tiles
+  let tiles=catScores.map(c=>`<div style="background:var(--bg2);border:1px solid var(--bd2);border-radius:var(--rs);padding:10px 14px;text-align:center;flex:1;min-width:100px;"><div style="font-size:22px;font-weight:800;color:${c.avg!==null?c.color:'var(--ink3)'};">${c.avg!==null?c.avg:'—'}</div><div style="font-size:11px;color:var(--ink3);margin-top:2px;">${c.label}</div></div>`).join('');
+  document.getElementById('srm-content').innerHTML=`<div class="srm-radar-wrap"><div>${svg}</div></div><div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:4px;">${tiles}</div>`;
+}
+
+function _srmTab2Compare(g,s,idx,isFem,allTests){
+  let html='<div style="background:var(--bg2);border-radius:var(--rs);overflow:hidden;margin-top:4px;">';
+  html+=`<div class="srm-cmp-row" style="background:var(--sf);"><span class="srm-cmp-label" style="color:var(--ink3);font-size:11px;font-weight:800;text-transform:uppercase;">מבחן</span><span class="srm-cmp-val" style="color:var(--ink3);font-size:11px;">מח׳ א׳</span><span class="srm-cmp-val" style="color:var(--ink3);font-size:11px;">מח׳ ב׳</span><span class="srm-cmp-arrow" style="color:var(--ink3);font-size:11px;">שינוי</span></div>`;
+  let anyData=false;
+  allTests.forEach(({id,label})=>{
+    const da=g.results?.[id]?.[idx];
+    const db=g.results_b?.[id]?.[idx];
+    const hasA=da&&da.a!=='';
+    const hasB=db&&db.a!=='';
+    if(!hasA&&!hasB)return;
+    const T=getTbl(id);if(T.maleOnly&&isFem)return;
+    anyData=true;
+    const scA=hasA?calcFinal(getScore(id,s.grade,s.gender,da.a),da.bonusA||0,0):null;
+    const scB=hasB?calcFinal(getScore(id,s.grade,s.gender,db.a),db.bonusA||0,0):null;
+    const diff=scA!==null&&scB!==null?scB-scA:null;
+    let arrow='',arrowColor='var(--ink3)';
+    if(diff!==null){
+      if(diff>0){arrow=`+${diff}`;arrowColor='var(--gn)';}
+      else if(diff<0){arrow=`${diff}`;arrowColor='#ef4444';}
+      else{arrow='=';arrowColor='var(--ink3)';}
+    }
+    html+=`<div class="srm-cmp-row">
+      <span class="srm-cmp-label">${label}</span>
+      <span class="srm-cmp-val">${scA!==null?`<span class="sp ${spCls(scA)}" style="font-size:12px;">${scA}</span>`:'<span style="color:var(--ink3);">—</span>'}</span>
+      <span class="srm-cmp-val">${scB!==null?`<span class="sp ${spCls(scB)}" style="font-size:12px;">${scB}</span>`:'<span style="color:var(--ink3);">—</span>'}</span>
+      <span class="srm-cmp-arrow" style="color:${arrowColor};font-size:13px;">${arrow||'—'}</span>
+    </div>`;
+  });
+  html+='</div>';
+  if(!anyData) html=`<div style="text-align:center;padding:40px;color:var(--ink3);">אין נתונים משתי המחציות.</div>`;
+  document.getElementById('srm-content').innerHTML=html;
 }
 
 function exportAllExcel(){
