@@ -1175,9 +1175,6 @@ history.pushState(null,'',location.href);
     </div>
     <div style="display:flex;gap:8px;margin-right:auto;flex-wrap:wrap;">
       <button class="btn bs bsm" onclick="openAddModal()">+ הוסף תלמיד</button>
-      <button class="btn bsm" id="timer-btn" onclick="openTimer()" style="display:none;background:#1a1510;color:#fff;">⏱ טיימר</button>
-      <button class="btn bsm" id="beep-live-btn" onclick="openBeepLive()" style="display:none;background:#7c3aed;color:#fff;">🏃 ביפ חי</button>
-      <button class="btn bsm" id="long-run-live-btn" onclick="openLongRunLive()" style="display:none;background:#1a4e8a;color:#fff;">🏃 ריצה חי</button>
       <button class="btn bd2 bsm" onclick="clearAll()">🗑 נקה</button>
     </div>
   </div>
@@ -1762,7 +1759,7 @@ history.pushState(null,'',location.href);
 <!-- SKIPROPE LIVE TEST MODAL -->
 <div class="mbg" id="skiprope-live-modal" style="align-items:flex-start;padding:56px 16px 20px;overflow-y:auto;"><div class="mod" onclick="event.stopPropagation()" style="max-width:420px;width:100%;position:relative;text-align:center;">
   <button onclick="srlClose()" style="position:absolute;top:10px;left:10px;background:var(--bg3);border:1.5px solid var(--bd2);color:var(--ink);border-radius:50%;width:30px;height:30px;cursor:pointer;font-size:15px;line-height:1;display:flex;align-items:center;justify-content:center;font-family:'Heebo',sans-serif;z-index:2;" title="סגור">✕</button>
-  <div class="mt" style="margin-bottom:12px;">מבחן קפיצה בדלגית</div>
+  <div class="mt" id="srl-title" style="margin-bottom:12px;">מבחן קפיצה בדלגית</div>
   <!-- Timer -->
   <div id="srl-timer" style="font-family:'DM Serif Display',serif;font-size:72px;line-height:1;color:var(--ac);margin-bottom:4px;">1:00</div>
   <div style="font-size:11px;color:var(--ink3);margin-bottom:12px;">דקה</div>
@@ -1813,19 +1810,18 @@ history.pushState(null,'',location.href);
   <!-- Timer — SS.cc format -->
   <div id="sp-timer" style="font-family:'DM Serif Display',serif;font-size:76px;line-height:1;color:var(--ac);letter-spacing:2px;margin-bottom:4px;">00.00</div>
   <div style="font-size:11px;color:var(--ink3);margin-bottom:10px;">שניות</div>
-  <!-- Split counter -->
-  <div id="sp-split-count" style="font-size:14px;font-weight:700;color:var(--ink2);min-height:22px;margin-bottom:14px;"></div>
-  <!-- Big split button -->
+  <!-- Split counter + last split time -->
+  <div id="sp-split-count" style="font-size:14px;font-weight:700;color:var(--ink2);min-height:22px;margin-bottom:4px;"></div>
+  <div id="sp-last-split" style="font-size:26px;font-weight:800;color:var(--ac);min-height:36px;margin-bottom:10px;letter-spacing:1px;"></div>
+  <!-- Big button — start before test, split during test -->
   <button id="sp-split-btn"
-    ontouchstart="event.preventDefault();spSplit();"
-    onclick="spSplit()"
-    disabled
-    style="width:188px;height:188px;border-radius:50%;background:var(--ac);color:#fff;font-size:18px;font-weight:800;border:none;cursor:pointer;box-shadow:0 8px 32px rgba(234,88,12,.35);margin:0 auto 18px;display:block;transition:transform .06s,opacity .12s;opacity:.35;font-family:'Heebo',sans-serif;line-height:1.5;touch-action:manipulation;user-select:none;">
-    ✦ פיצול<br><span style="font-size:14px;font-weight:600;">נבחן הגיע</span>
+    ontouchstart="event.preventDefault();spMainBtn();"
+    onclick="spMainBtn()"
+    style="width:188px;height:188px;border-radius:50%;background:var(--ac);color:#fff;font-size:18px;font-weight:800;border:none;cursor:pointer;box-shadow:0 8px 32px rgba(234,88,12,.35);margin:0 auto 18px;display:block;transition:transform .06s,opacity .12s;font-family:'Heebo',sans-serif;line-height:1.5;touch-action:manipulation;user-select:none;">
+    ▶<br><span style="font-size:14px;font-weight:600;">התחל מבחן</span>
   </button>
   <!-- Controls row -->
   <div style="display:flex;gap:8px;justify-content:center;margin-bottom:14px;">
-    <button id="sp-start-btn" class="btn bp" style="padding:12px 24px;font-size:15px;font-weight:800;" onclick="spStart()">▶ התחל מבחן</button>
     <button id="sp-finish-btn" class="btn bg2 bsm" onclick="spFinish()" style="display:none;">⏹ סיום מבחן</button>
     <button id="sp-new-btn" class="btn bg2 bsm" onclick="spNew()" style="display:none;">🔄 מבחן חדש</button>
   </div>
@@ -2731,17 +2727,9 @@ function selectTest(testId){
   document.getElementById('pbtn').style.display=T.isPaste?'':'none';
   if(!T.isPaste)document.getElementById('ppc').style.display='none';
   document.getElementById('edit-custom-btn').style.display=ct?'':'none';
-  const beepLiveBtn=document.getElementById('beep-live-btn');
-  const longRunLiveBtn=document.getElementById('long-run-live-btn');
-  const isBeep=testId==='beep';
-  const isLongRun=['run1000','run2000','run3000'].includes(testId);
   const isMetro=testId==='pushups_metro';
-  if(beepLiveBtn)beepLiveBtn.style.display=isBeep?'':'none';
-  if(longRunLiveBtn)longRunLiveBtn.style.display=isLongRun?'':'none';
   const metroBtn=document.getElementById('metro-btn');
   if(metroBtn)metroBtn.style.display=isMetro?'':'none';
-  const timerBtn=document.getElementById('timer-btn');
-  if(timerBtn)timerBtn.style.display=timerSupported(testId)?'':'none';
   const ftiEx=ct?`${S.groups[CUR.gid]?.students[0]?.name||'גל'} עשה X ${ct.unit.replace('-','')}`:(FTI_EXAMPLES[testId]||'');
   document.getElementById('fti').placeholder=ftiEx?`לדוגמה: "${ftiEx}"`:label;
   document.getElementById('fti-test-label').textContent=label;
@@ -4267,9 +4255,9 @@ function openLiveTest2(){
   if(!CUR.gid||!S.groups[CUR.gid]){toast('פתח קבוצה תחילה');return;}
   // Route to dedicated live test if available
   const _liveRoutes={beep:()=>openBeepLive(),pushups_metro:()=>openMetronome(),
-    plank:()=>openTimer(),run1000:()=>openTimer(),run2000:()=>openTimer(),run3000:()=>openTimer(),
+    plank:()=>openTimer(),run1000:()=>openLongRunLive(),run2000:()=>openLongRunLive(),run3000:()=>openLongRunLive(),
     skiprope:()=>openSkipropeLive(),
-    pushups:()=>openStrengthLive('pushups'),pullups:()=>openStrengthLive('pullups'),crunches:()=>openStrengthLive('crunches'),
+    pushups:()=>openStrengthLive('pushups'),pullups:()=>openStrengthLive('pullups'),crunches:()=>openSkipropeLive('crunches'),
     run60:()=>openSprintLive('run60'),run100:()=>openSprintLive('run100'),run4x10:()=>openSprintLive('run4x10')};
   if(_liveRoutes[CUR.test]){_liveRoutes[CUR.test]();return;}
   LT2.gid=CUR.gid;
@@ -4715,15 +4703,22 @@ function openRunAnalytics(){
 }
 
 // ── SKIPROPE LIVE TEST ────────────────────────────────────────
-let SRL={gid:null,testId:'skiprope',count:0,running:false,paused:false,interval:null,timeLeft:60,lastSavedIdx:-1,lastSavedName:''};
+let SRL={gid:null,testId:'skiprope',count:0,running:false,paused:false,interval:null,timeLeft:60,lastSavedIdx:-1,lastSavedName:'',tapLabel:'קפיצה מוצלחת',unit:'קפיצות',emoji:'🪢'};
 
-function openSkipropeLive(){
+const _SRL_CONFIG={
+  skiprope:{title:'מבחן קפיצה בדלגית',emoji:'🪢',tapLabel:'קפיצה מוצלחת',unit:'קפיצות'},
+  crunches:{title:'מבחן כפיפות בטן',emoji:'💪',tapLabel:'כפיפה מוצלחת',unit:'כפיפות'},
+};
+function openSkipropeLive(testId='skiprope'){
+  const cfg=_SRL_CONFIG[testId]||_SRL_CONFIG.skiprope;
   const gid=CUR.gid;
-  SRL.gid=gid;
+  SRL.gid=gid;SRL.testId=testId;
+  SRL.tapLabel=cfg.tapLabel;SRL.unit=cfg.unit;SRL.emoji=cfg.emoji;
   SRL.count=0;SRL.running=false;SRL.paused=false;SRL.timeLeft=60;
   SRL.lastSavedIdx=-1;SRL.lastSavedName='';
   if(SRL.interval){clearInterval(SRL.interval);SRL.interval=null;}
-  // Populate autocomplete datalist from group students
+  const titleEl=document.getElementById('srl-title');
+  if(titleEl)titleEl.textContent=cfg.title;
   const g=S.groups[gid];
   const dl=document.getElementById('srl-names-list');
   if(dl)dl.innerHTML=g?g.students.map(s=>`<option value="${s.name}">`).join(''):'';
@@ -4737,7 +4732,7 @@ function srlReset(){
   document.getElementById('srl-timer').textContent='1:00';
   document.getElementById('srl-count').textContent='0';
   const btn=document.getElementById('srl-tap-btn');
-  btn.innerHTML='🪢<br>התחל מבחן';btn.style.opacity='1';btn.disabled=false;
+  btn.innerHTML=`${SRL.emoji}<br>התחל מבחן`;btn.style.opacity='1';btn.disabled=false;
   document.getElementById('srl-controls').style.display='none';
   document.getElementById('srl-finish-row').style.display='none';
   document.getElementById('srl-saved-row').style.display='none';
@@ -4752,7 +4747,7 @@ function srlTap(){
     SRL.running=true;SRL.count=1;SRL.timeLeft=60;
     document.getElementById('srl-count').textContent=SRL.count;
     const btn=document.getElementById('srl-tap-btn');
-    btn.innerHTML='+1<br>קפיצה מוצלחת';
+    btn.innerHTML=`+1<br>${SRL.tapLabel}`;
     document.getElementById('srl-controls').style.display='flex';
     document.getElementById('srl-stop-btn').innerHTML='⏸ עצור';
     SRL.interval=setInterval(srlTick,1000);
@@ -4775,7 +4770,7 @@ function srlTogglePause(){
   } else if(SRL.paused){
     SRL.running=true;SRL.paused=false;
     document.getElementById('srl-stop-btn').innerHTML='⏸ עצור';
-    document.getElementById('srl-tap-btn').innerHTML='+1<br>קפיצה מוצלחת';
+    document.getElementById('srl-tap-btn').innerHTML=`+1<br>${SRL.tapLabel}`;
     SRL.interval=setInterval(srlTick,1000);
   }
 }
@@ -4804,7 +4799,7 @@ function srlSave(){
   if(!name){toast('נא להזין שם תלמיד');document.getElementById('srl-student-name')?.focus();return;}
   const g=S.groups[SRL.gid];
   SRL.lastSavedIdx=-1;SRL.lastSavedName=name;
-  let msg=`✓ ${name} — ${SRL.count} קפיצות`;
+  let msg=`✓ ${name} — ${SRL.count} ${SRL.unit}`;
   if(g){
     const nl=name.trim().toLowerCase();
     const idx=g.students.findIndex(s=>s.name.trim().toLowerCase()===nl);
@@ -4815,12 +4810,12 @@ function srlSave(){
     const sExist=existing?.a!==undefined&&existing.a!==''?getScore(SRL.testId,s.grade,s.gender,existing.a):null;
     const sNew=getScore(SRL.testId,s.grade,s.gender,String(SRL.count));
     if(sExist!==null&&sNew!==null&&sExist>=sNew){
-      msg=`⚠ ${SRL.lastSavedName} — הציון הקיים (${existing.a} קפיצות) גבוה יותר, לא הוחלף`;
+      msg=`⚠ ${SRL.lastSavedName} — הציון הקיים (${existing.a} ${SRL.unit}) גבוה יותר, לא הוחלף`;
     } else {
       writeResult(SRL.gid,SRL.testId,idx,String(SRL.count),'a');
       saveState();
       if(CUR.gid===SRL.gid&&CUR.test===SRL.testId)renderTable();
-      msg=`✓ ${SRL.lastSavedName} — ${SRL.count} קפיצות`;
+      msg=`✓ ${SRL.lastSavedName} — ${SRL.count} ${SRL.unit}`;
     }
   }
   document.getElementById('srl-finish-row').style.display='none';
@@ -4849,10 +4844,10 @@ function srlSaveEdit(){
     }
   }
   const name=g?.students[SRL.lastSavedIdx]?.name||SRL.lastSavedName;
-  const msg=`✓ ${name} — ${newCount} קפיצות`;
+  const msg=`✓ ${name} — ${newCount} ${SRL.unit}`;
   document.getElementById('srl-saved-msg').textContent=msg;
   document.getElementById('srl-edit-row').style.display='none';
-  toast(`עודכן: ${newCount} קפיצות`);
+  toast(`עודכן: ${newCount} ${SRL.unit}`);
 }
 
 function srlNewTest(){
@@ -4993,9 +4988,10 @@ function openSprintLive(testId){
 function spRenderReset(){
   document.getElementById('sp-timer').textContent='00.00';
   document.getElementById('sp-split-count').textContent='';
+  document.getElementById('sp-last-split').textContent='';
   const sb=document.getElementById('sp-split-btn');
-  sb.disabled=true;sb.style.opacity='.35';
-  document.getElementById('sp-start-btn').style.display='';
+  sb.disabled=false;sb.style.opacity='1';
+  sb.innerHTML='▶<br><span style="font-size:14px;font-weight:600;">התחל מבחן</span>';
   document.getElementById('sp-finish-btn').style.display='none';
   document.getElementById('sp-new-btn').style.display='none';
   document.getElementById('sp-results').style.display='none';
@@ -5003,15 +4999,19 @@ function spRenderReset(){
   document.getElementById('sp-save-row').style.display='none';
 }
 
+function spMainBtn(){
+  if(!SR.running){ spStart(); } else { spSplit(); }
+}
+
 function spStart(){
   SR.running=true;
   SR.startTime=performance.now();
   SR.splits=[];
-  document.getElementById('sp-start-btn').style.display='none';
   document.getElementById('sp-finish-btn').style.display='';
   document.getElementById('sp-split-count').textContent='0 מסיימים';
+  document.getElementById('sp-last-split').textContent='';
   const sb=document.getElementById('sp-split-btn');
-  sb.disabled=false;sb.style.opacity='1';
+  sb.innerHTML='✦ פיצול<br><span style="font-size:14px;font-weight:600;">נבחן הגיע</span>';
   spTick();
 }
 
@@ -5028,8 +5028,9 @@ function spSplit(){
   if(!SR.running)return;
   const rawMs=performance.now()-SR.startTime;
   SR.splits.push({rawMs,name:''});
-  // Minimal DOM update for max responsiveness
+  const secs=(rawMs/1000).toFixed(2);
   document.getElementById('sp-split-count').textContent=SR.splits.length+' מסיימים';
+  document.getElementById('sp-last-split').textContent='#'+SR.splits.length+' — '+secs+' שנ׳';
   const btn=document.getElementById('sp-split-btn');
   btn.style.transform='scale(1.09)';
   setTimeout(()=>btn.style.transform='',70);
@@ -6459,7 +6460,6 @@ function selectEntered(){
   document.getElementById('entered-view').style.display='block';
   document.getElementById('completion-view').style.display='none';
   document.getElementById('main-table-wrap').style.display='none';
-  document.getElementById('beep-live-btn').style.display='none';
   document.getElementById('edit-custom-btn').style.display='none';
   document.getElementById('pbtn').style.display='none';
   const semLabel=CUR.semester==='b'?'מחצית ב׳':'מחצית א׳';
@@ -6676,7 +6676,6 @@ function selectCompletion(){
   document.getElementById('completion-view').style.display='block';
   document.getElementById('entered-view')&&(document.getElementById('entered-view').style.display='none');
   document.getElementById('main-table-wrap').style.display='none';
-  document.getElementById('beep-live-btn').style.display='none';
   document.getElementById('edit-custom-btn').style.display='none';
   document.getElementById('pbtn').style.display='none';
   const semLabel=CUR.semester==='b'?'מחצית ב׳':'מחצית א׳';
