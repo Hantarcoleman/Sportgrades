@@ -1248,7 +1248,7 @@ history.pushState(null,'',location.href);
         <button class="btn bs bsm" onclick="openDistribution()" title="התפלגות ציונים" style="background:rgba(79,128,255,.1);border-color:rgba(79,128,255,.3);color:#4f80ff;">📊 התפלגות</button>
         <button class="btn bs bsm" id="run-analytics-btn" onclick="openRunAnalytics()" title="ניתוח אירובי מתקדם" style="display:none;background:rgba(34,197,94,.1);border-color:rgba(34,197,94,.3);color:#16a34a;">📈 ניתוח</button>
         <button class="btn bs bsm" onclick="markAllCurrentTestEntered()" title="סמן את כל הציונים שהוזנו כתועדו במערכת בי"ס" style="background:rgba(21,128,61,.1);border-color:rgba(21,128,61,.3);color:#15803d;">✓ הכל הוזן למערכת</button>
-        <button class="btn bs bsm" onclick="openLiveTest2()" title="מבחן חי 2" style="background:rgba(16,185,129,.1);border-color:rgba(16,185,129,.3);color:#059669;">⚡ מבחן חי</button>
+        <button class="btn bs bsm" id="live-test-btn" onclick="openLiveTest2()" title="מבחן חי 2" style="background:rgba(16,185,129,.1);border-color:rgba(16,185,129,.3);color:#059669;">⚡ מבחן חי</button>
         <div style="position:relative;display:inline-block;">
           <button class="btn bs bsm" id="btn-cols" onclick="openColsMenu(event)" title="הצג/הסתר עמודות">☰ עמודות</button>
         </div>
@@ -1760,7 +1760,7 @@ history.pushState(null,'',location.href);
 </div></div>
 
 <!-- RUN ANALYTICS MODAL -->
-<div class="mbg" id="run-analytics-modal" style="align-items:flex-start;padding:20px 16px;overflow-y:auto;"><div class="mod mod-wide" onclick="event.stopPropagation()" style="max-width:700px;width:100%;position:relative;">
+<div class="mbg" id="run-analytics-modal" style="align-items:flex-start;padding:56px 16px 20px;overflow-y:auto;"><div class="mod mod-wide" onclick="event.stopPropagation()" style="max-width:700px;width:100%;position:relative;">
   <button onclick="closeModal('run-analytics-modal')" style="position:absolute;top:10px;left:10px;background:var(--bg3);border:1.5px solid var(--bd2);color:var(--ink);border-radius:50%;width:30px;height:30px;cursor:pointer;font-size:15px;line-height:1;display:flex;align-items:center;justify-content:center;font-family:'Heebo',sans-serif;z-index:2;" title="סגור">✕</button>
   <div id="ran-content"></div>
 </div></div>
@@ -1788,7 +1788,7 @@ history.pushState(null,'',location.href);
     <div style="font-size:11px;color:var(--ink3);text-align:center;margin-bottom:14px;">קפיצות</div>
     <input id="srl-student-name" type="text" list="srl-names-list" placeholder="שם התלמיד" autocomplete="off"
       style="width:100%;padding:10px 12px;font-size:15px;font-family:'Heebo',sans-serif;border:1.5px solid var(--bd2);border-radius:var(--rs);background:var(--sf);color:var(--ink);margin-bottom:10px;box-sizing:border-box;direction:rtl;"
-      onkeydown="if(event.key==='Enter')srlSave()" />
+      onkeydown="if(event.key==='Enter'){_acFirst(this,'srl-names-list');srlSave();}" />
     <datalist id="srl-names-list"></datalist>
     <button class="btn bgn" style="width:100%;padding:12px;font-size:15px;font-weight:800;" onclick="srlSave()">✓ שמור</button>
   </div>
@@ -1867,7 +1867,7 @@ history.pushState(null,'',location.href);
     <div id="str-finish-label" style="font-size:11px;color:var(--ink3);text-align:center;margin-bottom:14px;">חזרות</div>
     <input id="str-finish-name" type="text" list="str-names-list" placeholder="שם הנבחן" autocomplete="off"
       style="width:100%;padding:10px 12px;font-size:15px;font-family:'Heebo',sans-serif;border:1.5px solid var(--bd2);border-radius:var(--rs);background:var(--sf);color:var(--ink);margin-bottom:10px;box-sizing:border-box;direction:rtl;"
-      onkeydown="if(event.key==='Enter')strSave()" />
+      onkeydown="if(event.key==='Enter'){_acFirst(this,'str-names-list');strSave();}" />
     <button class="btn bgn" style="width:100%;padding:12px;font-size:15px;font-weight:800;" onclick="strSave()">✓ שמור</button>
   </div>
   <!-- Saved row -->
@@ -1934,7 +1934,7 @@ history.pushState(null,'',location.href);
 </div>
 
 <!-- ══ DISTRIBUTION MODAL ══ -->
-<div class="mbg" id="dist-modal" style="align-items:flex-start;padding:20px 16px;overflow-y:auto;">
+<div class="mbg" id="dist-modal" style="align-items:flex-start;padding:56px 16px 20px;overflow-y:auto;">
   <div class="mod mod-wide" onclick="event.stopPropagation()" style="max-width:720px;width:100%;">
     <div class="mt" id="dist-title">התפלגות ציונים</div>
     <div id="dist-stats" style="font-size:12px;color:var(--ink3);margin-bottom:14px;display:flex;gap:16px;flex-wrap:wrap;"></div>
@@ -2755,6 +2755,8 @@ function selectTest(testId){
   document.getElementById('pbtn').style.display=T.isPaste?'':'none';
   if(!T.isPaste)document.getElementById('ppc').style.display='none';
   document.getElementById('edit-custom-btn').style.display=ct?'':'none';
+  const liveBtn=document.getElementById('live-test-btn');
+  if(liveBtn) liveBtn.style.display=testId==='cooper'?'none':'';
   const isMetro=testId==='pushups_metro';
   const metroBtn=document.getElementById('metro-btn');
   if(metroBtn)metroBtn.style.display=isMetro?'':'none';
@@ -4279,6 +4281,12 @@ function checkWeeklyReminder(){
 // ── LIVE TEST 2 MODE ───────────────────────────────────────────
 let LT2={studentIdx:0,testId:'',gid:''};
 
+function _acFirst(el,listId){
+  const v=el.value.trim().toLowerCase();if(!v)return;
+  const opts=document.getElementById(listId)?.options;if(!opts)return;
+  for(let i=0;i<opts.length;i++){if(opts[i].value.toLowerCase().startsWith(v)){el.value=opts[i].value;return;}}
+}
+
 function openLiveTest2(){
   if(!CUR.gid||!S.groups[CUR.gid]){toast('פתח קבוצה תחילה');return;}
   // Route to dedicated live test if available
@@ -4744,12 +4752,10 @@ function _buildGroupAnalytics(testId){
   const avgVO2=studentRows.reduce((s,r)=>s+r.vo2,0)/studentRows.length;
   const maxVO2=studentRows[0].vo2;
   const minVO2=studentRows[studentRows.length-1].vo2;
-  const mets=avgVO2/3.5;
   let html=`<div class="mt" style="padding-left:36px;margin-bottom:12px;">📈 ניתוח אירובי — ${testLabel}</div>
-    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:16px;">
+    <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-bottom:16px;">
       <div class="sc"><div class="sv">${avgVO2.toFixed(1)}</div><div class="sl">VO₂max ממוצע</div></div>
       <div class="sc"><div class="sv">${maxVO2.toFixed(1)}</div><div class="sl">VO₂max מקס׳</div></div>
-      <div class="sc"><div class="sv">${mets.toFixed(1)}</div><div class="sl">METs ממוצע</div></div>
     </div>
     <div style="font-size:11px;font-weight:800;color:var(--ink3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px;">טבלה אישית (${studentRows.length} תלמידים)</div>
     <div style="overflow-x:auto;"><table style="width:100%;border-collapse:collapse;font-size:12px;">
@@ -5117,7 +5123,7 @@ function spSplit(){
   }
   const row=document.createElement('div');
   row.style.cssText='display:flex;align-items:center;gap:8px;margin-bottom:8px;';
-  row.innerHTML=`<div style="font-size:17px;font-weight:800;color:var(--ac);font-family:'DM Serif Display',serif;min-width:62px;">${timeStr}</div><input type="text" list="sp-names-list" id="sp-name-${i}" value="" placeholder="שם נבחן ${i+1}" autocomplete="off" oninput="SR.splits[${i}].name=this.value.trim()" onkeydown="if(event.key==='Enter'){SR.splits[${i}].name=this.value.trim();const nx=document.getElementById('sp-name-${i+1}');if(nx)nx.focus();else spSaveAll();}" style="flex:1;padding:8px 10px;font-size:14px;font-family:'Heebo',sans-serif;border:1.5px solid var(--bd2);border-radius:var(--rs);background:var(--sf);color:var(--ink);direction:rtl;box-sizing:border-box;">`;
+  row.innerHTML=`<div style="font-size:17px;font-weight:800;color:var(--ac);font-family:'DM Serif Display',serif;min-width:62px;">${timeStr}</div><input type="text" list="sp-names-list" id="sp-name-${i}" value="" placeholder="שם נבחן ${i+1}" autocomplete="off" oninput="SR.splits[${i}].name=this.value.trim()" onkeydown="if(event.key==='Enter'){_acFirst(this,'sp-names-list');SR.splits[${i}].name=this.value.trim();const nx=document.getElementById('sp-name-${i+1}');if(nx)nx.focus();else spSaveAll();}" style="flex:1;padding:8px 10px;font-size:14px;font-family:'Heebo',sans-serif;border:1.5px solid var(--bd2);border-radius:var(--rs);background:var(--sf);color:var(--ink);direction:rtl;box-sizing:border-box;">`;
   el.appendChild(row);
   document.getElementById('sp-split-count').textContent=SR.splits.length+' מסיימים';
   document.getElementById('sp-last-split').textContent='#'+SR.splits.length+' — '+timeStr+' שנ׳';
