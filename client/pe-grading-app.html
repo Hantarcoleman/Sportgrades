@@ -1806,6 +1806,41 @@ history.pushState(null,'',location.href);
   </div>
 </div></div>
 
+<!-- ══ SPRINT LIVE TEST MODAL (60/100/4x10) ══ -->
+<div class="mbg" id="sprint-live-modal" style="align-items:flex-start;padding:56px 16px 20px;overflow-y:auto;"><div class="mod" onclick="event.stopPropagation()" style="max-width:440px;width:100%;position:relative;text-align:center;">
+  <button onclick="spClose()" style="position:absolute;top:10px;left:10px;background:var(--bg3);border:1.5px solid var(--bd2);color:var(--ink);border-radius:50%;width:30px;height:30px;cursor:pointer;font-size:15px;line-height:1;display:flex;align-items:center;justify-content:center;font-family:'Heebo',sans-serif;z-index:2;">✕</button>
+  <div class="mt" id="sp-title" style="margin-bottom:10px;">ריצה קצרה</div>
+  <!-- Timer — SS.cc format -->
+  <div id="sp-timer" style="font-family:'DM Serif Display',serif;font-size:76px;line-height:1;color:var(--ac);letter-spacing:2px;margin-bottom:4px;">00.00</div>
+  <div style="font-size:11px;color:var(--ink3);margin-bottom:10px;">שניות</div>
+  <!-- Split counter -->
+  <div id="sp-split-count" style="font-size:14px;font-weight:700;color:var(--ink2);min-height:22px;margin-bottom:14px;"></div>
+  <!-- Big split button -->
+  <button id="sp-split-btn"
+    ontouchstart="event.preventDefault();spSplit();"
+    onclick="spSplit()"
+    disabled
+    style="width:188px;height:188px;border-radius:50%;background:var(--ac);color:#fff;font-size:18px;font-weight:800;border:none;cursor:pointer;box-shadow:0 8px 32px rgba(234,88,12,.35);margin:0 auto 18px;display:block;transition:transform .06s,opacity .12s;opacity:.35;font-family:'Heebo',sans-serif;line-height:1.5;touch-action:manipulation;user-select:none;">
+    ✦ פיצול<br><span style="font-size:14px;font-weight:600;">נבחן הגיע</span>
+  </button>
+  <!-- Controls row -->
+  <div style="display:flex;gap:8px;justify-content:center;margin-bottom:14px;">
+    <button id="sp-start-btn" class="btn bp" style="padding:12px 24px;font-size:15px;font-weight:800;" onclick="spStart()">▶ התחל מבחן</button>
+    <button id="sp-finish-btn" class="btn bg2 bsm" onclick="spFinish()" style="display:none;">⏹ סיום מבחן</button>
+    <button id="sp-new-btn" class="btn bg2 bsm" onclick="spNew()" style="display:none;">🔄 מבחן חדש</button>
+  </div>
+  <datalist id="sp-names-list"></datalist>
+  <!-- Results — shown after finish -->
+  <div id="sp-results" style="display:none;text-align:right;margin-bottom:12px;"></div>
+  <!-- Save button -->
+  <div id="sp-save-row" style="display:none;margin-bottom:12px;">
+    <button class="btn bgn" style="width:100%;padding:12px;font-size:15px;font-weight:800;" onclick="spSaveAll()">✓ שמור הכל</button>
+  </div>
+  <div style="display:flex;justify-content:center;">
+    <button class="btn bg2 bsm" onclick="spClose()">סגור</button>
+  </div>
+</div></div>
+
 <!-- ══ STRENGTH LIVE TEST MODAL ══ -->
 <div class="mbg" id="strength-live-modal" style="align-items:flex-start;padding:56px 16px 20px;overflow-y:auto;"><div class="mod" onclick="event.stopPropagation()" style="max-width:420px;width:100%;position:relative;text-align:center;">
   <button onclick="strClose()" style="position:absolute;top:10px;left:10px;background:var(--bg3);border:1.5px solid var(--bd2);color:var(--ink);border-radius:50%;width:30px;height:30px;cursor:pointer;font-size:15px;line-height:1;display:flex;align-items:center;justify-content:center;font-family:'Heebo',sans-serif;z-index:2;" title="סגור">✕</button>
@@ -4233,7 +4268,8 @@ function openLiveTest2(){
   const _liveRoutes={beep:()=>openBeepLive(),pushups_metro:()=>openMetronome(),
     plank:()=>openTimer(),run1000:()=>openTimer(),run2000:()=>openTimer(),run3000:()=>openTimer(),
     skiprope:()=>openSkipropeLive(),
-    pushups:()=>openStrengthLive('pushups'),pullups:()=>openStrengthLive('pullups'),crunches:()=>openStrengthLive('crunches')};
+    pushups:()=>openStrengthLive('pushups'),pullups:()=>openStrengthLive('pullups'),crunches:()=>openStrengthLive('crunches'),
+    run60:()=>openSprintLive('run60'),run100:()=>openSprintLive('run100'),run4x10:()=>openSprintLive('run4x10')};
   if(_liveRoutes[CUR.test]){_liveRoutes[CUR.test]();return;}
   LT2.gid=CUR.gid;
   LT2.testId=CUR.test;
@@ -4936,6 +4972,145 @@ function strNewTest(){
 
 function strClose(){
   closeModal('strength-live-modal');
+}
+
+// ── SPRINT LIVE TEST (run60 / run100 / run4x10) ───────────────
+let SR={testId:null,gid:null,running:false,startTime:0,splits:[],raf:null};
+
+function openSprintLive(testId){
+  if(SR.raf){cancelAnimationFrame(SR.raf);SR.raf=null;}
+  SR.testId=testId;SR.gid=CUR.gid;SR.running=false;SR.splits=[];
+  const label=TEST_LIST.find(t=>t.id===testId)?.label||testId;
+  document.getElementById('sp-title').textContent=label;
+  const g=S.groups[SR.gid];
+  const dl=document.getElementById('sp-names-list');
+  if(dl)dl.innerHTML=g?g.students.map(s=>`<option value="${s.name}">`).join(''):'';
+  spRenderReset();
+  openModal('sprint-live-modal');
+}
+
+function spRenderReset(){
+  document.getElementById('sp-timer').textContent='00.00';
+  document.getElementById('sp-split-count').textContent='';
+  const sb=document.getElementById('sp-split-btn');
+  sb.disabled=true;sb.style.opacity='.35';
+  document.getElementById('sp-start-btn').style.display='';
+  document.getElementById('sp-finish-btn').style.display='none';
+  document.getElementById('sp-new-btn').style.display='none';
+  document.getElementById('sp-results').style.display='none';
+  document.getElementById('sp-results').innerHTML='';
+  document.getElementById('sp-save-row').style.display='none';
+}
+
+function spStart(){
+  SR.running=true;
+  SR.startTime=performance.now();
+  SR.splits=[];
+  document.getElementById('sp-start-btn').style.display='none';
+  document.getElementById('sp-finish-btn').style.display='';
+  document.getElementById('sp-split-count').textContent='0 מסיימים';
+  const sb=document.getElementById('sp-split-btn');
+  sb.disabled=false;sb.style.opacity='1';
+  spTick();
+}
+
+function spTick(){
+  if(!SR.running)return;
+  const t=(performance.now()-SR.startTime)/1000;
+  const s=Math.floor(t);
+  const c=Math.floor((t-s)*100);
+  document.getElementById('sp-timer').textContent=String(s).padStart(2,'0')+'.'+String(c).padStart(2,'0');
+  SR.raf=requestAnimationFrame(spTick);
+}
+
+function spSplit(){
+  if(!SR.running)return;
+  const rawMs=performance.now()-SR.startTime;
+  SR.splits.push({rawMs,name:''});
+  // Minimal DOM update for max responsiveness
+  document.getElementById('sp-split-count').textContent=SR.splits.length+' מסיימים';
+  const btn=document.getElementById('sp-split-btn');
+  btn.style.transform='scale(1.09)';
+  setTimeout(()=>btn.style.transform='',70);
+}
+
+function spFinish(){
+  SR.running=false;
+  if(SR.raf){cancelAnimationFrame(SR.raf);SR.raf=null;}
+  document.getElementById('sp-finish-btn').style.display='none';
+  document.getElementById('sp-new-btn').style.display='';
+  const sb=document.getElementById('sp-split-btn');
+  sb.disabled=true;sb.style.opacity='.35';
+  spRenderResults();
+}
+
+function spRenderResults(){
+  const el=document.getElementById('sp-results');
+  if(!SR.splits.length){
+    el.innerHTML='<div style="text-align:center;padding:12px;color:var(--ink3);">לא נרשמו פיצולים</div>';
+    el.style.display='';return;
+  }
+  let html='<div style="font-size:11px;font-weight:800;color:var(--ink3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px;">תוצאות — מלא שמות</div>';
+  SR.splits.forEach((sp,i)=>{
+    const secs=sp.rawMs/1000;
+    const s=Math.floor(secs);
+    const c=Math.floor((secs-s)*100);
+    const timeStr=String(s).padStart(2,'0')+'.'+String(c).padStart(2,'0');
+    html+=`<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
+      <div style="font-size:17px;font-weight:800;color:var(--ac);font-family:'DM Serif Display',serif;min-width:62px;">${timeStr}</div>
+      <input type="text" list="sp-names-list" id="sp-name-${i}" value="" placeholder="שם נבחן ${i+1}" autocomplete="off"
+        oninput="SR.splits[${i}].name=this.value.trim()"
+        onkeydown="if(event.key==='Enter'){SR.splits[${i}].name=this.value.trim();const nx=document.getElementById('sp-name-${i+1}');if(nx)nx.focus();else spSaveAll();}"
+        style="flex:1;padding:8px 10px;font-size:14px;font-family:'Heebo',sans-serif;border:1.5px solid var(--bd2);border-radius:var(--rs);background:var(--sf);color:var(--ink);direction:rtl;box-sizing:border-box;" />
+    </div>`;
+  });
+  el.innerHTML=html;
+  el.style.display='';
+  document.getElementById('sp-save-row').style.display='';
+  setTimeout(()=>document.getElementById('sp-name-0')?.focus(),150);
+}
+
+function spSaveAll(){
+  const g=S.groups[SR.gid];
+  if(!g){toast('אין קבוצה פעילה');return;}
+  let saved=0,missing=0,lowScore=0;
+  SR.splits.forEach((sp,i)=>{
+    const inp=document.getElementById(`sp-name-${i}`);
+    if(inp)sp.name=inp.value.trim();
+    if(!sp.name){missing++;return;}
+    const nl=sp.name.toLowerCase();
+    const idx=g.students.findIndex(s=>s.name.trim().toLowerCase()===nl);
+    if(idx<0){toast(`לא נמצא תלמיד: "${sp.name}"`);missing++;return;}
+    const rawSecs=(sp.rawMs/1000).toFixed(2);
+    const s=g.students[idx];
+    const existing=g[resKey()]?.[SR.testId]?.[idx];
+    const sExist=existing?.a!==undefined&&existing.a!==''?getScore(SR.testId,s.grade,s.gender,existing.a):null;
+    const sNew=getScore(SR.testId,s.grade,s.gender,rawSecs);
+    if(sExist!==null&&sNew!==null&&sExist>=sNew){lowScore++;return;}
+    writeResult(SR.gid,SR.testId,idx,rawSecs,'a');
+    saved++;
+  });
+  saveState();
+  if(CUR.gid===SR.gid&&CUR.test===SR.testId)renderTable();
+  const parts=[`✓ ${saved} נשמרו`];
+  if(lowScore)parts.push(`${lowScore} לא שופרו`);
+  if(missing)parts.push(`${missing} ללא שם`);
+  toast(parts.join(' · '));
+  if(!missing)document.getElementById('sp-save-row').style.display='none';
+}
+
+function spNew(){
+  if(!confirm('להתחיל מבחן חדש? תוצאות שלא נשמרו יאבדו.'))return;
+  if(SR.raf){cancelAnimationFrame(SR.raf);SR.raf=null;}
+  SR.running=false;SR.splits=[];
+  spRenderReset();
+}
+
+function spClose(){
+  if(SR.running&&!confirm('המבחן עדיין פועל. האם לסגור?'))return;
+  if(SR.raf){cancelAnimationFrame(SR.raf);SR.raf=null;}
+  SR.running=false;
+  closeModal('sprint-live-modal');
 }
 
 function recSwitchGroup(gid){
