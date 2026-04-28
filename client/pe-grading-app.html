@@ -299,7 +299,9 @@ tr.highlighted td{background:rgba(200,64,26,.06)!important;transition:background
   header{padding:0 14px;}.con{padding:16px 10px 80px;}
   .cb{padding:14px;}th,td{padding:7px 9px;font-size:12px;}
   .ri{width:64px;}.tabs{gap:4px;}.tab{padding:6px 10px;font-size:11px;}
-  .bonw,.bb{display:none!important;}
+  .bonl,.boni{display:none!important;}
+  .bonw{margin-top:2px;}
+  .bb{font-size:9px;padding:2px 5px;}
   .tw table td:last-child,.tw table th:last-child{display:none!important;}
   .th{padding:10px 8px;}
   .th>div:last-child{flex-wrap:wrap;gap:4px;}
@@ -1022,12 +1024,9 @@ history.pushState(null,'',location.href);
     <button class="sort-btn" id="rec-grade-יא" onclick="renderRecords('יא')">י"א</button>
     <button class="sort-btn" id="rec-grade-יב" onclick="renderRecords('יב')">י"ב</button>
   </div>
-  <!-- Test selector -->
-  <div style="margin-bottom:16px;">
-    <select id="records-test-sel" onchange="renderRecords(document.getElementById('records-grade-cur').value||'all')"
-      style="padding:8px 14px;border:1.5px solid var(--bd2);border-radius:var(--rs);font-family:'Heebo',sans-serif;font-size:14px;background:var(--bg);max-width:100%;">
-    </select>
-  </div>
+  <!-- Test selector buttons -->
+  <div id="records-test-btns" style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:16px;"></div>
+  <input type="hidden" id="records-test-sel" value="">
   <div id="records-table-wrap"></div>
   <input type="hidden" id="records-grade-cur" value="all">
 </div>
@@ -1185,15 +1184,6 @@ history.pushState(null,'',location.href);
     </div>
   </div>
 
-  <!-- FREE TEXT INPUT (per test) -->
-  <div class="fti-wrap">
-    <div class="fti-label">⚡ הזנה מהירה — <span id="fti-test-label">מבחן נוכחי</span></div>
-    <div class="fti-row">
-      <textarea class="fti" id="fti" rows="1" placeholder="שם התלמיד/ה ותוצאה, לדוגמה: ישראל ישראלי 15" oninput="autoResizeFTI(this)" onkeydown="ftiFastSubmit(event)"></textarea>
-      <button class="btn bp bsm" onclick="submitFTI()">⏎ הזן</button>
-    </div>
-    <div style="font-size:11px;color:var(--ink3);margin-top:5px;">לדוגמה: "<span id="fti-example"></span>" · אנטר לאישור</div>
-  </div>
 
   <!-- Ref box -->
   <div class="ref" id="ref"></div>
@@ -1218,10 +1208,16 @@ history.pushState(null,'',location.href);
     <div class="sc"><div class="sv" id="s-100">0</div><div class="sl">קיבלו 100</div></div>
   </div>
 
-  <!-- Search + filter + sort -->
+  <!-- Fast entry + filter + sort -->
+  <div class="fti-wrap" id="fti-in-bar" style="margin-bottom:8px;">
+    <div class="fti-label">⚡ הזנה מהירה — <span id="fti-test-label">מבחן נוכחי</span></div>
+    <div class="fti-row">
+      <textarea class="fti" id="fti" rows="1" placeholder="שם התלמיד/ה ותוצאה, לדוגמה: ישראל ישראלי 15" oninput="autoResizeFTI(this)" onkeydown="ftiFastSubmit(event)"></textarea>
+      <button class="btn bp bsm" onclick="submitFTI()">⏎ הזן</button>
+    </div>
+    <div style="font-size:11px;color:var(--ink3);margin-top:5px;">לדוגמה: "<span id="fti-example"></span>" · אנטר לאישור</div>
+  </div>
   <div style="display:flex;gap:8px;align-items:center;margin-bottom:8px;flex-wrap:wrap;" id="search-filter-bar">
-    <input type="text" id="student-search" placeholder="🔍 חיפוש תלמיד..." class="desktop-only" oninput="renderTable()"
-      style="padding:7px 12px;border:1.5px solid var(--bd2);border-radius:var(--rs);font-family:'Heebo',sans-serif;font-size:13px;background:var(--bg);min-width:180px;">
     <select id="class-filter" onchange="renderTable()"
       style="padding:7px 12px;border:1.5px solid var(--bd2);border-radius:var(--rs);font-family:'Heebo',sans-serif;font-size:13px;background:var(--bg);cursor:pointer;">
       <option value="">כל המקבילות</option>
@@ -1746,7 +1742,8 @@ history.pushState(null,'',location.href);
 </div>
 
 <!-- STUDENT REPORT MODAL -->
-<div class="mbg" id="student-report-modal" style="align-items:flex-start;padding:20px 16px;overflow-y:auto;"><div class="mod mod-wide" onclick="event.stopPropagation()" style="max-width:760px;width:100%;">
+<div class="mbg" id="student-report-modal" style="align-items:flex-start;padding:20px 16px;overflow-y:auto;"><div class="mod mod-wide" onclick="event.stopPropagation()" style="max-width:760px;width:100%;position:relative;">
+  <button onclick="closeModal('student-report-modal')" style="position:absolute;top:10px;left:10px;background:var(--bg3);border:1.5px solid var(--bd2);color:var(--ink);border-radius:50%;width:30px;height:30px;cursor:pointer;font-size:15px;line-height:1;display:flex;align-items:center;justify-content:center;font-family:'Heebo',sans-serif;z-index:2;" title="סגור">✕</button>
   <div class="mt" id="srm-title">דוח תלמיד</div>
   <div id="srm-content" style="margin-top:12px;"></div>
   <div class="mf"><button class="btn bg2" onclick="closeModal('student-report-modal')">סגור</button></div>
@@ -2841,7 +2838,7 @@ const COL_DEFS=[
   {key:'score',  label:'ציון',        cls:'hide-col-score'},
   {key:'actions',label:'עמודה אחרונה',cls:'hide-col-actions'},
 ];
-function loadColVis(){try{return JSON.parse(localStorage.getItem(COL_LS_KEY)||'{}');}catch(e){return {};}}
+function loadColVis(){try{const raw=localStorage.getItem(COL_LS_KEY);return raw!==null?JSON.parse(raw):{class:false};}catch(e){return {class:false};}}
 function saveColVis(v){localStorage.setItem(COL_LS_KEY,JSON.stringify(v));}
 function applyColVis(){
   const tbl=document.querySelector('#tw-scroll table');if(!tbl)return;
@@ -4260,7 +4257,6 @@ function sbOpenRecords(){
 }
 
 function openRecords(){
-  // Populate test selector
   const sel=document.getElementById('records-test-sel');
   if(!sel)return;
   // Populate group selector — default = all groups
@@ -4274,14 +4270,12 @@ function openRecords(){
   const allGroups=Object.values(S.groups);
   const allTests=[...TEST_LIST,...Object.entries(S.customTests||{}).map(([id,ct])=>({id,label:ct.name}))];
   const usedTests=allTests.filter(t=>allGroups.some(g=>Object.values(g.results?.[t.id]||{}).some(d=>d&&d.a!=='')));
-  sel.innerHTML=usedTests.map(t=>`<option value="${t.id}">${t.label}</option>`).join('');
-  if(usedTests.length){
-    if(CUR.test){
-      const opt=sel.querySelector(`option[value="${CUR.test}"]`);
-      if(opt) opt.selected=true;
-    }
-    // If no current test, just use first
-    if(!CUR.test && usedTests.length) sel.value=usedTests[0].id;
+  // Build button list
+  const btnWrap=document.getElementById('records-test-btns');
+  const initialTest=CUR.test||usedTests[0]?.id||'';
+  sel.value=initialTest;
+  if(btnWrap){
+    btnWrap.innerHTML=usedTests.map(t=>`<button class="sort-btn${t.id===initialTest?' on':''}" onclick="selectRecordsTest('${t.id}')">${t.label}</button>`).join('');
   }
   document.getElementById('records-grade-cur').value='all';
   // Reset grade buttons
@@ -4290,6 +4284,13 @@ function openRecords(){
   if(allBtn)allBtn.classList.add('on');
   renderRecords('all');
   openModal('records-modal');
+}
+function selectRecordsTest(testId){
+  document.getElementById('records-test-sel').value=testId;
+  document.querySelectorAll('#records-test-btns .sort-btn').forEach(b=>b.classList.remove('on'));
+  const btn=document.querySelector(`#records-test-btns .sort-btn[onclick="selectRecordsTest('${testId}')"]`);
+  if(btn)btn.classList.add('on');
+  renderRecords(document.getElementById('records-grade-cur').value||'all');
 }
 
 function renderRecords(gradeFilter){
@@ -5714,6 +5715,7 @@ function renderEntered(){
   const enteredAll=cards.reduce((a,c)=>a+c.rows.filter(r=>r.d._entered).length,0);
   const pct=totalAll?Math.round(enteredAll/totalAll*100):0;
 
+  const undoCount=(window._enteredUndoStack||[]).length;
   let html=`
     <div style="background:var(--bg2);border:1px solid var(--bd);border-radius:var(--rs);padding:14px 18px;margin-bottom:16px;display:flex;align-items:center;gap:16px;flex-wrap:wrap;">
       <div>
@@ -5726,6 +5728,7 @@ function renderEntered(){
         </div>
         <div style="font-size:11px;color:var(--ink3);margin-top:4px;">${pct}% הושלם</div>
       </div>
+      ${undoCount>0?`<button class="btn bg2 bsm" onclick="undoLastEntered()" style="font-size:12px;">↩ בטל אחרון (${undoCount})</button>`:''}
     </div>`;
 
   // Split into pending and done cards
@@ -5777,18 +5780,19 @@ function renderEntered(){
           <tbody>
             ${rows.map(({idx,student:s,d})=>{
               const isEnt=!!d._entered;
+              if(isEnt) return '';
               const isFem=s.gender==='נ'||s.gender==='f';
               const sc=getScore(testId,s.grade,s.gender,d.a);
               const best=d.b?(getScore(testId,s.grade,s.gender,d.b)??0):0;
               const finalSc=Math.max(sc??0,best);
-              return `<tr style="border-bottom:1px solid var(--bd);${isEnt?'opacity:.5;':''}">
+              return `<tr style="border-bottom:1px solid var(--bd);">
                 <td style="padding:6px 8px;text-align:center;">
-                  <span class="entered-check${isEnt?' checked':''}"
+                  <span class="entered-check"
                     onclick="toggleEnteredById('${testId}',${idx})"
-                    title="${isEnt?'מסומן כהוזן — לחץ לביטול':'סמן כהוזן במערכת'}"
-                    style="width:20px;height:20px;font-size:12px;">${isEnt?'✓':''}</span>
+                    title="סמן כהוזן במערכת"
+                    style="width:20px;height:20px;font-size:12px;"></span>
                 </td>
-                <td style="padding:6px 10px;font-weight:700;${isEnt?'text-decoration:line-through;':''}">${s.name}</td>
+                <td style="padding:6px 10px;font-weight:700;">${s.name}</td>
                 <td style="padding:6px 8px;text-align:center;color:var(--ink3);">${isFem?'נ':'ז'}</td>
                 <td style="padding:6px 8px;text-align:center;color:var(--ink2);">${d.a}${d.b?' / '+d.b:''}</td>
                 <td style="padding:6px 8px;text-align:center;">
@@ -5863,16 +5867,34 @@ function unmarkCardEntered(cardIdx){
   toast(`↩ ${entered.length} סימונים בוטלו — ${card.testLabel} כיתה ${card.cls}`);
 }
 
+window._enteredUndoStack=[];
 function toggleEnteredById(testId,studentIdx){
   const g=S.groups[CUR.gid];if(!g)return;
   const key=resKey();
   if(!g[key]?.[testId]?.[studentIdx])return;
   const d=g[key][testId][studentIdx];
   d._entered=!d._entered;
+  if(d._entered){
+    window._enteredUndoStack.push({testId,studentIdx,key,gid:CUR.gid});
+  } else {
+    // Remove from undo stack if un-marking
+    window._enteredUndoStack=window._enteredUndoStack.filter(e=>!(e.testId===testId&&e.studentIdx===studentIdx&&e.key===key));
+  }
   saveState();
   renderEntered();
   const s=g.students[studentIdx];
-  toast(d._entered?`✓ ${s?.name} — סומן כהוזן`:`${s?.name} — הסימון בוטל`);
+  toast(d._entered?`✓ ${s?.name} — הוסר מהרשימה`:`${s?.name} — הוחזר לרשימה`);
+}
+function undoLastEntered(){
+  const last=window._enteredUndoStack.pop();
+  if(!last){toast('אין מה לבטל');return;}
+  const g=S.groups[last.gid];if(!g)return;
+  const d=g[last.key]?.[last.testId]?.[last.studentIdx];
+  if(!d)return;
+  d._entered=false;
+  saveState();renderEntered();
+  const s=g.students[last.studentIdx];
+  toast(`↩ ${s?.name} — הוחזר לרשימה`);
 }
 
 function selectCompletion(){
@@ -6094,7 +6116,6 @@ function updateClassFilter(){
 
 function getFilteredStudents(){
   const students=S.groups[CUR.gid]?.students||[];
-  const q=(document.getElementById('student-search')?.value||'').trim().toLowerCase();
   const cls=(document.getElementById('class-filter')?.value||'');
   const key=resKey();
   return students.map((s,i)=>({...s,_orig:i})).filter(s=>{
@@ -6103,7 +6124,6 @@ function getFilteredStudents(){
       const d=S.groups[CUR.gid]?.[key]?.[CUR.test]?.[s._orig];
       if(!d||d.a==='')return false;
     }
-    if(q&&!s.name.toLowerCase().includes(q))return false;
     if(cls&&s.grade+s.cls!==cls)return false;
     return true;
   });
@@ -6291,6 +6311,7 @@ function openStudentReport(studentIdx){
       });
     },80);
   }
+  history.pushState(null,'',location.href);
   openModal('student-report-modal');
 }
 
@@ -11638,1054 +11659,6 @@ body::after{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;
   </div>
 </div>
 </div>
-
-<script>
-// ══════════════════════════════════════════════════════════════
-// DATA & STATE
-// ══════════════════════════════════════════════════════════════
-const LS_KEY_TM = 'tourneygrade_v1';   // legacy single
-const LS_ALL_TM = 'tourneygrade_all_v1'; // array of all tournaments
-const LS_CUR_TM = 'tourneygrade_cur_v1'; // id of current tournament
-const TEAM_COLORS = ['crest-0','crest-1','crest-2','crest-3','crest-4','crest-5','crest-6','crest-7','crest-8','crest-9'];
-
-let T = null; // current tournament
-let _currentMatchId = null;
-let _calYear = new Date().getFullYear();
-let _calMonth = new Date().getMonth();
-let _matchFilter = 'all';
-let _matchRoundFilter = null;
-
-// ── Persistence ──────────────────────────────────────────────
-function getAllTournaments(){
-  try{
-    const all = JSON.parse(localStorage.getItem(LS_ALL_TM)||'null');
-    if(all && Array.isArray(all)) return all;
-    // Migrate legacy single tournament
-    const legacy = JSON.parse(localStorage.getItem(LS_KEY_TM)||'null');
-    if(legacy){ const arr=[legacy]; localStorage.setItem(LS_ALL_TM,JSON.stringify(arr)); return arr; }
-    return [];
-  } catch(e){ return []; }
-}
-function loadData(){
-  try{
-    const all = getAllTournaments();
-    const curId = localStorage.getItem(LS_CUR_TM);
-    if(curId){ const t=all.find(t=>String(t.id)===String(curId)); if(t) return t; }
-    if(all.length) return all[0];
-    return null;
-  } catch(e){ return null; }
-}
-function saveData(){
-  if(!T) return;
-  const all = getAllTournaments();
-  const idx = all.findIndex(t=>t.id===T.id);
-  if(idx>=0) all[idx]=T; else all.push(T);
-  localStorage.setItem(LS_ALL_TM, JSON.stringify(all));
-  localStorage.setItem(LS_CUR_TM, String(T.id));
-  try{ localStorage.setItem(LS_KEY_TM+'_ts', Date.now()); }catch(e){}
-}
-
-// ── Init ─────────────────────────────────────────────────────
-function init(){
-  T = loadData();
-  // Default start date to today
-  document.getElementById('nt-start-date').valueAsDate = new Date();
-  generateTeamNames();
-  if(T){
-    loadTournament();
-    showView('dashboard');
-  } else {
-    showView('home');
-  }
-  renderBlockedDays();
-  renderHomeView();
-}
-
-// ══════════════════════════════════════════════════════════════
-// TOURNAMENT CREATION
-// ══════════════════════════════════════════════════════════════
-function generateTeamNames(){
-  const gradeEl = document.querySelector('#nt-grades-wrap input:checked');
-  const grade = gradeEl ? gradeEl.value : 'ח';
-  const count = parseInt(document.getElementById('nt-teams-count').value)||6;
-  const grid = document.getElementById('team-names-grid');
-  // Preserve existing values
-  const existing = {};
-  grid.querySelectorAll('input').forEach((inp,i)=>{ existing[i]=inp.value; });
-  grid.innerHTML = '';
-  for(let i=0;i<count;i++){
-    const inp = document.createElement('input');
-    inp.className = 'form-input';
-    // Only auto-set if value looks like old grade (e.g. "ח1") or is empty
-    const prev = existing[i]||'';
-    const autoVal = grade + (i+1);
-    // Replace if empty or matches any grade pattern
-    inp.value = (!prev || /^[א-ת]{1,2}\d+$/.test(prev)) ? autoVal : prev;
-    inp.placeholder = 'שם קבוצה '+(i+1);
-    inp.id = 'nt-team-'+i;
-    grid.appendChild(inp);
-  }
-  // Update bar
-  const bar = document.getElementById('nt-teams-bar');
-  const lbl = document.getElementById('nt-teams-count-label');
-  if(bar) bar.style.width = Math.round((count-3)/(16-3)*100)+'%';
-  if(lbl) lbl.textContent = count;
-}
-
-function adjTeamCount(delta){
-  const inp = document.getElementById('nt-teams-count');
-  if(!inp) return;
-  const cur = parseInt(inp.value)||6;
-  const next = Math.max(3, Math.min(16, cur+delta));
-  inp.value = next;
-  generateTeamNames();
-}
-
-function onTournamentTypeChange(){
-  const type = document.getElementById('nt-type').value;
-  const legsGroup = document.getElementById('nt-legs-group');
-  if(legsGroup) legsGroup.style.display = type==='league' ? '' : 'none';
-}
-
-function getSelectedDays(){
-  const days = [];
-  document.querySelectorAll('#nt-days input:checked').forEach(cb=>days.push(parseInt(cb.value)));
-  return days;
-}
-
-function createTournament(){
-  const name = document.getElementById('nt-name').value.trim();
-  if(!name){ toast('נא להזין שם לטורניר'); return; }
-  const count = parseInt(document.getElementById('nt-teams-count').value);
-  const teams = [];
-  for(let i=0;i<count;i++){
-    const nm = document.getElementById('nt-team-'+i)?.value?.trim()||('קבוצה '+(i+1));
-    teams.push({ id: i, name: nm, color: TEAM_COLORS[i%TEAM_COLORS.length] });
-  }
-  const type = document.getElementById('nt-type').value;
-  const startDate = document.getElementById('nt-start-date').value;
-  const matchTime = document.getElementById('nt-match-time').value;
-  const days = getSelectedDays();
-  if(!days.length){ toast('בחר לפחות יום משחק אחד'); return; }
-  if(!startDate){ toast('נא לבחור תאריך פתיחה'); return; }
-
-  const legs = type==='league' ? (parseInt(document.getElementById('nt-legs')?.value)||1) : 1;
-  const gender = document.getElementById('nt-gender')?.value||'boys';
-  const sport = document.getElementById('nt-sport')?.value||'soccer';
-  const grades = [...document.querySelectorAll('#nt-grades-wrap input:checked')].map(c=>c.value);
-  const grade = grades[0]||'ח';
-  const multigradeFormat = document.getElementById('nt-multigrade-format')?.value||'separate';
-  T = {
-    id: Date.now(),
-    name, grade,
-    grades: grades.length ? grades : [grade],
-    sport,
-    multigradeFormat,
-    gender,
-    type, teams, matchTime, days,
-    startDate,
-    legs,
-    matches: [],
-    blockedDays: [],
-    scorers: {},
-    teamRosters: {},
-  };
-
-  // Generate schedule
-  generateSchedule();
-  saveData();
-  closeModal('new-tournament-modal');
-  saveData();
-  loadTournament();
-  showView('dashboard');
-  toast('✓ הטורניר נוצר! '+T.matches.length+' משחקים שובצו');
-}
-
-// ══════════════════════════════════════════════════════════════
-// SCHEDULE GENERATION
-// ══════════════════════════════════════════════════════════════
-function generateSchedule(){
-  T.matches = [];
-  const pairs = (T.type === 'league') ? generateLeaguePairs() : generateKnockoutPairs();
-  let slotDate = new Date(T.startDate);
-  let matchId = 1;
-  let roundIdx = 0;
-  const rounds = groupByRounds(pairs, T.teams.length);
-  rounds.forEach((roundPairs, ri) => {
-    roundPairs.forEach(([h,a]) => {
-      // Find next valid match day
-      const d = getNextMatchDay(slotDate);
-      T.matches.push({
-        id: matchId++,
-        round: ri+1,
-        home: h, away: a,
-        date: dateStr(d),
-        time: T.matchTime,
-        status: 'pending',
-        homeScore: null, awayScore: null,
-        goals: [], assists: [],
-      });
-      slotDate = new Date(d);
-      slotDate.setDate(slotDate.getDate()+1);
-    });
-    // Advance to next match day after each round
-    slotDate = getNextMatchDay(slotDate);
-    slotDate = new Date(slotDate);
-    slotDate.setDate(slotDate.getDate()+1);
-  });
-}
-
-function generateLeaguePairs(){
-  const ids = T.teams.map(t=>t.id);
-  const legs = T.legs||1;
-  const basePairs = [];
-  for(let i=0;i<ids.length;i++)
-    for(let j=i+1;j<ids.length;j++)
-      basePairs.push([ids[i],ids[j]]);
-  // For each additional leg, add reverse fixtures
-  const allPairs = [...basePairs];
-  for(let leg=1;leg<legs;leg++){
-    basePairs.forEach(([h,a])=>{
-      // Odd leg: reverse (away becomes home), even leg: same direction
-      allPairs.push(leg%2===1?[a,h]:[h,a]);
-    });
-  }
-  return allPairs;
-}
-
-function generateKnockoutPairs(){
-  const ids = [...T.teams.map(t=>t.id)];
-  // Shuffle for random bracket
-  for(let i=ids.length-1;i>0;i--){
-    const j=Math.floor(Math.random()*(i+1));
-    [ids[i],ids[j]]=[ids[j],ids[i]];
-  }
-  const pairs = [];
-  for(let i=0;i<ids.length;i+=2)
-    if(i+1<ids.length) pairs.push([ids[i],ids[i+1]]);
-  return pairs;
-}
-
-function groupByRounds(pairs, teamCount){
-  if(T.type==='knockout') return [pairs];
-  const legs = T.legs||1;
-  const allRounds = [];
-
-  // Build one round-robin cycle (teamCount-1 rounds or teamCount rounds if odd)
-  function buildOneLegRounds(pairsSubset, flip){
-    const legRounds = [];
-    const ids = T.teams.map(t=>t.id);
-    if(ids.length%2!==0) ids.push(-1);
-    const r = ids.length;
-    const fixed = ids[0];
-    const rotating = [...ids.slice(1)];
-    for(let round=0;round<r-1;round++){
-      const rnd = [];
-      const all = [fixed,...rotating];
-      for(let i=0;i<r/2;i++){
-        const h=all[i], a=all[r-1-i];
-        if(h!==-1&&a!==-1){
-          // flip alternates home/away for return legs
-          rnd.push(flip?[a,h]:[h,a]);
-        }
-      }
-      legRounds.push(rnd);
-      rotating.unshift(rotating.pop());
-    }
-    return legRounds;
-  }
-
-  for(let leg=0;leg<legs;leg++){
-    const flip = leg%2===1; // every 2nd leg flips home/away
-    buildOneLegRounds(pairs, flip).forEach(r=>allRounds.push(r));
-  }
-  return allRounds;
-}
-
-function getNextMatchDay(fromDate){
-  const d = new Date(fromDate);
-  let tries = 0;
-  while(tries < 365){
-    const dow = d.getDay(); // 0=Sun in JS, but our days are Sun=0 too
-    if(T.days.includes(dow) && !isBlocked(dateStr(d))) return d;
-    d.setDate(d.getDate()+1);
-    tries++;
-  }
-  return d;
-}
-
-function isBlocked(dateString){
-  return (T.blockedDays||[]).some(b=>{
-    if(b.end) return dateString>=b.start && dateString<=b.end;
-    return b.start===dateString;
-  });
-}
-
-function dateStr(d){ return d.toISOString().slice(0,10); }
-
-// ══════════════════════════════════════════════════════════════
-// LOAD & RENDER TOURNAMENT
-// ══════════════════════════════════════════════════════════════
-function loadTournament(){
-  if(!T) return;
-  if(!T.matches) T.matches=[];
-  if(!T.teams) T.teams=[];
-  if(!T.scorers) T.scorers={};
-  if(!T.blockedDays) T.blockedDays=[];
-  renderHomeView(); // update home grid
-  document.getElementById('hdr-tournament-name').textContent = T.name;
-  const genderBadge = document.getElementById('hdr-gender-badge');
-  if(genderBadge){
-    const sEmoji=(typeof SPORT_EMOJI!=='undefined'&&SPORT_EMOJI[T.sport])||'⚽';
-    const gMap={boys:sEmoji+' בנים',girls:sEmoji+' בנות',mixed:sEmoji+' מעורב'};
-    genderBadge.innerHTML = T.gender?`<span class="gender-badge">${gMap[T.gender]||T.gender}</span>`:'';
-  }
-  document.getElementById('sb-tournament-section').style.display = '';
-  document.getElementById('no-tournament-state').style.display = 'none';
-  document.getElementById('tournament-dashboard').style.display = '';
-  renderDashboard();
-  renderStandings();
-  renderMatches();
-  renderCalendar();
-  renderScorers();
-  renderBlockedDays();
-}
-
-// ══════════════════════════════════════════════════════════════
-// DASHBOARD
-// ══════════════════════════════════════════════════════════════
-function renderDashboard(){
-  const done = T.matches.filter(m=>m.status==='done').length;
-  const total = T.matches.length;
-  const pending = T.matches.filter(m=>m.status==='pending').length;
-
-  // Date range strip
-  const scheduledDates = T.matches.map(m=>m.date).filter(Boolean).sort();
-  const tourneyStart = scheduledDates[0]||T.startDate||null;
-  const tourneyEnd   = scheduledDates[scheduledDates.length-1]||null;
-  const pct = total>0?Math.round(done/total*100):0;
-  const strip = document.getElementById('dash-date-strip');
-  if(strip){
-    strip.innerHTML = `
-      <span>📅 פתיחה: <strong style="color:var(--ac);">${tourneyStart?formatDate(tourneyStart):'—'}</strong></span>
-      <span style="color:var(--ink3);">→</span>
-      <span>🏁 סיום: <strong style="color:${pending===0?'var(--gr)':'var(--ye)'};">${tourneyEnd?formatDate(tourneyEnd):'—'}</strong></span>
-      <span style="flex:1;"></span>
-      <span style="display:flex;align-items:center;gap:8px;">
-        <div style="width:120px;height:6px;background:var(--bg3);border-radius:3px;overflow:hidden;">
-          <div style="height:100%;width:${pct}%;background:var(--ac);border-radius:3px;transition:width .5s;"></div>
-        </div>
-        <span style="font-size:12px;color:var(--ink2);font-weight:700;">${done}/${total} (${pct}%)</span>
-      </span>
-    `;
-  }
-  // Stats (scheduledDates, tourneyStart, tourneyEnd, pct already defined above)
-  const legsLabel = (T.legs&&T.legs>1) ? ` · ${T.legs}× (הלוך וחזור)` : '';
-
-  document.getElementById('dash-stats').innerHTML = `
-    <div class="stat-card">
-      <div class="stat-val">${T.teams.length}</div>
-      <div class="stat-label">קבוצות${legsLabel}</div>
-    </div>
-    <div class="stat-card" style="position:relative;overflow:hidden;">
-      <div style="position:absolute;bottom:0;left:0;height:3px;width:${pct}%;background:var(--ac);transition:width .5s;border-radius:0 2px 0 0;"></div>
-      <div class="stat-val">${done}<span style="font-size:16px;color:var(--ink3);">/${total}</span></div>
-      <div class="stat-label">משחקים שוחקו</div>
-    </div>
-    <div class="stat-card">
-      <div class="stat-val" style="color:${pending>0?'var(--ye)':'var(--gr)'};">${pending}</div>
-      <div class="stat-label">נותרו</div>
-    </div>
-    <div class="stat-card" style="grid-column:span 1;">
-      <div style="font-size:11px;color:var(--ink3);font-weight:700;text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px;">📅 תאריכים</div>
-      <div style="font-size:13px;font-weight:700;color:var(--ink2);">
-        <div>פתיחה: <span style="color:var(--ac);">${formatDate(tourneyStart)}</span></div>
-        <div style="margin-top:3px;">סיום: <span style="color:${pending===0?'var(--gr)':'var(--ye)'};">${formatDate(tourneyEnd)}</span></div>
-      </div>
-    </div>
-  `;
-  // Next match
-  const next = T.matches.filter(m=>m.status==='pending').sort((a,b)=>(a.date||'').localeCompare(b.date||''))[0];
-  const nextBody = document.getElementById('dash-next-body');
-  if(next&&nextBody){
-    const h = teamById(next.home), a = teamById(next.away);
-    nextBody.innerHTML = `
-      <div style="display:flex;align-items:center;gap:16px;padding:8px 0;">
-        <div class="match-team-crest ${h?.color||'crest-0'}">${(h?.name||'?')[0]}</div>
-        <div style="font-weight:700;font-size:16px;">${h?.name||'?'}</div>
-        <div style="flex:1;text-align:center;font-size:12px;color:var(--ink3);">
-          ${formatDate(next.date)}<br><strong style="color:var(--ye);">${next.time}</strong>
-          ${next.date===dateStr(new Date())?'<span class="badge badge-green" style="margin-right:6px;">היום</span>':''}
-        </div>
-        <div style="font-weight:700;font-size:16px;">${a?.name||'?'}</div>
-        <div class="match-team-crest ${a?.color||'crest-1'}">${(a?.name||'?')[0]}</div>
-      </div>
-      <div style="text-align:center;margin-top:10px;">
-        <button class="btn btn-primary btn-sm" onclick="openMatchModal(${next.id})">${(typeof SPORT_EMOJI!=='undefined'&&SPORT_EMOJI[T?.sport])||'⚽'} הזן תוצאה</button>
-      </div>
-    `;
-  } else if(nextBody) {
-    nextBody.innerHTML = '<div style="color:var(--ink3);font-size:13px;">כל המשחקים הושלמו! 🎉</div>';
-  }
-  // Recent results
-  const recent = T.matches.filter(m=>m.status==='done').sort((a,b)=>b.date.localeCompare(a.date)).slice(0,3);
-  document.getElementById('dash-recent-body').innerHTML = recent.length
-    ? recent.map(m=>matchCardHtml(m,true)).join('')
-    : '<div style="color:var(--ink3);font-size:13px;">אין תוצאות עדיין</div>';
-  // Mini standings (top 4)
-  const st = calcStandings().slice(0,4);
-  document.getElementById('dash-standings-mini').innerHTML = `
-    <table class="tbl"><thead><tr><th>#</th><th>קבוצה</th><th>מש׳</th><th>נק׳</th><th>הפרש</th></tr></thead>
-    <tbody>${st.map((s,i)=>`<tr class="${i===0?'top-1':i===1?'top-2':i===2?'top-3':''}">
-      <td class="rank">${i+1}</td>
-      <td class="team-name"><span class="match-team-crest ${s.team.color}" style="width:22px;height:22px;font-size:11px;display:inline-flex;margin-left:6px;">${s.team.name[0]}</span>${s.team.name}</td>
-      <td class="num">${s.played}</td>
-      <td class="pts">${s.pts}</td>
-      <td class="num ${s.gd>0?'gd-pos':s.gd<0?'gd-neg':''}">${s.gd>0?'+':''}${s.gd}</td>
-    </tr>`).join('')}</tbody></table>
-  `;
-}
-
-// ══════════════════════════════════════════════════════════════
-// STANDINGS
-// ══════════════════════════════════════════════════════════════
-function calcStandings(){
-  const stats = {};
-  T.teams.forEach(t=>{
-    stats[t.id] = {team:t,played:0,won:0,drawn:0,lost:0,gf:0,ga:0,pts:0};
-  });
-  T.matches.filter(m=>m.status==='done').forEach(m=>{
-    const h=stats[m.home], a=stats[m.away];
-    if(!h||!a)return;
-    const hs=m.homeScore||0, as=m.awayScore||0;
-    h.played++;a.played++;h.gf+=hs;h.ga+=as;a.gf+=as;a.ga+=hs;
-    if(hs>as){ h.won++;h.pts+=3;a.lost++; }
-    else if(hs<as){ a.won++;a.pts+=3;h.lost++; }
-    else{ h.drawn++;a.drawn++;h.pts++;a.pts++; }
-  });
-  return Object.values(stats).sort((a,b)=>{
-    if(b.pts!==a.pts)return b.pts-a.pts;
-    const gda=(a.gf-a.ga), gdb=(b.gf-b.ga);
-    if(gdb!==gda)return gdb-gda;
-    return b.gf-a.gf;
-  }).map(s=>({...s,gd:s.gf-s.ga}));
-}
-
-function renderStandings(){
-  const st = calcStandings();
-  // Leaders
-  const topGoals = getTopScorer('goals');
-  const topAssists = getTopScorer('assists');
-  document.getElementById('standings-leaders').innerHTML = `
-    <div class="leader-card">
-      <div class="leader-title">⚽ מלך השערים</div>
-      ${topGoals?`<div class="leader-name">${topGoals.name}</div><div class="leader-stat">${topGoals.goals} שערים · ${topGoals.team}</div>`:'<div style="color:var(--ink3);font-size:13px;">אין תוצאות עדיין</div>'}
-    </div>
-    <div class="leader-card" style="background:linear-gradient(135deg,rgba(79,195,247,.1) 0%,rgba(79,195,247,.03) 100%);border-color:rgba(79,195,247,.25);">
-      <div class="leader-title" style="color:var(--bl);">🍳 מלך הבישולים</div>
-      ${topAssists?`<div class="leader-name">${topAssists.name}</div><div class="leader-stat">${topAssists.assists} בישולים · ${topAssists.team}</div>`:'<div style="color:var(--ink3);font-size:13px;">אין תוצאות עדיין</div>'}
-    </div>
-  `;
-  // Table — like the image: #, TEAM, MP, G (goals), PTS
-  document.getElementById('standings-body').innerHTML = st.map((s,i)=>`
-    <tr class="${i===0?'top-1':i===1?'top-2':i===2?'top-3':''}" style="cursor:pointer;" onclick="openH2HForTeam(${s.team.id})" title="לחץ למפגשים ישירים">
-      <td>
-        <span style="display:inline-flex;align-items:center;justify-content:center;width:28px;height:28px;border-radius:8px;background:${i<3?['#2c3e7a','#2c3e7a','#2c3e7a'][i]:'transparent'};color:${i<3?'#fff':'var(--ink3)'};font-family:'Bebas Neue',cursive;font-size:16px;font-weight:700;">${i+1}</span>
-      </td>
-      <td style="padding:14px;">
-        <div style="display:flex;align-items:center;gap:10px;">
-          <span class="match-team-crest ${s.team.color}" style="width:36px;height:36px;font-size:15px;display:inline-flex;">${s.team.name[0]}</span>
-          <span style="font-weight:700;font-size:14px;">${s.team.name}</span>
-        </div>
-      </td>
-      <td class="num" style="font-size:15px;">${s.played}</td>
-      <td class="num" style="font-size:13px;color:var(--ink2);">${s.won}</td>
-      <td class="num" style="font-size:13px;color:var(--ink2);">${s.drawn}</td>
-      <td class="num" style="font-size:13px;color:var(--ink2);">${s.lost}</td>
-      <td class="num" style="font-size:13px;color:var(--ink2);">${s.gf}:${s.ga}</td>
-      <td style="padding:10px 14px;">${formGuideHtml(s.team.id)}</td>
-      <td class="pts" style="font-size:22px;">${s.pts}</td>
-    </tr>`).join('');
-}
-
-// ══════════════════════════════════════════════════════════════
-// MATCHES
-// ══════════════════════════════════════════════════════════════
-function renderMatches(){
-  if(!T) return;
-  // Update count sub-title
-  const done=T.matches.filter(m=>m.status==='done').length;
-  const total=T.matches.length;
-  const pending=total-done;
-  const sub=document.getElementById('matches-count-sub');
-  if(sub) sub.textContent=`${done} שוחקו · ${pending} נותרו · ${total} סה"כ`;
-  // Overdue banner
-  const overdue=getOverdueMatches();
-  const bannerEl=document.getElementById('matches-overdue-banner');
-  if(bannerEl){
-    if(overdue.length){
-      bannerEl.style.display='flex';
-      bannerEl.querySelector('.overdue-banner-text').textContent=`⚠ ${overdue.length} משחק${overdue.length>1?'ים':''} עבר${overdue.length>1?'ו':''} ותאריכ${overdue.length>1?'ם':'ם'} ועדיין ללא תוצאה — הזן עכשיו`;
-    } else { bannerEl.style.display='none'; }
-  }
-  // Round tabs
-  const rounds = [...new Set(T.matches.map(m=>m.round))].sort((a,b)=>a-b);
-  const tabsEl = document.getElementById('matches-rounds-tabs');
-  tabsEl.innerHTML = `<button class="round-tab ${_matchRoundFilter===null?'active':''}" onclick="setRoundFilter(null)">כל הסיבובים</button>` +
-    rounds.map(r=>`<button class="round-tab ${_matchRoundFilter===r?'active':''}" onclick="setRoundFilter(${r})">${getRoundLabel(r)}</button>`).join('');
-  // Filter
-  let matches = T.matches.filter(m=>{
-    if(_matchFilter==='pending') return m.status==='pending';
-    if(_matchFilter==='done') return m.status==='done';
-    return true;
-  });
-  if(_matchRoundFilter!==null) matches = matches.filter(m=>m.round===_matchRoundFilter);
-  matches = matches.sort((a,b)=>a.date.localeCompare(b.date)||a.id-b.id);
-
-  // Group by round
-  const byRound = {};
-  matches.forEach(m=>{
-    if(!byRound[m.round]) byRound[m.round]={};
-    byRound[m.round][m.id]=m;
-  });
-
-  document.getElementById('matches-list').innerHTML = Object.entries(byRound).map(([round,ms])=>`
-    <div style="margin-bottom:20px;">
-      <div style="font-size:11px;font-weight:800;letter-spacing:1.2px;text-transform:uppercase;color:var(--ink3);margin-bottom:10px;">
-        ${getRoundLabel(parseInt(round))}${Object.values(ms).every(m=>m.status==='done')?'  <span class="badge badge-green">הושלם</span>':''}
-      </div>
-      ${Object.values(ms).map(m=>matchCardHtml(m,false)).join('')}
-    </div>`).join('') || '<div class="empty-state"><div class="empty-state-icon">⚽</div><div class="empty-state-title">אין משחקים</div></div>';
-}
-
-function matchCardHtml(m, compact){
-  const h = teamById(m.home), a = teamById(m.away);
-  const isDone = m.status==='done';
-  const today = dateStr(new Date());
-  const isToday = m.date===today;
-  const isOverdue = !isDone && m.date < today;
-  return `<div class="match-card ${isDone?'completed':isToday?'pending':isOverdue?'overdue':''}" onclick="openMatchModal(${m.id})" style="position:relative;">
-    <div class="match-card-top">
-      <div class="match-teams">
-        <div class="match-team right">
-          <div class="match-team-name">${h?.name||'?'}</div>
-          <div class="match-team-crest ${h?.color||'crest-0'}">${(h?.name||'?')[0]}</div>
-        </div>
-        <div class="match-score ${isDone?'completed':''}">${isDone?m.homeScore+' : '+m.awayScore:'—'}</div>
-        <div class="match-team">
-          <div class="match-team-crest ${a?.color||'crest-1'}">${(a?.name||'?')[0]}</div>
-          <div class="match-team-name">${a?.name||'?'}</div>
-        </div>
-      </div>
-    </div>
-    <div class="match-meta">
-      <span>📅 ${formatDate(m.date)}</span>
-      <span>🕐 ${m.time}</span>
-      ${isToday?'<span class="badge badge-green">היום</span>':''}
-      ${isOverdue?'<span class="badge badge-red" style="animation:pulse 1.5s infinite;">⚠ לא הוזנה תוצאה</span>':''}
-      ${isDone?'<span class="badge badge-green">הושלם</span>':isOverdue?'':'<span class="badge badge-yellow">ממתין</span>'}
-      ${isDone?`<button class="btn btn-secondary btn-sm" onclick="event.stopPropagation();showMatchProtocol(${m.id})" style="padding:3px 10px;font-size:11px;">📋 סיכום</button>`:''}
-      ${isDone&&(m.goalDetails||m.goals)?.length?`<span style="max-width:400px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">⚽ ${(m.goalDetails||m.goals).map(g=>{
-        const name=(g.scorer||g.name)||'—';
-        const team=teamById(g.team)?.name||'';
-        const assist=g.assist?' 🍳'+g.assist:'';
-        const og=g.og?'🔄 שע״צ ':'';
-        return og+name+assist+' ('+team+')';
-      }).join(' · ')}</span>`:''}
-    </div>
-  </div>`;
-}
-
-function filterMatches(f){
-  _matchFilter = f;
-  ['all','pending','done'].forEach(id=>{
-    document.getElementById('filter-'+id).classList.toggle('active',id===f);
-  });
-  renderMatches();
-}
-
-function setRoundFilter(r){
-  _matchRoundFilter = r;
-  renderMatches();
-}
-
-// ══════════════════════════════════════════════════════════════
-// MATCH MODAL
-// ══════════════════════════════════════════════════════════════
-function openMatchModal(matchId){
-  const m = T.matches.find(x=>x.id===matchId);
-  if(!m) return;
-  _currentMatchId = matchId;
-  const h = teamById(m.home), a = teamById(m.away);
-  document.getElementById('mm-title').textContent = (h?.name||'?')+' נגד '+(a?.name||'?');
-  document.getElementById('mm-sub').textContent = 'סיבוב '+m.round+' · '+formatDate(m.date)+' · '+m.time;
-  document.getElementById('mm-home-name').textContent = h?.name||'?';
-  document.getElementById('mm-away-name').textContent = a?.name||'?';
-  document.getElementById('mm-home-name-small').textContent = h?.name||'?';
-  document.getElementById('mm-away-name-small').textContent = a?.name||'?';
-  document.getElementById('mm-home-name-assist').textContent = h?.name||'?';
-  document.getElementById('mm-away-name-assist').textContent = a?.name||'?';
-  _homeScore = m.homeScore!==null?m.homeScore:0;
-  _awayScore = m.awayScore!==null?m.awayScore:0;
-  document.getElementById('mm-home-score').value = _homeScore;
-  document.getElementById('mm-away-score').value = _awayScore;
-  document.getElementById('mm-home-score-display').textContent = _homeScore;
-  document.getElementById('mm-away-score-display').textContent = _awayScore;
-  // Init _goals from saved match data (new per-goal-row format)
-  _goals = [];
-  // Rebuild from goals+assists arrays (each goal object: {team, name, assist?, og?})
-  if(m.goalDetails && m.goalDetails.length){
-    // New format: goalDetails array
-    _goals = m.goalDetails.map(g=>({
-      side: g.team===m.home?'home':'away',
-      scorer: g.scorer||'',
-      assist: g.assist||'',
-      og: g.og||false,
-    }));
-  } else if(m.goals && m.goals.length){
-    // Legacy format: reconstruct from goals+assists
-    const homeG = m.goals.filter(g=>g.team===m.home);
-    const awayG = m.goals.filter(g=>g.team===m.away);
-    homeG.forEach((g,i)=>{
-      const assist = (m.assists||[]).filter(a=>a.team===m.home)[i];
-      _goals.push({side:'home',scorer:g.name||'',assist:assist?.name||'',og:false});
-    });
-    awayG.forEach((g,i)=>{
-      const assist = (m.assists||[]).filter(a=>a.team===m.away)[i];
-      _goals.push({side:'away',scorer:g.name||'',assist:assist?.name||'',og:false});
-    });
-  } else {
-    // No saved data — generate empty rows based on score
-    for(let i=0;i<_homeScore;i++) _goals.push({side:'home',scorer:'',assist:'',og:false});
-    for(let i=0;i<_awayScore;i++) _goals.push({side:'away',scorer:'',assist:'',og:false});
-  }
-  renderGoalRows();
-  // Legacy chips for backward compat
-  _chips = {home:{goal:[],assist:[]},away:{goal:[],assist:[]}};
-  document.getElementById('mm-date').value = m.date;
-  document.getElementById('mm-clear-btn').style.display = m.status==='done'?'':'none';
-  document.getElementById('mm-reschedule-chk').checked = false;
-  document.getElementById('mm-reschedule-row').style.display = 'none';
-  document.getElementById('mm-new-date').value = '';
-  // Goals
-  // chips initialized above
-  openModal('match-modal');
-}
-
-function renderGoalEntries(side, goals){ /* handled by chips */ }
-function renderAssistEntries(side, assists){ /* handled by chips */ }
-function addGoalEntry(side){ /* legacy — not used */ }
-function addAssistEntry(side){ /* legacy — not used */ }
-
-function getGoalNames(side, m){
-  // Now handled by _goals / saveMatchResult directly
-  return [];
-}
-function getAssistNames(side, m){
-  return [];
-}
-
-function toggleReschedule(){
-  document.getElementById('mm-reschedule-row').style.display =
-    document.getElementById('mm-reschedule-chk').checked ? '' : 'none';
-}
-
-function saveMatchResult(){
-  const m = T.matches.find(x=>x.id===_currentMatchId);
-  if(!m) return;
-  // Reschedule?
-  if(document.getElementById('mm-reschedule-chk').checked){
-    const nd = document.getElementById('mm-new-date').value;
-    if(!nd){ toast('בחר תאריך חדש'); return; }
-    m.date = nd;
-    m.status = 'pending';
-    m.homeScore = null; m.awayScore = null;
-    m.goals = []; m.assists = [];
-    closeModal('match-modal');
-    saveData(); refreshAll(); toast('✓ המשחק נדחה');
-    return;
-  }
-  // Date override
-  const overrideDate = document.getElementById('mm-date').value;
-  if(overrideDate) m.date = overrideDate;
-  // Scores
-  const hs = parseInt(document.getElementById('mm-home-score').value)||0;
-  const as = parseInt(document.getElementById('mm-away-score').value)||0;
-  m.homeScore = hs; m.awayScore = as; m.status = 'done';
-  // Save new per-goal format
-  // First flush any open inputs
-  _goals.forEach((g,i)=>{
-    const sinp=document.getElementById('gr-scorer-'+i);
-    const ainp=document.getElementById('gr-assist-'+i);
-    if(sinp) g.scorer=sinp.value.trim();
-    if(ainp) g.assist=ainp.value.trim();
-  });
-  m.goalDetails = _goals.map(g=>({
-    team: g.side==='home'?m.home:m.away,
-    scorer: g.scorer||'',
-    assist: g.assist||'',
-    og: g.og||false,
-  }));
-  // Also update legacy goals/assists for backward compat
-  m.goals = _goals
-    .filter(g=>g.scorer)
-    .map(g=>({name:g.scorer, team:g.side==='home'?m.home:m.away}));
-  m.assists = _goals
-    .filter(g=>g.assist)
-    .map(g=>({name:g.assist, team:g.side==='home'?m.home:m.away}));
-  // Update scorer stats
-  rebuildScorers();
-  closeModal('match-modal');
-  saveData(); refreshAll(); toast('✓ התוצאה נשמרה');
-}
-
-function clearMatchResult(){
-  const m = T.matches.find(x=>x.id===_currentMatchId);
-  if(!m) return;
-  m.status='pending'; m.homeScore=null; m.awayScore=null; m.goals=[]; m.assists=[];
-  rebuildScorers();
-  closeModal('match-modal');
-  saveData(); refreshAll(); toast('תוצאה נמחקה');
-}
-
-// ══════════════════════════════════════════════════════════════
-// SCORERS
-// ══════════════════════════════════════════════════════════════
-function rebuildScorers(){
-  T.scorers = {};
-  T.matches.filter(m=>m.status==='done').forEach(m=>{
-    const goals = m.goalDetails||m.goals||[];
-    const assists = m.goalDetails
-      ? m.goalDetails.filter(g=>g.assist).map(g=>({name:g.assist,team:g.team}))
-      : (m.assists||[]);
-
-    goals.forEach(g=>{
-      const name = g.scorer||g.name;
-      if(!name) return;
-      // For own goals, credit the opposing team's scorer counts
-      const teamId = g.og ? (g.team===m.home?m.away:m.home) : g.team;
-      const teamName = teamById(teamId)?.name||'?';
-      if(!T.scorers[name]) T.scorers[name]={name,goals:0,assists:0,ownGoals:0,team:teamName};
-      if(g.og) T.scorers[name].ownGoals=(T.scorers[name].ownGoals||0)+1;
-      else T.scorers[name].goals++;
-    });
-    assists.forEach(g=>{
-      const name = g.assist||g.name;
-      if(!name) return;
-      const teamName = teamById(g.team)?.name||'?';
-      if(!T.scorers[name]) T.scorers[name]={name,goals:0,assists:0,ownGoals:0,team:teamName};
-      T.scorers[name].assists++;
-    });
-  });
-}
-
-function getTopScorer(field){
-  const all = Object.values(T.scorers||{}).filter(s=>s[field]>0).sort((a,b)=>b[field]-a[field]);
-  return all[0]||null;
-}
-
-function renderScorers(){
-  rebuildScorers();
-  const allScorers = Object.values(T.scorers||{}).filter(s=>s.goals>0).sort((a,b)=>b.goals-a.goals);
-  const allAssists = Object.values(T.scorers||{}).filter(s=>s.assists>0).sort((a,b)=>b.assists-a.assists);
-  const maxG = allScorers[0]?.goals||1;
-  const maxA = allAssists[0]?.assists||1;
-
-  function scorerHtml(arr, field, maxVal){
-    if(!arr.length) return '<div style="color:var(--ink3);font-size:13px;">אין נתונים עדיין</div>';
-    return arr.slice(0,10).map((s,i)=>`
-      <div class="scorer-row">
-        <div class="scorer-rank ${i===0?'gold':i===1?'silver':i===2?'bronze':''}">${i+1}</div>
-        <div class="scorer-info">
-          <div class="scorer-name">${s.name}</div>
-          <div class="scorer-team">${s.team}</div>
-          <div class="scorer-bar"><div class="scorer-bar-fill" style="width:${Math.round(s[field]/maxVal*100)}%"></div></div>
-        </div>
-        <div class="scorer-count">${s[field]}</div>
-      </div>`).join('');
-  }
-  document.getElementById('scorers-goals').innerHTML = scorerHtml(allScorers,'goals',maxG);
-  document.getElementById('scorers-assists').innerHTML = scorerHtml(allAssists,'assists',maxA);
-}
-
-// ══════════════════════════════════════════════════════════════
-// CALENDAR
-// ══════════════════════════════════════════════════════════════
-function renderCalendar(){
-  const y=_calYear, m=_calMonth;
-  const title = new Date(y,m,1).toLocaleDateString('he-IL',{month:'long',year:'numeric'});
-  document.getElementById('cal-title').textContent = title;
-  const first = new Date(y,m,1).getDay(); // 0=Sun
-  const daysInMonth = new Date(y,m+1,0).getDate();
-  const daysInPrev = new Date(y,m,0).getDate();
-  const today = dateStr(new Date());
-  const grid = document.getElementById('cal-grid');
-  // Remove old day cells (keep the header labels)
-  const headerCells = grid.querySelectorAll('.cal-day-name');
-  grid.innerHTML = '';
-  headerCells.forEach(c=>grid.appendChild(c));
-
-  // Previous month filler
-  for(let i=0;i<first;i++){
-    const d = document.createElement('div');
-    d.className='cal-day other-month';
-    d.innerHTML=`<div class="cal-day-num">${daysInPrev-first+i+1}</div>`;
-    grid.appendChild(d);
-  }
-  // This month
-  for(let day=1;day<=daysInMonth;day++){
-    const ds = `${y}-${String(m+1).padStart(2,'0')}-${String(day).padStart(2,'0')}`;
-    const blocked = isBlocked(ds);
-    const dayMatches = (T?.matches||[]).filter(mx=>mx.date===ds);
-    const d = document.createElement('div');
-    d.className='cal-day'+(blocked?' blocked':dayMatches.length?' has-match':'')+(ds===today?' today':'');
-    const dots = dayMatches.map(mx=>`<div class="cal-dot ${mx.status==='done'?'done':''}"></div>`).join('');
-    d.innerHTML=`<div class="cal-day-num">${day}</div><div class="cal-dots">${dots}</div>`;
-    if(dayMatches.length) d.title = dayMatches.map(mx=>`${teamById(mx.home)?.name} vs ${teamById(mx.away)?.name}`).join('\n');
-    if(!blocked && dayMatches.length) d.onclick=()=>{ _matchRoundFilter=null; showView('matches'); /* TODO filter by date */ };
-    grid.appendChild(d);
-  }
-  // Next month filler
-  const total = first+daysInMonth;
-  const remaining = total%7===0?0:7-(total%7);
-  for(let i=1;i<=remaining;i++){
-    const d=document.createElement('div');
-    d.className='cal-day other-month';
-    d.innerHTML=`<div class="cal-day-num">${i}</div>`;
-    grid.appendChild(d);
-  }
-}
-
-function calPrev(){ if(_calMonth===0){_calMonth=11;_calYear--;}else _calMonth--; renderCalendar(); }
-function calNext(){ if(_calMonth===11){_calMonth=0;_calYear++;}else _calMonth++; renderCalendar(); }
-
-// ══════════════════════════════════════════════════════════════
-// BLOCKED DAYS
-// ══════════════════════════════════════════════════════════════
-function addBlockedDay(){
-  const start = document.getElementById('block-start').value;
-  if(!start){ toast('בחר תאריך'); return; }
-  const end = document.getElementById('block-end').value;
-  const reason = document.getElementById('block-reason').value.trim();
-  if(!T.blockedDays) T.blockedDays=[];
-  T.blockedDays.push({start, end:end||null, reason});
-  document.getElementById('block-start').value='';
-  document.getElementById('block-end').value='';
-  document.getElementById('block-reason').value='';
-  saveData(); renderBlockedDays(); renderCalendar();
-  toast('✓ יום חסום נוסף');
-}
-
-function removeBlocked(i){
-  T.blockedDays.splice(i,1);
-  saveData(); renderBlockedDays(); renderCalendar();
-}
-
-function renderBlockedDays(){
-  const el = document.getElementById('blocked-list');
-  if(!el) return;
-  const bd = T?.blockedDays||[];
-  if(!bd.length){ el.innerHTML='<div style="color:var(--ink3);font-size:13px;">אין ימים חסומים</div>'; return; }
-  el.innerHTML = bd.map((b,i)=>`
-    <div class="blocked-chip" style="display:flex;">
-      <span>🚫 ${formatDate(b.start)}${b.end?' – '+formatDate(b.end):''}${b.reason?' · '+b.reason:''}</span>
-      <button onclick="removeBlocked(${i})">✕</button>
-    </div>`).join('');
-}
-
-// ══════════════════════════════════════════════════════════════
-// SETTINGS
-// ══════════════════════════════════════════════════════════════
-function renderSettings(){
-  if(!T){ document.getElementById('settings-body').innerHTML='<div style="color:var(--ink3);">אין טורניר פעיל</div>'; return; }
-  setTimeout(()=>{ renderRosterChips(); renderTeamRosters(); }, 50);
-  document.getElementById('settings-body').innerHTML = `
-    <div class="form-row">
-      <div class="form-group" style="margin-bottom:16px;">
-        <label class="form-label">שם הטורניר</label>
-        <input type="text" class="form-input" id="set-name" value="${T.name}">
-      </div>
-      <div class="form-group" style="margin-bottom:16px;">
-        <label class="form-label">מין השחקנים</label>
-        <select class="form-input" id="set-gender">
-          <option value="boys" ${T.gender==='boys'?'selected':''}>בנים</option>
-          <option value="girls" ${T.gender==='girls'?'selected':''}>בנות</option>
-          <option value="mixed" ${T.gender==='mixed'?'selected':''}>מעורב</option>
-        </select>
-      </div>
-    </div>
-    <div class="form-row">
-      <div class="form-group" style="margin-bottom:16px;">
-        <label class="form-label">שעת משחקים</label>
-        <input type="time" class="form-input" id="set-time" value="${T.matchTime}">
-      </div>
-      <div class="form-group" style="margin-bottom:16px;">
-        <label class="form-label">מספר מפגשים בין קבוצות</label>
-        <div style="padding:9px 12px;background:var(--bg3);border:1px solid var(--bd2);border-radius:var(--rs);font-size:14px;color:var(--ink2);">${T.legs||1}× ${T.legs===2?'(הלוך וחזור)':T.legs===3?'(שלוש סבבים)':''}</div>
-        <div style="font-size:11px;color:var(--ink3);margin-top:4px;">ניתן לשנות ע"י יצירת טורניר חדש</div>
-      </div>
-    </div>
-    <div class="form-group" style="margin-bottom:20px;">
-      <label class="form-label">שמות קבוצות</label>
-      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-top:6px;">
-        ${T.teams.map((t,i)=>`<input type="text" class="form-input" id="set-team-${i}" value="${t.name}">`).join('')}
-      </div>
-    </div>
-    <button class="btn btn-primary" onclick="saveSettings()">✓ שמור שינויים</button>
-  `;
-}
-
-function saveSettings(){
-  T.name = document.getElementById('set-name')?.value?.trim()||T.name;
-  T.gender = document.getElementById('set-gender')?.value||T.gender;
-  T.matchTime = document.getElementById('set-time')?.value||T.matchTime;
-  T.teams.forEach((t,i)=>{ const v=document.getElementById('set-team-'+i)?.value?.trim(); if(v) t.name=v; });
-  document.getElementById('hdr-tournament-name').textContent = T.name;
-  const genderBadge = document.getElementById('hdr-gender-badge');
-  if(genderBadge){
-    const sEmoji=(typeof SPORT_EMOJI!=='undefined'&&SPORT_EMOJI[T.sport])||'⚽';
-    const gMap={boys:sEmoji+' בנים',girls:sEmoji+' בנות',mixed:sEmoji+' מעורב'};
-    genderBadge.innerHTML = T.gender?`<span class="gender-badge">${gMap[T.gender]||T.gender}</span>`:'';
-  }
-  saveData(); refreshAll(); toast('✓ הגדרות נשמרו');
-}
-
-function deleteTournament(){
-  if(!confirm('למחוק את הטורניר? כל הנתונים יאבדו.'))return;
-  // Remove from allTournaments
-  const all = getAllTournaments().filter(t=>t.id!==T?.id);
-  localStorage.setItem(LS_ALL_TM, JSON.stringify(all));
-  localStorage.removeItem(LS_CUR_TM);
-  T=null;
-  document.getElementById('hdr-tournament-name').textContent='';
-  document.getElementById('hdr-gender-badge').innerHTML='';
-  document.getElementById('sb-tournament-section').style.display='none';
-  document.getElementById('no-tournament-state').style.display='';
-  document.getElementById('tournament-dashboard').style.display='none';
-  renderHomeView();
-  showView('home');
-  toast('הטורניר נמחק');
-}
-
-// ══════════════════════════════════════════════════════════════
-// VIEWER PAGE
-// ══════════════════════════════════════════════════════════════
-function openViewer(){
-  if(!T){ toast('צור טורניר תחילה'); return; }
-  const html = buildViewerHtml();
-  const w = window.open('','_blank');
-  w.document.write(html);
-  w.document.close();
-}
-
-function buildViewerHtml(){
-  const st = calcStandings();
-  const upcoming = T.matches.filter(m=>m.status==='pending').sort((a,b)=>a.date.localeCompare(b.date)).slice(0,6);
-  const recent = T.matches.filter(m=>m.status==='done').sort((a,b)=>b.date.localeCompare(a.date)).slice(0,5);
-  const topGoals = getTopScorer('goals');
-  const topAssists = getTopScorer('assists');
-  scheduledDates = T.matches.map(m=>m.date).filter(Boolean).sort();
-  const done = T.matches.filter(m=>m.status==='done').length;
-  const total = T.matches.length;
-  pct = total>0?Math.round(done/total*100):0;
-
-  return `<!DOCTYPE html><html lang="he" dir="rtl"><head>
-  <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>⚽ ${T.name}</title>
-  <link href="https://fonts.googleapis.com/css2?family=Heebo:wght@400;600;700;800;900&family=Bebas+Neue&display=swap" rel="stylesheet">
-  <style>
-    *{box-sizing:border-box;margin:0;padding:0;}
-    body{font-family:'Heebo',sans-serif;background:#0a0c10;color:#f0f2ff;min-height:100vh;font-size:15px;}
-    header{background:#111420;border-bottom:1px solid rgba(255,255,255,.08);padding:20px 24px;display:flex;align-items:center;gap:12px;}
-    .logo{font-family:'Bebas Neue',cursive;font-size:28px;letter-spacing:2px;}
-    .badge{background:#00e676;color:#000;padding:2px 8px;border-radius:4px;font-size:14px;font-weight:900;}
-    .main{max-width:900px;margin:0 auto;padding:24px 16px;}
-    h2{font-family:'Bebas Neue',cursive;font-size:22px;letter-spacing:1px;color:rgba(240,242,255,.5);margin-bottom:14px;margin-top:28px;}
-    .card{background:#141720;border:1px solid rgba(255,255,255,.08);border-radius:14px;overflow:hidden;margin-bottom:16px;}
-    .card-head{padding:14px 20px;border-bottom:1px solid rgba(255,255,255,.06);font-weight:700;font-size:15px;}
-    table{width:100%;border-collapse:collapse;font-size:13px;}
-    th{padding:10px 14px;text-align:right;font-size:10px;font-weight:800;letter-spacing:.8px;text-transform:uppercase;color:rgba(240,242,255,.3);border-bottom:1px solid rgba(255,255,255,.06);}
-    td{padding:12px 14px;border-bottom:1px solid rgba(255,255,255,.04);vertical-align:middle;}
-    .rk{font-family:'Bebas Neue',cursive;font-size:18px;color:rgba(240,242,255,.3);width:32px;text-align:center;}
-    .pts{font-family:'Bebas Neue',cursive;font-size:22px;color:#00e676;}
-    .match-row{display:flex;align-items:center;gap:12px;padding:12px 20px;border-bottom:1px solid rgba(255,255,255,.04);}
-    .match-team-name{font-weight:700;font-size:15px;flex:1;}
-    .match-team-name.right{text-align:right;}
-    .score-box{background:#1c2030;border:1px solid rgba(255,255,255,.1);border-radius:8px;padding:4px 14px;font-family:'Bebas Neue',cursive;font-size:24px;letter-spacing:2px;color:#00e676;min-width:64px;text-align:center;}
-    .score-box.pending{color:rgba(255,255,255,.3);}
-    .match-date{font-size:11px;color:rgba(240,242,255,.3);text-align:center;min-width:90px;}
-    .hero-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:0;}
-    .hero-card{background:linear-gradient(135deg,rgba(0,230,118,.15) 0%,rgba(0,230,118,.04) 100%);border:1px solid rgba(0,230,118,.2);border-radius:14px;padding:18px;}
-    .hero-card.assist{background:linear-gradient(135deg,rgba(79,195,247,.15) 0%,rgba(79,195,247,.04) 100%);border-color:rgba(79,195,247,.2);}
-    .hero-label{font-size:10px;font-weight:800;letter-spacing:1.5px;text-transform:uppercase;color:#00e676;margin-bottom:6px;}
-    .hero-label.assist{color:#4fc3f7;}
-    .hero-name{font-family:'Bebas Neue',cursive;font-size:28px;letter-spacing:1px;}
-    .hero-stat{font-size:13px;color:rgba(240,242,255,.5);}
-    .crest{width:28px;height:28px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-size:13px;font-weight:900;margin-left:8px;flex-shrink:0;}
-    ${TEAM_COLORS.map((c,i)=>{
-      const cl = ['#00e676','#4fc3f7','#ffd600','#ff4444','#b388ff','#ff9800','#f06292','#4dd0e1','#aed581','#ffb74d'][i];
-      return `.tc-${i}{background:${cl}22;color:${cl};}`;
-    }).join('\n')}
-  </style></head><body>
-  <header>
-    <div class="logo">⚽ ${T.name}</div>
-    <span class="badge">${T.grade}׳</span>
-    <div style="margin-right:auto;display:flex;gap:16px;font-size:12px;color:rgba(240,242,255,.4);align-items:center;">
-      <span>${formatDate(scheduledDates[0]||T.startDate||'')} → ${formatDate(scheduledDates[scheduledDates.length-1]||'')}</span>
-      <span>${done}/${total} משחקים (${pct}%)</span>
-    </div>
-  </header>
-  <div class="main">
-    <!-- Heroes -->
-    ${(topGoals||topAssists)?`<h2>🥇 מובילים</h2><div class="hero-grid">
-      <div class="hero-card">${topGoals?`<div class="hero-label">⚽ מלך השערים</div><div class="hero-name">${topGoals.name}</div><div class="hero-stat">${topGoals.goals} שערים · ${topGoals.team}</div>`:'<div class="hero-stat">אין נתונים</div>'}</div>
-      <div class="hero-card assist">${topAssists?`<div class="hero-label assist">🍳 מלך הבישולים</div><div class="hero-name">${topAssists.name}</div><div class="hero-stat">${topAssists.assists} בישולים · ${topAssists.team}</div>`:'<div class="hero-stat">אין נתונים</div>'}</div>
-    </div>`:''}
-
-    <!-- Standings -->
-    <h2>📊 טבלת ליגה</h2>
-    <div class="card"><table>
-      <thead><tr><th>#</th><th>קבוצה</th><th>מש׳</th><th>נצ׳</th><th>ת׳</th><th>הפ׳</th><th>הפרש</th><th>נק׳</th></tr></thead>
-      <tbody>${st.map((s,i)=>`<tr>
-        <td class="rk">${i+1}</td>
-        <td style="font-weight:700;"><span class="crest tc-${s.team.id%10}">${s.team.name[0]}</span>${s.team.name}</td>
-        <td style="text-align:center;">${s.played}</td><td style="text-align:center;">${s.won}</td>
-        <td style="text-align:center;">${s.drawn}</td><td style="text-align:center;">${s.lost}</td>
-        <td style="text-align:center;color:${s.gd>0?'#00e676':s.gd<0?'#ff4444':''};">${s.gd>0?'+':''}${s.gd}</td>
-        <td class="pts">${s.pts}</td>
-      </tr>`).join('')}</tbody>
-    </table></div>
-
-    <!-- Upcoming -->
-    ${upcoming.length?`<h2>📅 משחקים קרובים</h2><div class="card">
-      ${upcoming.map(m=>{
-        const h=teamById(m.home),a=teamById(m.away);
-        return `<div class="match-row">
-          <div class="match-team-name right">${h?.name||'?'}</div>
-          <div class="score-box pending">—</div>
-          <div class="match-team-name">${a?.name||'?'}</div>
-          <div class="match-date">${formatDate(m.date)}<br>${m.time}</div>
-        </div>`;
-      }).join('')}</div>`:''}
-
-    <!-- Recent results -->
-    ${recent.length?`<h2>✅ תוצאות אחרונות</h2><div class="card">
-      ${recent.map(m=>{
-        const h=teamById(m.home),a=teamById(m.away);
-        const goalSummary=(m.goalDetails||m.goals||[]).map(g=>{
-          const n=g.scorer||g.name||'—';
-          return (g.og?'🔄':'⚽')+n+(g.assist?' 🍳'+g.assist:'');
-        }).join(' · ');
-        return `<div class="match-row">
-          <div class="match-team-name right">${h?.name||'?'}</div>
-          <div class="score-box">${m.homeScore} : ${m.awayScore}</div>
-          <div class="match-team-name">${a?.name||'?'}</div>
-          <div class="match-date">${formatDate(m.date)}${goalSummary?`<br><span style="font-size:10px;color:rgba(240,242,255,.4);">${goalSummary}</span>`:''}</div>
-        </div>`;
-      }).join('')}</div>`:''}
-
-  </div>
-  <div style="text-align:center;padding:24px;font-size:12px;color:rgba(240,242,255,.2);">TourneyGrade · SportGrade Suite</div>
 
 <!-- ══ PROTOCOL MODAL ══ -->
 <div class="modal-bg" id="protocol-modal">
