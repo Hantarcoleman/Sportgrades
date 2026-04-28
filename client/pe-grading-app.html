@@ -2231,12 +2231,7 @@ const TEST_LIST = [
 ];
 
 let tabGroupState = { strength: true, speed: true, cardio: true, tools: false };
-function toggleTabGroup(key) {
-  const wasOpen = tabGroupState[key];
-  if (!wasOpen) { Object.keys(tabGroupState).forEach(k => { tabGroupState[k] = false; }); }
-  tabGroupState[key] = !wasOpen;
-  buildTabs();
-}
+function toggleTabGroup(key) { tabGroupState[key] = !tabGroupState[key]; buildTabs(); }
 
 // FTI placeholders and examples per test
 const FTI_EXAMPLES = {
@@ -2771,14 +2766,7 @@ function getTbl(testId){return TABLES[testId]||{};}
 
 function selectTest(testId){
   const _tEntry=TEST_LIST.find(t=>t.id===testId);
-  if(_tEntry){
-    Object.keys(tabGroupState).forEach(k=>{tabGroupState[k]=false;});
-    tabGroupState[_tEntry.group]=true;
-  } else {
-    const _ct=S.customTests?.[testId];
-    if(_ct?.group){Object.keys(tabGroupState).forEach(k=>{tabGroupState[k]=false;});tabGroupState[_ct.group]=true;}
-    else {Object.keys(tabGroupState).forEach(k=>{tabGroupState[k]=false;});tabGroupState.tools=true;}
-  }
+  if(_tEntry) tabGroupState[_tEntry.group]=true;
   setCUR({test:testId});
   document.getElementById('completion-view').style.display='none';
   document.getElementById('entered-view')&&(document.getElementById('entered-view').style.display='none');
@@ -6655,7 +6643,7 @@ function unmarkAllEntered(testId){
 
 function selectEntered(){
   CUR.test='__entered__';
-  Object.keys(tabGroupState).forEach(k=>{tabGroupState[k]=false;}); tabGroupState.tools=true; buildTabs();
+  tabGroupState.tools=true; buildTabs();
   document.querySelectorAll('.tab').forEach(t=>t.classList.remove('sel'));
   const tab=document.getElementById('tab-__entered__');if(tab)tab.classList.add('sel');
   document.getElementById('entered-view').style.display='block';
@@ -6872,7 +6860,7 @@ function undoLastEntered(){
 
 function selectCompletion(){
   CUR.test='__completion__';
-  Object.keys(tabGroupState).forEach(k=>{tabGroupState[k]=false;}); tabGroupState.tools=true; buildTabs();
+  tabGroupState.tools=true; buildTabs();
   document.querySelectorAll('.tab').forEach(t=>t.classList.remove('sel'));
   const tab=document.getElementById('tab-__completion__');if(tab)tab.classList.add('sel');
   document.getElementById('completion-view').style.display='block';
