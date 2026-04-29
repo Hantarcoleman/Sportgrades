@@ -1,9 +1,13 @@
 param(
-    [int]$Port = 8000,
+    [int]$Port = 0,
     [string]$Root = 'client'
 )
 
 $ErrorActionPreference = 'Stop'
+# Resolve port from arg, env var (PORT), or default
+if ($Port -eq 0) {
+    if ($env:PORT) { $Port = [int]$env:PORT } else { $Port = 8000 }
+}
 $rootPath = (Resolve-Path $Root).Path
 
 $mime = @{

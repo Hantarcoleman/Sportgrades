@@ -10,12 +10,11 @@
         "Bypass",
         "-File",
         ".claude/serve.ps1",
-        "-Port",
-        "8000",
         "-Root",
         "client"
       ],
-      "port": 8000
+      "port": 8000,
+      "autoPort": true
     }
   ]
 }
