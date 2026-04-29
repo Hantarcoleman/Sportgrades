@@ -709,7 +709,7 @@ async function sbLoadUserData() {
   if (!sbApp || !SG_USER) return;
 
   // Always start fresh from Supabase (ignore localStorage)
-  S = {groups:{}, nextId:1, customTests:{}};
+  S = {groups:{}, nextId:1, customTests:{}, customCategories:[]};
 
   const { data: groups, error } = await sbApp
     .from('groups')
@@ -736,6 +736,7 @@ async function sbLoadUserData() {
         results:   g.semester_a?.results  || {},
         results_b: g.semester_b?.results  || {},
         customTests: g.semester_a?.customTests || {},
+      customCategories: g.semester_a?.customCategories || [],
       };
       // Hydrate names from local idMap (Supabase doesn't store them when idHash is present)
       hydrateGroupFromIdMap(gid, S.groups[gid]);
@@ -745,6 +746,14 @@ async function sbLoadUserData() {
     // Merge customTests from all groups into global S.customTests
     S.customTests = {};
     Object.values(S.groups).forEach(g => Object.assign(S.customTests, g.customTests || {}));
+    // Merge customCategories from all groups (deduplicate by key)
+    S.customCategories = [];
+    const _catSeen = new Set();
+    Object.values(S.groups).forEach(g => {
+      (g.customCategories||[]).forEach(cat => {
+        if(!_catSeen.has(cat.key)){_catSeen.add(cat.key);S.customCategories.push(cat);}
+      });
+    });
   }
 
   // Update UI after loading
@@ -775,6 +784,7 @@ async function sbSaveGroup(gid) {
       students: stripLocalFields(g.students || []),
       results:  g.results  || {},
       customTests: g.customTests || {},
+      customCategories: g.customCategories || [],
     },
     semester_b: {
       results: g.results_b || {},
@@ -1642,7 +1652,7 @@ history.pushState(null,'',location.href);
     <div style="background:rgba(255,255,255,.04);border-radius:10px;padding:10px 16px;margin-bottom:10px;display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
       <span style="color:rgba(255,255,255,.5);font-size:12px;font-weight:700;">עוצמה:</span>
       <button onclick="setMetroVol(0)" id="metro-mute-btn" style="background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.15);color:#fff;border-radius:7px;padding:4px 10px;cursor:pointer;font-size:12px;font-family:'Heebo',sans-serif;font-weight:700;">🔇</button>
-      <input type="range" id="metro-vol" min="0" max="1" step="0.05" value="1.0" oninput="onMetroVolChange(this.value)"
+      <input type="range" id="metro-vol" min="0" max="1" step="0.05" value="0.5" oninput="onMetroVolChange(this.value)"
         style="flex:1;min-width:80px;accent-color:var(--ac);">
       <span id="metro-vol-label" style="font-size:12px;color:rgba(255,255,255,.5);min-width:30px;">50%</span>
     </div>
@@ -1653,6 +1663,7 @@ history.pushState(null,'',location.href);
       <button class="metro-btn" id="metro-stop-btn" onclick="metroStopTest()" style="background:#ef4444;color:#fff;display:none;">■ סיום מבחן</button>
       <button class="metro-btn" onclick="closeMetronome()" style="background:rgba(255,80,80,.15);border:1px solid rgba(255,80,80,.3);color:#ff8080;">✕ סגור</button>
     </div>
+    <div style="font-size:11px;color:rgba(255,255,255,.4);text-align:center;margin-top:4px;margin-bottom:4px;">💡 לחץ "התחל מבחן" כאשר גם התלמיד וגם הדמות יורדים למטה יחד</div>
     <!-- ±½ rep adjustment -->
     <div style="display:flex;align-items:center;justify-content:center;gap:8px;margin-bottom:10px;">
       <button onclick="metroAdjust(-1)" style="background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.15);color:#fff;border-radius:8px;padding:6px 14px;cursor:pointer;font-family:'Heebo',sans-serif;font-size:13px;font-weight:700;">−½ חז׳</button>
@@ -1848,11 +1859,15 @@ history.pushState(null,'',location.href);
   <div class="fr">
     <div class="fg"><label class="fl">שם המבחן</label><input type="text" class="fi2" id="cm-name" placeholder="לדוגמה: קפיצה למרחק"></div>
     <div class="fg"><label class="fl">קטגוריה</label>
-      <select class="fsel" id="cm-group">
+      <select class="fsel" id="cm-group" onchange="onCmGroupChange()">
         <option value="strength">💪 כוח וסבולת שרירים</option>
         <option value="speed">⚡ טכניקה, מהירות וזריזות</option>
         <option value="cardio">♥ מבחנים אירוביים</option>
+        <option value="__new__">＋ קטגוריה חדשה...</option>
       </select>
+      <div id="cm-new-cat-wrap" style="display:none;margin-top:6px;">
+        <input type="text" class="fi2" id="cm-new-cat-name" placeholder="שם הקטגוריה החדשה">
+      </div>
     </div>
   </div>
   <div class="fr">
@@ -1883,7 +1898,24 @@ history.pushState(null,'',location.href);
     </div>
   </div>
   <div class="fg">
-    <label class="fl">ערכי ציון (מספיקים 2 — 100 ו-60)</label>
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">
+      <label class="fl" style="margin-bottom:0;">ערכי ציון (מספיקים 2 — 100 ו-60)</label>
+      <label style="display:flex;align-items:center;gap:6px;font-size:12px;cursor:pointer;white-space:nowrap;">
+        <input type="checkbox" id="cm-grade-specific" onchange="toggleGradeSpecific()">
+        קריטריונים לפי שכבה
+      </label>
+    </div>
+    <div id="cm-grade-tabs" style="display:none;margin-bottom:8px;">
+      <div style="display:flex;gap:5px;flex-wrap:wrap;">
+        <button type="button" onclick="switchCustomGrade('ז')" id="cm-gtab-ז" style="padding:3px 10px;border-radius:20px;border:1px solid var(--ac);background:var(--ac);color:#fff;cursor:pointer;font-family:'Heebo',sans-serif;font-size:12px;font-weight:700;">ז׳</button>
+        <button type="button" onclick="switchCustomGrade('ח')" id="cm-gtab-ח" style="padding:3px 10px;border-radius:20px;border:1px solid var(--bd);background:transparent;color:var(--ink2);cursor:pointer;font-family:'Heebo',sans-serif;font-size:12px;font-weight:700;">ח׳</button>
+        <button type="button" onclick="switchCustomGrade('ט')" id="cm-gtab-ט" style="padding:3px 10px;border-radius:20px;border:1px solid var(--bd);background:transparent;color:var(--ink2);cursor:pointer;font-family:'Heebo',sans-serif;font-size:12px;font-weight:700;">ט׳</button>
+        <button type="button" onclick="switchCustomGrade('י')" id="cm-gtab-י" style="padding:3px 10px;border-radius:20px;border:1px solid var(--bd);background:transparent;color:var(--ink2);cursor:pointer;font-family:'Heebo',sans-serif;font-size:12px;font-weight:700;">י׳</button>
+        <button type="button" onclick="switchCustomGrade('יא')" id="cm-gtab-יא" style="padding:3px 10px;border-radius:20px;border:1px solid var(--bd);background:transparent;color:var(--ink2);cursor:pointer;font-family:'Heebo',sans-serif;font-size:12px;font-weight:700;">יא׳</button>
+        <button type="button" onclick="switchCustomGrade('יב')" id="cm-gtab-יב" style="padding:3px 10px;border-radius:20px;border:1px solid var(--bd);background:transparent;color:var(--ink2);cursor:pointer;font-family:'Heebo',sans-serif;font-size:12px;font-weight:700;">יב׳</button>
+      </div>
+      <div style="font-size:11px;color:var(--ink3);margin-top:4px;">שכבות ריקות ישתמשו בקריטריון הקרוב ביותר שהוגדר</div>
+    </div>
     <div class="sg">
       <div class="sgh">ציון</div><div class="sgh">בנים (ז)</div><div class="sgh">בנות (נ) — ריק = כמו בנים</div>
       <div class="slbl">100</div><input class="sgi" type="number" id="cm-v100m" placeholder="חובה"><input class="sgi" type="number" id="cm-v100f" placeholder="">
@@ -2716,7 +2748,23 @@ function getScore(testId,grade,gender,rawVal){
   const ct=customTest(testId);
   if(ct){
     const isFemale=gender==='נ'||gender==='f';
-    const pts=(isFemale&&ct.tablef)?ct.tablef:ct.table;
+    let pts;
+    if(ct.tablesByGrade){
+      const g=normGrade(grade);
+      const GRADE_ORDER=['ז','ח','ט','י','יא','יב'];
+      // find closest defined grade
+      let gradeData=ct.tablesByGrade[g];
+      if(!gradeData){
+        const gi=GRADE_ORDER.indexOf(g);
+        for(let d=1;d<GRADE_ORDER.length;d++){
+          if(gi-d>=0&&ct.tablesByGrade[GRADE_ORDER[gi-d]]){gradeData=ct.tablesByGrade[GRADE_ORDER[gi-d]];break;}
+          if(gi+d<GRADE_ORDER.length&&ct.tablesByGrade[GRADE_ORDER[gi+d]]){gradeData=ct.tablesByGrade[GRADE_ORDER[gi+d]];break;}
+        }
+      }
+      pts=(isFemale&&gradeData?.tablef)?gradeData.tablef:(gradeData?.table||ct.table);
+    } else {
+      pts=(isFemale&&ct.tablef)?ct.tablef:ct.table;
+    }
     return interpolate(pts,val,ct.lowerBetter);
   }
 
@@ -3134,10 +3182,11 @@ function buildTabs(){
     {key:'speed',   label:'מבחנים טכניקה, מהירות וזריזות',    icon:'⚡'},
     {key:'cardio',  label:'מבחנים אירוביים',         icon:'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="16" height="16" fill="#dc2626" stroke="#7f1d1d" stroke-width="1" stroke-linejoin="round" style="vertical-align:-3px;display:inline-block;"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.29 1.51 4.04 3 5.5l7 7Z"/><path d="M3.22 12H9.5l.88-1.76 2.62 5.26 1.76-5.26 1.76 1.76h4.26" fill="none" stroke="#fff" stroke-width="1.6" stroke-linecap="round"/></svg>'},
   ];
+  const _renderCustomTestTabs=(catKey)=>Object.entries(S.customTests||{}).filter(([,ct])=>ct.group===catKey).map(([id,ct])=>`<div class="tab tab-${catKey} tab-custom${id===CUR.test?' sel':''}" style="display:flex;align-items:center;gap:4px;" id="tab-${id}"><span onclick="selectTest('${id}')" style="cursor:pointer;">${ct.name}</span><span onclick="openCustomModal('${id}')" style="cursor:pointer;opacity:.5;font-size:12px;padding:0 2px;" title="ערוך מבחן">✏</span><span onclick="deleteCustomTest('${id}')" style="cursor:pointer;opacity:.5;font-size:12px;padding:0 2px;" title="מחק מבחן">✕</span></div>`).join('');
   let html='';
   for(const cat of CAT_CONFIG){
     const tests=TEST_LIST.filter(t=>t.group===cat.key);
-    const hasActive=tests.some(t=>t.id===CUR.test);
+    const hasActive=tests.some(t=>t.id===CUR.test)||Object.keys(S.customTests||{}).some(id=>S.customTests[id].group===cat.key&&id===CUR.test);
     const isOpen=tabGroupState[cat.key];
     html+=`<div class="tab-cat">
       <div class="tab-cat-hdr${hasActive?' has-active':''}" onclick="toggleTabGroup('${cat.key}')">
@@ -3146,7 +3195,23 @@ function buildTabs(){
       </div>
       <div class="tab-cat-body"${isOpen?'':' style="display:none"'}>
         ${tests.map(t=>`<div class="tab tab-${cat.key}${t.id===CUR.test?' sel':''}" onclick="selectTest('${t.id}')" id="tab-${t.id}">${t.label}</div>`).join('')}
-        ${Object.entries(S.customTests||{}).filter(([,ct])=>ct.group===cat.key).map(([id,ct])=>`<div class="tab tab-${cat.key} tab-custom${id===CUR.test?' sel':''}" style="display:flex;align-items:center;gap:4px;" id="tab-${id}"><span onclick="selectTest('${id}')" style="cursor:pointer;">${ct.name}</span><span onclick="openCustomModal('${id}')" style="cursor:pointer;opacity:.5;font-size:12px;padding:0 2px;" title="ערוך מבחן">✏</span><span onclick="deleteCustomTest('${id}')" style="cursor:pointer;opacity:.5;font-size:12px;padding:0 2px;" title="מחק מבחן">✕</span></div>`).join('')}
+        ${_renderCustomTestTabs(cat.key)}
+      </div>
+    </div>`;
+  }
+  // Custom categories
+  for(const cat of (S.customCategories||[])){
+    const customEntries=Object.entries(S.customTests||{}).filter(([,ct])=>ct.group===cat.key);
+    if(!customEntries.length)continue;
+    const hasActive=customEntries.some(([id])=>id===CUR.test);
+    const isOpen=tabGroupState[cat.key];
+    html+=`<div class="tab-cat">
+      <div class="tab-cat-hdr${hasActive?' has-active':''}" onclick="toggleTabGroup('${cat.key}')">
+        <span>${cat.icon||'📋'} ${cat.label}</span>
+        <span class="tab-cat-arrow${isOpen?' open':''}">‹</span>
+      </div>
+      <div class="tab-cat-body"${isOpen?'':' style="display:none"'}>
+        ${customEntries.map(([id,ct])=>`<div class="tab tab-custom${id===CUR.test?' sel':''}" style="display:flex;align-items:center;gap:4px;" id="tab-${id}"><span onclick="selectTest('${id}')" style="cursor:pointer;">${ct.name}</span><span onclick="openCustomModal('${id}')" style="cursor:pointer;opacity:.5;font-size:12px;padding:0 2px;" title="ערוך מבחן">✏</span><span onclick="deleteCustomTest('${id}')" style="cursor:pointer;opacity:.5;font-size:12px;padding:0 2px;" title="מחק מבחן">✕</span></div>`).join('')}
       </div>
     </div>`;
   }
@@ -4068,19 +4133,64 @@ function openCustomModal(editId){
   const ct=editId?S.customTests[editId]:null;
   document.getElementById('cm-title').textContent=ct?'ערוך מבחן':'יצירת מבחן חדש';
   document.getElementById('cm-name').value=ct?.name||'';
-  document.getElementById('cm-group').value=ct?.group||'strength';
+
+  // Rebuild cm-group options: 3 built-ins + custom categories + __new__
+  const groupSel=document.getElementById('cm-group');
+  while(groupSel.options.length>4)groupSel.remove(3); // keep 3 built-ins + __new__
+  (S.customCategories||[]).forEach(cat=>{
+    const opt=new Option(`${cat.icon||'📋'} ${cat.label}`,cat.key);
+    groupSel.add(opt,groupSel.options.length-1); // insert before __new__
+  });
+  groupSel.value=ct?.group||'strength';
+  onCmGroupChange();
+
   document.getElementById('cm-unit').value=ct?.unit||'חזרות';
-  const scoreKeys={100:'v100m',90:'v90m',80:'v80m',70:'v70m',60:'v60m'};
-  const fKeys={100:'v100f',90:'v90f',80:'v80f',70:'v70f',60:'v60f'};
   const isTimeEdit=ct?.unit==='דקות-';
-  for(const[sc,k]of Object.entries(scoreKeys)){
-    const pt=ct?.table?.find(([,s])=>Math.round(s)===parseInt(sc));
-    document.getElementById('cm-'+k).value=pt?(isTimeEdit?fmtTime(pt[0]):pt[0]):'';
+
+  // Reset grade-specific state
+  _gradeAnchors={};_curGrade='ז';
+  const gradeSpecific=!!(ct?.tablesByGrade);
+  document.getElementById('cm-grade-specific').checked=gradeSpecific;
+  document.getElementById('cm-grade-tabs').style.display=gradeSpecific?'block':'none';
+
+  if(gradeSpecific){
+    // Restore per-grade anchor inputs from saved tables
+    for(const[grade,gd]of Object.entries(ct.tablesByGrade)){
+      const entry={};
+      for(const sc of[100,90,80,70,60]){
+        const mp=gd.table?.find(([,s])=>Math.round(s)===sc);
+        const fp=gd.tablef?.find(([,s])=>Math.round(s)===sc);
+        entry['m'+sc]=mp?(isTimeEdit?fmtTime(mp[0]):String(mp[0])):'';
+        entry['f'+sc]=fp?(isTimeEdit?fmtTime(fp[0]):String(fp[0])):'';
+      }
+      _gradeAnchors[grade]=entry;
+    }
+    // Activate first defined grade tab
+    const firstGrade=Object.keys(ct.tablesByGrade)[0]||'ז';
+    _curGrade=firstGrade;
+    document.querySelectorAll('[id^="cm-gtab-"]').forEach(b=>{
+      const isActive=b.id==='cm-gtab-'+firstGrade;
+      b.style.background=isActive?'var(--ac)':'transparent';
+      b.style.color=isActive?'#fff':'var(--ink2)';
+      b.style.border=isActive?'1px solid var(--ac)':'1px solid var(--bd)';
+    });
+    _loadGradeInputs(firstGrade);
+  } else {
+    // Load flat table values
+    for(const sc of[100,90,80,70,60]){
+      const mp=ct?.table?.find(([,s])=>Math.round(s)===sc);
+      const fp=ct?.tablef?.find(([,s])=>Math.round(s)===sc);
+      document.getElementById('cm-v'+sc+'m').value=mp?(isTimeEdit?fmtTime(mp[0]):mp[0]):'';
+      document.getElementById('cm-v'+sc+'f').value=fp?(isTimeEdit?fmtTime(fp[0]):fp[0]):'';
+    }
+    // Reset all grade tabs to inactive style
+    document.querySelectorAll('[id^="cm-gtab-"]').forEach(b=>{
+      b.style.background='transparent';b.style.color='var(--ink2)';b.style.border='1px solid var(--bd)';
+    });
+    const firstTab=document.getElementById('cm-gtab-ז');
+    if(firstTab){firstTab.style.background='var(--ac)';firstTab.style.color='#fff';firstTab.style.border='1px solid var(--ac)';}
   }
-  for(const[sc,k]of Object.entries(fKeys)){
-    const pt=ct?.tablef?.find(([,s])=>Math.round(s)===parseInt(sc));
-    document.getElementById('cm-'+k).value=pt?(isTimeEdit?fmtTime(pt[0]):pt[0]):'';
-  }
+
   toggleCustomUnit();
   if(ct?.unit==='מדד אחר'){
     document.getElementById('cm-custom-unit-wrap').style.display='block';
@@ -4093,6 +4203,77 @@ function openCustomModal(editId){
   openModal('custom-modal');
 }
 function editCurrentCustom(){openCustomModal(CUR.test);}
+
+// ── Grade-specific custom test helpers ───────────────────────
+let _gradeAnchors={};let _curGrade='ז';
+const _GRADES=['ז','ח','ט','י','יא','יב'];
+
+function onCmGroupChange(){
+  const v=document.getElementById('cm-group').value;
+  document.getElementById('cm-new-cat-wrap').style.display=v==='__new__'?'block':'none';
+}
+
+function toggleGradeSpecific(){
+  const checked=document.getElementById('cm-grade-specific').checked;
+  document.getElementById('cm-grade-tabs').style.display=checked?'block':'none';
+  if(checked){
+    _saveGradeInputs(_curGrade);
+    _setActiveGradeTab(_curGrade);
+    _loadGradeInputs(_curGrade);
+  }
+}
+
+function switchCustomGrade(grade){
+  _saveGradeInputs(_curGrade);
+  _curGrade=grade;
+  _setActiveGradeTab(grade);
+  _loadGradeInputs(grade);
+}
+
+function _setActiveGradeTab(grade){
+  _GRADES.forEach(g=>{
+    const b=document.getElementById('cm-gtab-'+g);if(!b)return;
+    const active=g===grade;
+    b.style.background=active?'var(--ac)':'transparent';
+    b.style.color=active?'#fff':'var(--ink2)';
+    b.style.border=active?'1px solid var(--ac)':'1px solid var(--bd)';
+  });
+}
+
+function _saveGradeInputs(grade){
+  if(!grade)return;
+  const entry={};
+  for(const sc of[100,90,80,70,60]){
+    entry['m'+sc]=document.getElementById('cm-v'+sc+'m')?.value||'';
+    entry['f'+sc]=document.getElementById('cm-v'+sc+'f')?.value||'';
+  }
+  _gradeAnchors[grade]=entry;
+}
+
+function _loadGradeInputs(grade){
+  const entry=grade?(_gradeAnchors[grade]||{}):{};
+  for(const sc of[100,90,80,70,60]){
+    const m=document.getElementById('cm-v'+sc+'m');const f=document.getElementById('cm-v'+sc+'f');
+    if(m)m.value=entry['m'+sc]||'';if(f)f.value=entry['f'+sc]||'';
+  }
+}
+
+function _getGradeSpecificTables(lb){
+  const isTime=document.getElementById('cm-unit').value==='דקות-';
+  const result={};
+  for(const grade of _GRADES){
+    const entry=_gradeAnchors[grade]||{};
+    const mA=[],fA=[];
+    for(const sc of[100,90,80,70,60]){
+      const mv=entry['m'+sc];const fv=entry['f'+sc];
+      if(mv!==undefined&&mv!==''){const v=isTime?parseTime(mv):parseFloat(mv);if(v!==null&&!isNaN(v))mA.push([sc,v]);}
+      if(fv!==undefined&&fv!==''){const v=isTime?parseTime(fv):parseFloat(fv);if(v!==null&&!isNaN(v))fA.push([sc,v]);}
+    }
+    if(mA.length>=2)result[grade]={table:buildCustomTable(mA,lb),tablef:fA.length>=2?buildCustomTable(fA,lb):null};
+  }
+  return Object.keys(result).length>0?result:null;
+}
+
 function toggleCustomUnit(){
   const v=document.getElementById('cm-unit').value;
   document.getElementById('cm-custom-unit-wrap').style.display=v==='מדד אחר'?'block':'none';
@@ -4199,16 +4380,44 @@ function saveCustomTest(){
   const unit=unitRaw==='מדד אחר'?(customUnitName||'מדד'):unitRaw;
   const lb=unitRaw==='שניות-'||unitRaw==='דקות-'||
     (unitRaw==='מדד אחר'&&document.querySelector('input[name="cm-lb"]:checked')?.value==='1');
-  const mAnchors=getCustomAnchors('m');if(mAnchors.length<2){toast('נא להזין לפחות 2 ערכים לבנים');return;}
-  const mTbl=buildCustomTable(mAnchors,lb);
-  const fAnchors=getCustomAnchors('f');
-  const fTbl=fAnchors.length>=2?buildCustomTable(fAnchors,lb):null;
+
+  // Handle new custom category
+  let group=document.getElementById('cm-group').value||'strength';
+  if(group==='__new__'){
+    const catName=document.getElementById('cm-new-cat-name').value.trim();
+    if(!catName){toast('נא להזין שם קטגוריה');return;}
+    group='cat_'+Date.now();
+    const catEntry={key:group,label:catName,icon:'📋'};
+    if(!S.customCategories)S.customCategories=[];
+    S.customCategories.push(catEntry);
+    if(CUR.gid!=null&&S.groups[CUR.gid]){
+      if(!S.groups[CUR.gid].customCategories)S.groups[CUR.gid].customCategories=[];
+      S.groups[CUR.gid].customCategories.push(catEntry);
+    }
+  }
+
+  // Grade-specific tables
+  const gradeSpecific=document.getElementById('cm-grade-specific').checked;
+  let tablesByGrade=null;
+  let mTbl,fTbl;
+  if(gradeSpecific){
+    _saveGradeInputs(_curGrade);
+    tablesByGrade=_getGradeSpecificTables(lb);
+    if(!tablesByGrade){toast('נא להזין לפחות 2 ערכים לשכבה אחת לפחות');return;}
+    // Use first defined grade as fallback flat table
+    const firstGd=Object.values(tablesByGrade)[0];
+    mTbl=firstGd.table;fTbl=firstGd.tablef;
+  } else {
+    const mAnchors=getCustomAnchors('m');if(mAnchors.length<2){toast('נא להזין לפחות 2 ערכים לבנים');return;}
+    mTbl=buildCustomTable(mAnchors,lb);
+    const fAnchors=getCustomAnchors('f');
+    fTbl=fAnchors.length>=2?buildCustomTable(fAnchors,lb):null;
+  }
+
   if(!S.customTests)S.customTests={};
   const id=_editCT||('ct_'+Date.now());
-  const group=document.getElementById('cm-group').value||'strength';
-  const ctObj={name,unit,customUnitName,lowerBetter:lb,table:mTbl,tablef:fTbl,group};
+  const ctObj={name,unit,customUnitName,lowerBetter:lb,table:mTbl,tablef:fTbl,group,tablesByGrade};
   S.customTests[id]=ctObj;
-  // Save into current group so Supabase syncs it
   if(CUR.gid!=null&&S.groups[CUR.gid]){
     if(!S.groups[CUR.gid].customTests)S.groups[CUR.gid].customTests={};
     S.groups[CUR.gid].customTests[id]=ctObj;
@@ -8795,7 +9004,7 @@ function lrSaveAll(silent){
 // METRONOME ENGINE
 // ═══════════════════════════════════════════════════════════
 const MTR={playing:false,testing:false,bpm:60,beat:0,reps:0,halfReps:0,
-  audioCtx:null,nextBeatTime:0,raf:null,splits:[],round:'a',volume:1.0,muted:false,
+  audioCtx:null,nextBeatTime:0,raf:null,splits:[],round:'a',volume:0.5,muted:false,
   stoppedOnce:false,refGrade:'ט',refGender:'ז',gid:null};
 
 function getAudioCtx(){
