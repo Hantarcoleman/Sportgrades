@@ -780,7 +780,14 @@ async function sbSaveGroup(gid) {
     // New group - insert
     const { data, error } = await sbApp.from('groups').insert(payload).select().single();
     if (error) { console.error('Insert error:', error); return; }
-    if (data) S.groups[gid]._sbId = data.id;
+    if (data) {
+      if (S.groups[gid]) {
+        S.groups[gid]._sbId = data.id;
+      } else {
+        // Group was deleted while insert was in flight — remove the orphaned row
+        sbApp.from('groups').delete().eq('id', data.id).then(({error:e})=>{ if(e) console.error('Orphan cleanup error:', e); });
+      }
+    }
   }
 }
 
@@ -794,11 +801,14 @@ async function sbSaveAll() {
 
 // ── Delete group from Supabase ───────────────────────────────
 async function sbDeleteGroup(gid) {
-  if (!sbApp || !SG_USER) return;
+  if (!sbApp || !SG_USER) { console.warn('[delete] no session'); return; }
   const g = S.groups[gid];
-  if (g && g._sbId) {
-    await sbApp.from('groups').delete().eq('id', g._sbId);
-  }
+  if (!g)        { console.warn('[delete] group missing for gid', gid); return; }
+  if (!g._sbId)  { console.warn('[delete] no _sbId for gid', gid); return; }
+  console.log('[delete] deleting _sbId:', g._sbId);
+  const { data, error } = await sbApp.from('groups').delete().eq('id', g._sbId).select();
+  if (error) { console.error('[delete] error:', error); toast('שגיאה במחיקת הקבוצה'); }
+  else        { console.log('[delete] rows deleted:', data); }
 }
 
 // ── Sign out ─────────────────────────────────────────────────
@@ -10055,6 +10065,7 @@ function geRenameGroup(){
 function geDeleteGroup(){
   const gid=CUR.gid;
   if(!confirm(`למחוק את הקבוצה "${S.groups[gid]?.name}"? כל הנתונים יימחקו.`))return;
+  sbDeleteGroup&&sbDeleteGroup(gid);
   delete S.groups[gid];
   saveState();renderGroupGrid();showView('welcome');
   toast('הקבוצה נמחקה');
@@ -10134,6 +10145,7 @@ function _confirmMerge(){
     } else {
       const newIdx=gA.students.length;
       gA.students.push({...bStu});nameMapA.set(norm,newIdx);added++;
+      if(bStu.idHash){const info=idMapLookup(srcGid,bStu.idHash);if(info)setIdMapEntry(CUR.gid,bStu.idHash,info);}
       ['results','results_b'].forEach(sem=>{
         Object.entries(gB[sem]||{}).forEach(([testId,bTests])=>{
           const bR=bTests[bIdx];if(!bR)return;
