@@ -2920,9 +2920,6 @@ function _parseRoute(){
 async function restoreRoute(){
   function _done(){document.documentElement.removeAttribute('data-restoring');}
   let r=_parseRoute();
-  if(!r){
-    try{const ls=JSON.parse(localStorage.getItem(CUR_LS_KEY)||'null');if(ls&&ls.gid!=null)r={gid:ls.gid,test:ls.test||'pushups',semester:ls.semester||'a'};}catch(e){}
-  }
   if(!r){_done();return;}
   if(!S.groups||!S.groups[r.gid]){
     history.replaceState(null,'',location.pathname+location.search);
