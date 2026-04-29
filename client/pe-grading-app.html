@@ -46,7 +46,7 @@
   }
   html:not([data-theme="dark"]) body{background:#faf7f2;color:#1a1510;}
 }
-body{font-family:'Heebo',sans-serif;background:var(--bg);color:var(--ink);min-height:100vh;font-size:14px;line-height:1.6;}
+body{font-family:'Heebo',sans-serif;background:var(--bg);color:var(--ink);min-height:100vh;font-size:14px;line-height:1.6;overscroll-behavior-y:contain;}
 body::after{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;opacity:.5;
   background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='200' height='200' filter='url(%23n)' opacity='.03'/%3E%3C/svg%3E");}
 .app{position:relative;z-index:1;}
@@ -12893,7 +12893,7 @@ function openTournamentManager(){
 }
 *{box-sizing:border-box;margin:0;padding:0;}
 html{scroll-behavior:smooth;}
-body{font-family:'Heebo',sans-serif;background:var(--bg);color:var(--ink);min-height:100vh;font-size:14px;line-height:1.6;}
+body{font-family:'Heebo',sans-serif;background:var(--bg);color:var(--ink);min-height:100vh;font-size:14px;line-height:1.6;overscroll-behavior-y:contain;}
 
 /* ── NOISE TEXTURE ─────────────────────────── */
 body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;opacity:.4;
