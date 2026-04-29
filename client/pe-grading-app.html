@@ -1473,8 +1473,6 @@ history.pushState(null,'',location.href);
   <div class="eb">
     <div style="font-size:12px;color:var(--ink3);">💡 בונוס % מחושב על הציון: 50 + 10% = 55. מקסימום 100.</div>
     <div style="display:flex;gap:8px;flex-wrap:wrap;">
-      <button class="btn bgn" onclick="exportExcel()">⬇ אקסל — מבחן זה</button>
-      <button class="btn bgn" onclick="exportFullExcel()" style="background:#15803d;">📊 אקסל — כל המבחנים</button>
       <button class="btn bgn" onclick="exportAllExcel()">⬇ אקסל סיכום</button>
       <button class="btn bgn" onclick="openMashovExportModal()" style="background:#1d4ed8;" title="ייצוא לקובץ משו״ב — תעודות הזהות לא נשמרות בשרת">🔐 ייצא למשו״ב</button>
       <button class="btn bgn" onclick="exportPDF()" style="background:#dc2626;">📄 PDF — מבחן זה</button>
@@ -3667,7 +3665,7 @@ function submitFTI(){
       const newScore=getScore(CUR.test,s.grade,s.gender,numStr);
       if(existScore!==null&&newScore!==null&&newScore<=existScore){skippedNames.push(s.name);return;}
     }
-    r(idx).a=numStr;savedIdxs.push(idx);
+    r(idx).a=numStr;r(idx)._ts=Date.now();savedIdxs.push(idx);
   });
   if(savedIdxs.length){saveState();renderTable();savedIdxs.forEach(idx=>highlightRow(idx));}
   if(skippedNames.length)toast(`⚠ דולג: ${skippedNames.slice(0,3).join(', ')}${skippedNames.length>3?` +${skippedNames.length-3}`:''} (אין שיפור בציון)`);
@@ -3730,7 +3728,7 @@ function ftiResolve(studentIdx, numStr){
   const students=S.groups[CUR.gid]?.students||[];
   const student=students[studentIdx];
   if(!student)return;
-  r(studentIdx).a=numStr;
+  r(studentIdx).a=numStr;r(studentIdx)._ts=Date.now();
   saveState();renderTable();
   highlightRow(studentIdx);
   const sc=getScore(CUR.test,student.grade,student.gender,numStr);
@@ -4786,18 +4784,16 @@ function exportExcel(){
   const label=ct?ct.name:(TEST_LIST.find(t=>t.id===CUR.test)?.label||CUR.test);
   const unit=(T.unit||(ct&&ct.unit)||'ערך').replace('-','');
   const fmtDate=ts=>ts?new Date(ts).toLocaleDateString('he-IL',{day:'2-digit',month:'2-digit',year:'2-digit'}):'';
-  const rows=[['#','שם','מין','כיתה',`מועד א (${unit})`,'ציון א','בונוס א%',`מועד ב (${unit})`,'ציון ב','בונוס שיפור','ציון לתעודה','תאריך בדיקה']];
+  const rows=[['#','שם','מין','כיתה',`מועד א (${unit})`,'ציון א','בונוס א%','ציון לתעודה','תאריך בדיקה']];
   g.students.forEach((s,idx)=>{
     const d=g[resKey()]?.[CUR.test]?.[idx]||{};
     const isFem=s.gender==='נ'||s.gender==='f';const dis=T.maleOnly&&isFem;
     const sA=dis?'':(d.a?(getScore(CUR.test,s.grade,s.gender,d.a)??''):'');
-    const sB=(d.b&&!dis)?(getScore(CUR.test,s.grade,s.gender,d.b)??''):'';
-    const base=(sB!==''&&sB>=(sA||0))?sB:sA;
-    const fin=base!==''?Math.min(100,Math.round(base*(1+(d.bonusA||0)/100)+(d.bonusB||0))):'';
-    rows.push([idx+1,s.name,isFem?'נ':'ז',s.grade+s.cls,d.a||'',sA,d.bonusA||'',d.b||'',sB,d.bonusB||'',fin,fmtDate(d._ts)]);
+    const fin=sA!==''?Math.min(100,Math.round(sA*(1+(d.bonusA||0)/100))):'';
+    rows.push([idx+1,s.name,isFem?'נ':'ז',s.grade+s.cls,d.a||'',sA,d.bonusA||'',fin,fmtDate(d._ts)]);
   });
   const ws=XLSX.utils.aoa_to_sheet(rows);
-  ws['!cols']=[4,22,6,8,14,8,10,14,8,12,10,12].map(w=>({wch:w}));
+  ws['!cols']=[4,22,6,8,14,8,10,12,12].map(w=>({wch:w}));
   const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,label.slice(0,31));
   XLSX.writeFile(wb,`${g.name}_${label}.xlsx`);toast('הקובץ יוצא ✓');
 }
@@ -4868,210 +4864,117 @@ function exportFullExcel(){
 }
 
 // ── PDF EXPORT ────────────────────────────────────────────────
-function getPDFDoc(title, groupName, semLabel){
-  const {jsPDF} = window.jspdf;
-  const doc = new jsPDF({orientation:'landscape', unit:'mm', format:'a4'});
-  return doc;
+function _pdfScoreColor(fin){
+  if(fin===null||fin===undefined||fin==='—') return '#888';
+  const v=Number(fin);
+  if(v>=90) return '#16a34a';
+  if(v>=75) return '#15803d';
+  if(v>=60) return '#ca8a04';
+  if(v>=50) return '#c2410c';
+  return '#dc2626';
 }
 
-// Hebrew text reversal for jsPDF RTL workaround
-function heb(str){
-  if(!str) return '';
-  // Reverse the string for RTL display in jsPDF
-  return String(str).split('').reverse().join('');
-}
-function hebArr(arr){ return arr.map(heb); }
-
-function addPDFHeader(doc, title, groupName, semLabel, testLabel){
-  const pageW = doc.internal.pageSize.getWidth();
-  // Dark header bar
-  doc.setFillColor(26,21,16);
-  doc.rect(0,0,pageW,22,'F');
-  // Title
-  doc.setFont('helvetica','bold');
-  doc.setFontSize(14);
-  doc.setTextColor(255,255,255);
-  doc.text(heb(title), 10, 10, {align:'left'});
-  // Subtitle
-  doc.setFontSize(9);
-  doc.setTextColor(200,200,200);
-  doc.text(heb(`${groupName}  |  ${semLabel}  |  ${new Date().toLocaleDateString('he-IL')}`), 10, 17, {align:'left'});
-  if(testLabel){
-    doc.setFontSize(10);
-    doc.setTextColor(200,100,60);
-    doc.text(heb(testLabel), pageW-10, 10);
-  }
-  return 28; // y start after header
+function _pdfPrintWindow(html){
+  const w=window.open('','_blank','width=1000,height=700');
+  if(!w){toast('אפשר חלונות קופצים בדפדפן');return;}
+  w.document.write(html);
+  w.document.close();
 }
 
-function scoreToRGB(score){
-  if(score===null||score===undefined) return [150,150,150];
-  if(score>=90) return [21,128,61];
-  if(score>=75) return [22,101,52];
-  if(score>=60) return [202,138,4];
-  if(score>=50) return [194,65,12];
-  return [220,38,38];
-}
-
-function addStatsFooter(doc, scores){
-  if(!scores.length) return;
-  const pageW = doc.internal.pageSize.getWidth();
-  const pageH = doc.internal.pageSize.getHeight();
-  const avg = (scores.reduce((a,b)=>a+b,0)/scores.length).toFixed(1);
-  const max = Math.max(...scores);
-  const min = Math.min(...scores);
-  const done = scores.length;
-  doc.setFillColor(245,245,240);
-  doc.rect(0, pageH-14, pageW, 14, 'F');
-  doc.setFontSize(8);
-  doc.setTextColor(80,80,80);
-  doc.setFont('helvetica','normal');
-  const statsText = heb(`ממוצע: ${avg}  |  מקסימום: ${max}  |  מינימום: ${min}  |  נבחנו: ${done}`);
-  doc.text(statsText, pageW/2, pageH-6, {align:'center'});
-}
+const _pdfStyles=`
+  @import url('https://fonts.googleapis.com/css2?family=Heebo:wght@400;700&display=swap');
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:'Heebo',Arial,sans-serif;background:#fff;color:#111;direction:rtl}
+  .hd{background:#1a1510;color:#fff;padding:12px 20px;display:flex;justify-content:space-between;align-items:center}
+  .hd h1{font-size:15px;font-weight:700}
+  .hd .meta{font-size:11px;color:#aaa;margin-top:2px}
+  .hd .tl{color:#f97316;font-size:13px;font-weight:700}
+  table{width:100%;border-collapse:collapse;font-size:12px}
+  th{background:#1a1510;color:#fff;padding:7px 10px;font-size:11px;font-weight:700}
+  td{padding:6px 10px;border-bottom:1px solid #e5e5e5;text-align:center}
+  td.nm{text-align:right}
+  tr:nth-child(even){background:#f8f6f2}
+  .ft{background:#f5f5f0;padding:7px 20px;font-size:11px;color:#555;display:flex;gap:20px}
+  .sec{margin-bottom:20px}
+  .sec-hd{background:#292318;color:#f97316;padding:7px 16px;font-weight:700;font-size:13px}
+  @media print{@page{margin:10mm} button{display:none} .sec{page-break-inside:avoid} .pb{page-break-before:always}}
+`;
 
 // Single test PDF
 function exportPDF(){
-  const g = S.groups[CUR.gid]; if(!g){ toast('אין קבוצה פתוחה'); return; }
-  if(!window.jspdf){ toast('טוען jsPDF...'); return; }
-  const T = getTbl(CUR.test);
-  const ct = S.customTests?.[CUR.test];
-  const testLabel = ct ? ct.name : (TEST_LIST.find(t=>t.id===CUR.test)?.label || CUR.test);
-  const unit = (T.unit||(ct?.unit)||'').replace('-','');
-  const semLabel = CUR.semester==='b' ? 'מחצית ב׳' : 'מחצית א׳';
-  const {jsPDF} = window.jspdf;
-  const doc = new jsPDF({orientation:'landscape', unit:'mm', format:'a4'});
-  const startY = addPDFHeader(doc, 'SportGrade — דוח מבחן', g.name, semLabel, testLabel);
-
-  // Build table data
-  const scores = [];
-  const tableBody = [];
+  const g=S.groups[CUR.gid];if(!g){toast('אין קבוצה פתוחה');return;}
+  const T=getTbl(CUR.test);
+  const ct=S.customTests?.[CUR.test];
+  const testLabel=ct?ct.name:(TEST_LIST.find(t=>t.id===CUR.test)?.label||CUR.test);
+  const unit=(T.unit||(ct?.unit)||'').replace('-','');
+  const semLabel=CUR.semester==='b'?'מחצית ב׳':'מחצית א׳';
+  const today=new Date().toLocaleDateString('he-IL');
+  const scores=[];
+  let rows='';
   g.students.forEach((s,idx)=>{
-    const isFem = s.gender==='נ'||s.gender==='f';
-    const dis = T.maleOnly && isFem;
-    const d = g[resKey()]?.[CUR.test]?.[idx]||{};
-    if(!d.a && !dis) return; // skip empty (optional: include all)
-    const sA = dis?null:getScore(CUR.test,s.grade,s.gender,d.a);
-    const sB = d.b&&!dis ? getScore(CUR.test,s.grade,s.gender,d.b) : null;
-    const base = (sB!==null&&sB>=(sA||0))?sB:sA;
-    const fin = calcFinal(base,d.bonusA||0,0);
+    const isFem=s.gender==='נ'||s.gender==='f';
+    const dis=T.maleOnly&&isFem;
+    const d=g[resKey()]?.[CUR.test]?.[idx]||{};
+    if(!d.a&&!dis) return;
+    const sA=dis?null:getScore(CUR.test,s.grade,s.gender,d.a);
+    const fin=calcFinal(sA,d.bonusA||0,0);
     if(fin!==null) scores.push(fin);
-    tableBody.push([
-      String(idx+1),
-      s.name,
-      isFem?'נ':'ז',
-      s.grade+s.cls,
-      dis?'—':(d.a||'—'),
-      unit ? (dis?'—':(d.a||'—')+' '+unit) : (dis?'—':(d.a||'—')),
-      sA!==null?String(sA):'—',
-      d.b?(d.b||'—'):'—',
-      sB!==null?String(sB):'—',
-      fin!==null?String(fin):'—'
-    ]);
+    const col=_pdfScoreColor(fin);
+    rows+=`<tr><td>${idx+1}</td><td class="nm">${s.name}</td><td>${isFem?'נ':'ז'}</td><td>${s.grade}${s.cls}</td>`+
+      `<td>${dis?'—':((d.a||'—')+(unit?' '+unit:''))}</td>`+
+      `<td>${sA!==null?sA:'—'}</td>`+
+      `<td style="color:${col};font-weight:700">${fin!==null?fin:'—'}</td></tr>`;
   });
-
-  doc.autoTable({
-    startY,
-    head:[[heb('#'),heb('שם תלמיד'),heb('מין'),heb('כיתה'),heb('תוצאה א'),heb(''),heb('ציון א'),heb('תוצאה ב'),heb('ציון ב'),heb('ציון סופי')]],
-    body: tableBody,
-    theme: 'grid',
-    styles:{ font:'helvetica', fontSize:8.5, halign:'center', cellPadding:2.5 },
-    headStyles:{ fillColor:[26,21,16], textColor:255, fontSize:8, fontStyle:'bold' },
-    columnStyles:{
-      0:{cellWidth:8},
-      1:{halign:'right', cellWidth:42},
-      2:{cellWidth:10},
-      3:{cellWidth:16},
-      4:{cellWidth:22},
-      5:{cellWidth:22},
-      6:{cellWidth:16},
-      7:{cellWidth:22},
-      8:{cellWidth:16},
-      9:{cellWidth:18, fontStyle:'bold'},
-    },
-    alternateRowStyles:{ fillColor:[248,246,242] },
-    didParseCell(data){
-      if(data.column.index===9 && data.section==='body'){
-        const v = parseInt(data.cell.raw);
-        if(!isNaN(v)){
-          const [r,g2,b] = scoreToRGB(v);
-          data.cell.styles.textColor = [r,g2,b];
-          data.cell.styles.fontStyle = 'bold';
-        }
-      }
-    },
-    margin:{bottom:18}
-  });
-
-  addStatsFooter(doc, scores);
-  doc.save(`${g.name}_${testLabel}_${semLabel}.pdf`);
-  toast('✓ PDF יוצא');
+  const avg=scores.length?(scores.reduce((a,b)=>a+b,0)/scores.length).toFixed(1):'-';
+  const ftHtml=scores.length?`<span>ממוצע: ${avg}</span><span>נבחנו: ${scores.length}</span><span>מקסימום: ${Math.max(...scores)}</span><span>מינימום: ${Math.min(...scores)}</span>`:`<span>אין ציונים</span>`;
+  _pdfPrintWindow(`<!DOCTYPE html><html dir="rtl" lang="he"><head><meta charset="utf-8"><title>SportGrade — ${testLabel}</title><style>${_pdfStyles}</style></head><body>
+<div class="hd"><div><h1>SportGrade — דוח מבחן</h1><div class="meta">${g.name} | ${semLabel} | ${today}</div></div><div class="tl">${testLabel}</div></div>
+<table><thead><tr><th>#</th><th>שם תלמיד</th><th>מין</th><th>כיתה</th><th>תוצאה</th><th>ציון א׳</th><th>ציון סופי</th></tr></thead><tbody>${rows}</tbody></table>
+<div class="ft">${ftHtml}</div>
+<script>window.onload=()=>window.print();<\/script></body></html>`);
+  toast('✓ חלון הדפסה נפתח');
 }
 
-// All tests PDF — one page per test
+// All tests PDF — one section per test
 function exportFullPDF(){
-  const g = S.groups[CUR.gid]; if(!g){ toast('אין קבוצה פתוחה'); return; }
-  if(!window.jspdf){ toast('טוען jsPDF...'); return; }
-  const semLabel = CUR.semester==='b' ? 'מחצית ב׳' : 'מחצית א׳';
-  const allTests = [...TEST_LIST,...Object.entries(S.customTests||{}).map(([id,ct])=>({id,label:ct.name,unit:ct.unit||''}))];
-  const activeTests = allTests.filter(({id})=>Object.values(g[resKey()]?.[id]||{}).some(d=>d&&d.a!==''));
-  if(!activeTests.length){ toast('אין מבחנים עם ציונים לייצוא'); return; }
-  const {jsPDF} = window.jspdf;
-  const doc = new jsPDF({orientation:'landscape', unit:'mm', format:'a4'});
-  let firstPage = true;
-  const allScores = [];
-
-  activeTests.forEach(({id,label,unit})=>{
-    const T = getTbl(id);
-    const u = (T.unit||unit||'').replace('-','');
-    if(!firstPage) doc.addPage();
-    firstPage = false;
-    const startY = addPDFHeader(doc, 'SportGrade — דוח מלא', g.name, semLabel, label);
-    const scores = [];
-    const tableBody = [];
+  const g=S.groups[CUR.gid];if(!g){toast('אין קבוצה פתוחה');return;}
+  const semLabel=CUR.semester==='b'?'מחצית ב׳':'מחצית א׳';
+  const today=new Date().toLocaleDateString('he-IL');
+  const allTests=[...TEST_LIST,...Object.entries(S.customTests||{}).map(([id,ct])=>({id,label:ct.name,unit:ct.unit||''}))];
+  const activeTests=allTests.filter(({id})=>Object.values(g[resKey()]?.[id]||{}).some(d=>d&&d.a!==''));
+  if(!activeTests.length){toast('אין מבחנים עם ציונים לייצוא');return;}
+  let sectionsHtml='';
+  let first=true;
+  activeTests.forEach(({id,label,unit:u})=>{
+    const T=getTbl(id);
+    const unitStr=(T.unit||u||'').replace('-','');
+    const scores=[];let rows='';
     g.students.forEach((s,idx)=>{
-      const isFem = s.gender==='נ'||s.gender==='f';
-      const dis = T.maleOnly && isFem;
-      const d = g[resKey()]?.[id]?.[idx]||{};
-      const sA = dis?null:getScore(id,s.grade,s.gender,d.a);
-      const sB = d.b&&!dis ? getScore(id,s.grade,s.gender,d.b) : null;
-      const base = (sB!==null&&sB>=(sA||0))?sB:sA;
-      const fin = calcFinal(base,d.bonusA||0,0);
-      if(fin!==null){ scores.push(fin); allScores.push(fin); }
+      const isFem=s.gender==='נ'||s.gender==='f';
+      const dis=T.maleOnly&&isFem;
+      const d=g[resKey()]?.[id]?.[idx]||{};
       if(!d.a&&!dis) return;
-      tableBody.push([
-        String(idx+1), s.name, isFem?'נ':'ז', s.grade+s.cls,
-        dis?'—':(d.a||'—'), u?(dis?'—':(d.a||'—')+' '+u):(dis?'—':(d.a||'—')),
-        sA!==null?String(sA):'—', d.b?String(d.b):'—',
-        sB!==null?String(sB):'—', fin!==null?String(fin):'—'
-      ]);
+      const sA=dis?null:getScore(id,s.grade,s.gender,d.a);
+      const fin=calcFinal(sA,d.bonusA||0,0);
+      if(fin!==null) scores.push(fin);
+      const col=_pdfScoreColor(fin);
+      rows+=`<tr><td>${idx+1}</td><td class="nm">${s.name}</td><td>${isFem?'נ':'ז'}</td><td>${s.grade}${s.cls}</td>`+
+        `<td>${dis?'—':((d.a||'—')+(unitStr?' '+unitStr:''))}</td>`+
+        `<td>${sA!==null?sA:'—'}</td>`+
+        `<td style="color:${col};font-weight:700">${fin!==null?fin:'—'}</td></tr>`;
     });
-    doc.autoTable({
-      startY,
-      head:[[heb('#'),heb('שם תלמיד'),heb('מין'),heb('כיתה'),heb('תוצאה א'),heb(''),heb('ציון א'),heb('תוצאה ב'),heb('ציון ב'),heb('ציון סופי')]],
-      body: tableBody,
-      theme: 'grid',
-      styles:{ font:'helvetica', fontSize:8.5, halign:'center', cellPadding:2.5 },
-      headStyles:{ fillColor:[26,21,16], textColor:255, fontSize:8, fontStyle:'bold' },
-      columnStyles:{
-        0:{cellWidth:8}, 1:{halign:'right',cellWidth:42}, 2:{cellWidth:10},
-        3:{cellWidth:16}, 4:{cellWidth:22}, 5:{cellWidth:22},
-        6:{cellWidth:16}, 7:{cellWidth:22}, 8:{cellWidth:16}, 9:{cellWidth:18,fontStyle:'bold'}
-      },
-      alternateRowStyles:{ fillColor:[248,246,242] },
-      didParseCell(data){
-        if(data.column.index===9&&data.section==='body'){
-          const v=parseInt(data.cell.raw);
-          if(!isNaN(v)){ const [r,g2,b]=scoreToRGB(v); data.cell.styles.textColor=[r,g2,b]; data.cell.styles.fontStyle='bold'; }
-        }
-      },
-      margin:{bottom:18}
-    });
-    addStatsFooter(doc, scores);
+    const avg=scores.length?(scores.reduce((a,b)=>a+b,0)/scores.length).toFixed(1):'-';
+    const ftHtml=scores.length?`<span>ממוצע: ${avg}</span><span>נבחנו: ${scores.length}</span><span>מקסימום: ${Math.max(...scores)}</span><span>מינימום: ${Math.min(...scores)}</span>`:`<span>אין ציונים</span>`;
+    sectionsHtml+=`<div class="sec${first?'':' pb'}"><div class="sec-hd">${label}</div>
+<table><thead><tr><th>#</th><th>שם תלמיד</th><th>מין</th><th>כיתה</th><th>תוצאה</th><th>ציון א׳</th><th>ציון סופי</th></tr></thead><tbody>${rows}</tbody></table>
+<div class="ft">${ftHtml}</div></div>`;
+    first=false;
   });
-
-  doc.save(`${g.name}_דוח_מלא_${semLabel}.pdf`);
-  toast('✓ PDF מלא יוצא — '+activeTests.length+' מבחנים');
+  _pdfPrintWindow(`<!DOCTYPE html><html dir="rtl" lang="he"><head><meta charset="utf-8"><title>SportGrade — דוח מלא</title><style>${_pdfStyles}</style></head><body>
+<div class="hd"><div><h1>SportGrade — דוח מלא</h1><div class="meta">${g.name} | ${semLabel} | ${today} | ${activeTests.length} מבחנים</div></div></div>
+${sectionsHtml}
+<script>window.onload=()=>window.print();<\/script></body></html>`);
+  toast('✓ חלון הדפסה נפתח — '+activeTests.length+' מבחנים');
 }
 
 // ── ARCHIVE VIEW ──────────────────────────────────────────────
@@ -8489,13 +8392,12 @@ function exportAllExcel(){
     const isFem=s.gender==='נ'||s.gender==='f';
     const testScores=activeTests.map(({id})=>{
       const d=g[resKey()]?.[id]?.[idx];
-      const T=getTbl(id);if(T.maleOnly&&isFem)return'';
-      if(!d||d.a==='')return'';
+      const T=getTbl(id);if(T.maleOnly&&isFem)return'—';
+      if(!d||d.a==='')return 0;
       const sA=getScore(id,s.grade,s.gender,d.a);
       const sB=d.b?getScore(id,s.grade,s.gender,d.b):null;
       const base=(sB!==null&&sB>=(sA||0))?sB:sA;
       const fin=calcFinal(base,d.bonusA||0,0);
-      // Best of semA + semB
       let grade=fin;
       if(isInSemB){
         const dA=g.results?.[id]?.[idx];
@@ -8507,10 +8409,10 @@ function exportAllExcel(){
           if(finA!==null&&(fin===null||finA>fin))grade=finA;
         }
       }
-      return grade!==null?grade:'';
+      return grade!==null?grade:0;
     });
-    const nums=testScores.filter(v=>v!=='');
-    const avg=nums.length?(nums.reduce((a,b)=>a+b,0)/nums.length).toFixed(1):'';
+    const nums=testScores.filter(v=>v!=='—');
+    const avg=nums.length?(nums.reduce((a,b)=>Number(a)+Number(b),0)/nums.length).toFixed(1):'';
     rows.push([idx+1,s.name,isFem?'נ':'ז',s.grade+s.cls,...testScores,avg,avg]);
   });
   const ws=XLSX.utils.aoa_to_sheet(rows);
