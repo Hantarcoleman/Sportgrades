@@ -1855,8 +1855,9 @@ history.pushState(null,'',location.href);
     <button id="srl-tap-btn" onclick="srlTap()" style="width:180px;height:180px;border-radius:50%;background:var(--gn);color:#fff;font-size:15px;font-weight:800;border:none;cursor:pointer;box-shadow:0 8px 32px rgba(0,210,100,.35);display:block;transition:transform .08s,opacity .15s;font-family:'Heebo',sans-serif;line-height:1.5;flex-shrink:0;">🪢<br>התחל מבחן</button>
   </div>
   <!-- Stop / Reset (shown while running or paused) -->
-  <div id="srl-controls" style="display:none;gap:8px;justify-content:center;margin-bottom:14px;">
+  <div id="srl-controls" style="display:none;gap:8px;justify-content:center;margin-bottom:14px;flex-wrap:wrap;">
     <button id="srl-stop-btn" class="btn bg2 bsm" onclick="srlTogglePause()">⏸ עצור</button>
+    <button class="btn bgn bsm" onclick="srlEnd()" style="background:var(--gn);color:#fff;">✓ סיום מבחן</button>
     <button class="btn bg2 bsm" onclick="srlReset()">🔄 איפוס</button>
   </div>
   <!-- Finish row — shown after time ends -->
@@ -5214,7 +5215,7 @@ function srlNewTest(){
 }
 
 function srlClose(){
-  if(SRL.running&&!confirm('המבחן עדיין פועל. האם לסגור?'))return;
+  if((SRL.running||SRL.paused)&&!confirm('המבחן עדיין פועל. האם לסגור?'))return;
   if(SRL.interval){clearInterval(SRL.interval);SRL.interval=null;}
   SRL.running=false;SRL.paused=false;
   closeModal('skiprope-live-modal');
