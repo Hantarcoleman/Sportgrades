@@ -730,6 +730,8 @@ async function sbLoadUserData() {
         results_b: g.semester_b?.results  || {},
         customTests: g.semester_a?.customTests || {},
       };
+      // Hydrate names from local idMap (Supabase doesn't store them when idHash is present)
+      hydrateGroupFromIdMap(gid, S.groups[gid]);
       nextId = gid + 1;
     });
     S.nextId = nextId;
@@ -738,6 +740,7 @@ async function sbLoadUserData() {
   // Update UI after loading
   renderGroupGrid && renderGroupGrid();
   checkYearEndNotice();
+  _updateMashovBanner && _updateMashovBanner();
   toast('✓ נתונים נטענו בהצלחה');
   await restoreRoute();
 }
@@ -759,7 +762,7 @@ async function sbSaveGroup(gid) {
     name: g.name,
     grade: g.classes || '',
     semester_a: {
-      students: g.students || [],
+      students: stripLocalFields(g.students || []),
       results:  g.results  || {},
       customTests: g.customTests || {},
     },
@@ -803,6 +806,149 @@ async function sbSignOut() {
     await sbApp.auth.signOut();
     window.location.href = 'login.html';
   }
+}
+
+// ══ ID HASH PROTECTION LAYER ═════════════════════════════════
+// Hash תעודות הזהות במכשיר המורה בלבד; השרת רואה idHash + ציון בלבד.
+// המפה idHash → {name, id} חיה רק ב-localStorage המקומי.
+
+const ID_MAP_LS = 'sg_id_map_v1';
+
+function _bytesToHex(bytes){
+  let s=''; for(let i=0;i<bytes.length;i++) s+=bytes[i].toString(16).padStart(2,'0');
+  return s;
+}
+
+function cleanId(raw){
+  const digits=String(raw==null?'':raw).replace(/\D+/g,'');
+  if(!digits) return '';
+  if(digits.length>9) return digits.slice(-9);
+  return digits.padStart(9,'0');
+}
+
+// Salt לכל מורה — נגזר deterministically מה-user.id. אין צורך לשנות schema.
+// ה-salt לבד אינו סוד; הוא רק עוצר rainbow-table חוצה-משתמשים.
+let _idSaltBytes = null;
+async function getIdSalt(){
+  if(_idSaltBytes) return _idSaltBytes;
+  if(!SG_USER) throw new Error('no user');
+  const seed='sportgrade-id-salt-v1::'+SG_USER.id;
+  const buf=await crypto.subtle.digest('SHA-256', new TextEncoder().encode(seed));
+  _idSaltBytes=new Uint8Array(buf);
+  return _idSaltBytes;
+}
+
+// PBKDF2-HMAC-SHA-256, 100K iterations, 256-bit output → 64 hex chars
+async function idHashCompute(rawId){
+  const id=cleanId(rawId);
+  if(!id) return '';
+  const salt=await getIdSalt();
+  const key=await crypto.subtle.importKey('raw', new TextEncoder().encode(id), 'PBKDF2', false, ['deriveBits']);
+  const bits=await crypto.subtle.deriveBits(
+    { name:'PBKDF2', salt:salt, iterations:100000, hash:'SHA-256' },
+    key, 256
+  );
+  return _bytesToHex(new Uint8Array(bits));
+}
+
+// Batch helper for performance with progress callback
+async function idHashBatch(ids, onProgress){
+  const out=[]; const total=ids.length;
+  // Process in chunks of 8 to keep UI responsive without memory spikes
+  for(let i=0;i<total;i+=8){
+    const chunk=ids.slice(i,i+8);
+    const res=await Promise.all(chunk.map(id=>idHashCompute(id)));
+    out.push(...res);
+    if(onProgress) onProgress(Math.min(i+8,total), total);
+    await new Promise(r=>setTimeout(r,0)); // yield to UI
+  }
+  return out;
+}
+
+// ── idMap: localStorage-only lookup table (gid → idHash → {name,id}) ──
+function getIdMap(){
+  try{ return JSON.parse(localStorage.getItem(ID_MAP_LS)||'{}'); }catch(e){ return {}; }
+}
+function _saveIdMap(map){
+  try{ localStorage.setItem(ID_MAP_LS, JSON.stringify(map)); }catch(e){}
+}
+function idMapLookup(gid, hash){
+  if(!hash) return null;
+  const m=getIdMap();
+  return (m[gid]||{})[hash]||null;
+}
+function setIdMapEntry(gid, hash, info){
+  if(!hash||!info) return;
+  const m=getIdMap();
+  if(!m[gid]) m[gid]={};
+  m[gid][hash]={name:info.name||'', id:info.id||''};
+  _saveIdMap(m);
+}
+function removeIdMapEntry(gid, hash){
+  if(!hash) return;
+  const m=getIdMap();
+  if(m[gid] && m[gid][hash]){ delete m[gid][hash]; _saveIdMap(m); }
+}
+function moveIdMapEntry(srcGid, tgtGid, hash){
+  if(!hash) return;
+  const m=getIdMap();
+  const src=(m[srcGid]||{})[hash];
+  if(!src) return;
+  if(!m[tgtGid]) m[tgtGid]={};
+  m[tgtGid][hash]=src;
+  delete m[srcGid][hash];
+  _saveIdMap(m);
+}
+
+// ── Stripping PII before sending to Supabase ──
+// אם לתלמיד יש idHash ⇒ הוא "מוגן" — מנקים name+id מה-payload.
+// תלמידים legacy בלי idHash נשמרים כמו היום (תאימות לאחור).
+function stripLocalFields(students){
+  if(!Array.isArray(students)) return students;
+  return students.map(s=>{
+    if(!s || typeof s!=='object') return s;
+    if(s.idHash){
+      const c={...s};
+      delete c.name;
+      delete c.id;
+      delete c._local; // legacy from intermediate plan iterations
+      return c;
+    }
+    return s;
+  });
+}
+
+// ── Hydration: after loading from Supabase, populate s.name from idMap ──
+function hydrateGroupFromIdMap(gid, group){
+  if(!group||!Array.isArray(group.students)) return;
+  let needsBanner=false;
+  group.students.forEach(s=>{
+    if(s.idHash && (!s.name || s.name==='')){
+      const info=idMapLookup(gid, s.idHash);
+      if(info && info.name){
+        s.name=info.name;
+        s.id=info.id||'';
+      }else{
+        s.name='תלמיד #'+String(s.idHash).slice(0,6);
+        needsBanner=true;
+      }
+    }
+  });
+  return needsBanner;
+}
+
+// Banner appears at the top when any group has unresolved hashes
+function _updateMashovBanner(){
+  let any=false;
+  for(const gid in (S.groups||{})){
+    const g=S.groups[gid];
+    if(!g||!Array.isArray(g.students)) continue;
+    if(g.students.some(s=>s.idHash && idMapLookup(gid, s.idHash)===null)){
+      any=true; break;
+    }
+  }
+  const b=document.getElementById('mashov-hydrate-banner');
+  if(b) b.style.display=any?'block':'none';
 }
 
 // ── Start ────────────────────────────────────────────────────
@@ -884,6 +1030,11 @@ history.pushState(null,'',location.href);
 <div id="offline-banner" style="display:none;background:#dc2626;color:#fff;text-align:center;padding:8px 16px;font-size:13px;font-weight:700;font-family:'Heebo',sans-serif;z-index:500;position:sticky;top:58px;">
   📵 אין חיבור לאינטרנט — הנתונים נשמרים מקומית ויסונכרנו בחזרה כשהחיבור יחזור
   <span id="offline-queue-count" style="margin-right:12px;background:rgba(255,255,255,.2);padding:2px 8px;border-radius:10px;font-size:11px;"></span>
+</div>
+<div id="mashov-hydrate-banner" style="display:none;background:#1d4ed8;color:#fff;text-align:center;padding:8px 16px;font-size:13px;font-weight:600;font-family:'Heebo',sans-serif;z-index:498;position:sticky;top:58px;">
+  🔐 חלק מהתלמידים מוצגים בלי שם — תעודות הזהות שמורות במכשיר אחר.
+  <button onclick="document.getElementById('mashov-alphon-input').click()" style="margin-right:10px;background:rgba(255,255,255,.2);border:1px solid rgba(255,255,255,.4);color:#fff;padding:3px 12px;border-radius:14px;font-size:12px;font-weight:700;cursor:pointer;font-family:'Heebo',sans-serif;">העלה קובץ משו״ב</button>
+  <button onclick="document.getElementById('mashov-hydrate-banner').style.display='none'" style="margin-right:6px;background:none;border:none;color:rgba(255,255,255,.7);cursor:pointer;font-size:16px;">✕</button>
 </div>
 
 <!-- SIDEBAR BACKDROP -->
@@ -1321,6 +1472,7 @@ history.pushState(null,'',location.href);
       <button class="btn bgn" onclick="exportExcel()">⬇ אקסל — מבחן זה</button>
       <button class="btn bgn" onclick="exportFullExcel()" style="background:#15803d;">📊 אקסל — כל המבחנים</button>
       <button class="btn bgn" onclick="exportAllExcel()">⬇ אקסל סיכום</button>
+      <button class="btn bgn" onclick="openMashovExportModal()" style="background:#1d4ed8;" title="ייצוא לקובץ משו״ב — תעודות הזהות לא נשמרות בשרת">🔐 ייצא למשו״ב</button>
       <button class="btn bgn" onclick="exportPDF()" style="background:#dc2626;">📄 PDF — מבחן זה</button>
       <button class="btn bgn" onclick="exportFullPDF()" style="background:#9f1239;">📋 PDF — כל המבחנים</button>
     </div>
@@ -1557,9 +1709,44 @@ history.pushState(null,'',location.href);
       <input type="hidden" id="agr" value="ט">
     </div>
   </div>
-  <div class="fg"><label class="fl">מקבילה (מספר כיתה)</label><input type="number" class="fi2" id="ac3" placeholder="לדוגמה: 2" min="1" max="20" style="width:100px;"></div>
+  <div class="fr">
+    <div class="fg"><label class="fl">מקבילה (מספר כיתה)</label><input type="number" class="fi2" id="ac3" placeholder="לדוגמה: 2" min="1" max="20" style="width:100px;"></div>
+    <div class="fg"><label class="fl">ת״ז <span style="font-size:11px;color:var(--ink3);font-weight:400;">(אופציונלי — נשמר מקומית בלבד)</span></label>
+      <input type="text" class="fi2" id="an-id" placeholder="9 ספרות" inputmode="numeric" maxlength="9" pattern="\d*"></div>
+  </div>
   <div class="mf"><button class="btn bg2" onclick="closeModal('add-modal')">ביטול</button><button class="btn bp" onclick="addStudent()">הוסף</button></div>
 </div></div>
+
+<!-- ── Mashov Export Modal ── -->
+<div class="mbg" id="mashov-export-modal"><div class="mod" onclick="event.stopPropagation()">
+  <div class="mt">🔐 ייצוא לקובץ משו״ב</div>
+  <div class="ms" style="line-height:1.5;">
+    טען את קובץ האקסל שהורדת ממערכת המשו״ב. האפליקציה תזהה תלמידים לפי תעודת זהות (בצורה מוצפנת — תעודות הזהות לא נשלחות לשרת), תמלא ציונים מהמבחן שתבחר, ותחזיר קובץ זהה במבנה.
+  </div>
+  <div class="fr" style="margin-top:12px;">
+    <div class="fg"><label class="fl">מבחן</label><select class="fsel" id="mashov-test-select"></select></div>
+    <div class="fg"><label class="fl">מחצית</label><select class="fsel" id="mashov-sem-select">
+      <option value="a">מחצית א׳</option>
+      <option value="b">מחצית ב׳</option>
+    </select></div>
+  </div>
+  <div class="fg" style="margin-top:8px;">
+    <label class="fl">קובץ משו״ב (.xlsx)</label>
+    <div style="display:flex;gap:8px;align-items:center;">
+      <button type="button" class="btn bs bsm" onclick="document.getElementById('mashov-file-input').click()">📁 בחר קובץ</button>
+      <span id="mashov-fname" style="font-size:13px;color:var(--ink2);">לא נבחר קובץ</span>
+    </div>
+    <input type="file" id="mashov-file-input" accept=".xlsx,.xls" style="display:none" onchange="_onMashovFilePicked(event)">
+  </div>
+  <div id="mashov-status" style="margin-top:10px;font-size:13px;color:var(--ink2);min-height:20px;"></div>
+  <div class="mf">
+    <button class="btn bg2" onclick="closeModal('mashov-export-modal')">סגור</button>
+    <button class="btn bp" id="mashov-go-btn" onclick="runMashovExport()" disabled>✓ ייצא קובץ</button>
+  </div>
+</div></div>
+
+<!-- Hidden Mashov-as-alphon importer (used from banner) -->
+<input type="file" id="mashov-alphon-input" accept=".xlsx,.xls" style="display:none" onchange="importMashovAsAlphon(event)">
 
 <div class="mbg" id="custom-modal"><div class="mod mod-wide" onclick="event.stopPropagation()">
   <div class="mt" id="cm-title">יצירת מבחן חדש</div>
@@ -2680,7 +2867,7 @@ function handleFile(e){
   reader.onload=ev=>parseXLSX(ev.target.result,name);
   reader.readAsArrayBuffer(file);e.target.value='';
 }
-function parseXLSX(data,fileName){
+async function parseXLSX(data,fileName){
   try{
     const wb=XLSX.read(data,{type:'array'});
     const ws=wb.Sheets[wb.SheetNames[0]];
@@ -2688,26 +2875,52 @@ function parseXLSX(data,fileName){
     let hIdx=-1;
     for(let i=0;i<Math.min(rows.length,12);i++){
       const r=rows[i].join(' ');
-      if(r.includes('שם')&&(r.includes('שכבה')||r.includes('מקבילה')||r.includes('מין'))){hIdx=i;break;}
+      if(r.includes('שם')&&(r.includes('שכבה')||r.includes('מקבילה')||r.includes('מין')||r.includes('ת.ז')||r.includes('תעודת זהות'))){hIdx=i;break;}
     }
     if(hIdx<0){toast('פורמט אלפון לא מוכר');return;}
     const headers=rows[hIdx].map(h=>(h+'').trim());
     const col=name=>headers.findIndex(h=>h.includes(name));
-    const cN=col('שם התלמיד'),cG=col('מין'),cGr=col('שכבה'),cC=col('מקבילה');
+    const cN=col('שם התלמיד')>=0?col('שם התלמיד'):col('שם');
+    const cG=col('מין'),cGr=col('שכבה'),cC=col('מקבילה');
+    let cId=col('ת.ז');if(cId<0)cId=col('תעודת זהות');
+    // Mashov-style files use "כיתה" instead of "מקבילה"
+    const cClsAlt = cC<0 ? col('כיתה') : -1;
     if(cN<0){toast('עמודת "שם התלמיד" לא נמצאה');return;}
     const students=[];
+    const idsToHash=[];
     for(let i=hIdx+1;i<rows.length;i++){
       const row=rows[i];const name=(row[cN]+'').trim();if(!name)continue;
-      const gender=cG>=0?(row[cG]+'').trim():'ז';
+      // Skip footer rows like "ממוצע"
+      if(name==='ממוצע') continue;
+      const gender=cG>=0?(row[cG]+'').trim():'';
       const gradeRaw=cGr>=0?(row[cGr]+'').trim():'';
       const grade=normGrade(GMAP[gradeRaw]||gradeRaw);
-      const cls=cC>=0?(row[cC]+'').trim():'';
-      students.push({name,gender,grade,cls});
+      const cls=cC>=0?(row[cC]+'').trim() : (cClsAlt>=0?(row[cClsAlt]+'').trim():'');
+      const stu={name,gender,grade,cls};
+      if(cId>=0){
+        const cleaned=cleanId(row[cId]);
+        if(cleaned){
+          stu.id=cleaned;
+          idsToHash.push({stu, cleaned});
+        }
+      }
+      students.push(stu);
     }
     if(!students.length){toast('לא נמצאו תלמידים');return;}
+    // Compute hashes if any IDs found
+    if(idsToHash.length){
+      try{
+        const hashes=await idHashBatch(idsToHash.map(x=>x.cleaned));
+        idsToHash.forEach((x,i)=>{ x.stu.idHash=hashes[i]; });
+      }catch(e){ console.error('hash failed',e); }
+    }
     const classes=[...new Set(students.map(s=>s.grade+s.cls))].sort((a,b)=>a.localeCompare(b,'he')).join(', ');
     const gid=S.nextId++;
     S.groups[gid]={name:fileName,classes,students,results:{}};
+    // Populate idMap for protected students
+    students.forEach(s=>{
+      if(s.idHash) setIdMapEntry(gid, s.idHash, {name:s.name, id:s.id||''});
+    });
   // Save to Supabase
   if(typeof sbSaveGroup === 'function' && SG_USER){
     sbSaveGroup(gid).then(()=>{ toast('✓ הקבוצה נשמרה'); renderGroupGrid(); }).catch(e=>console.error('Save failed:',e));
@@ -3693,15 +3906,28 @@ function openAddModal(){
   openModal('add-modal');
   setTimeout(()=>document.getElementById('an-last').focus(),60);
 }
-function addStudent(){
+async function addStudent(){
   const last=document.getElementById('an-last').value.trim();
   const first=document.getElementById('an-first').value.trim();
   const name=last&&first?`${last} ${first}`:(last||first);
   if(!name){toast('נא להזין שם');return;}
   const gender=document.getElementById('ag').value;const grade=document.getElementById('agr').value;const cls=document.getElementById('ac3').value.trim();
-  S.groups[CUR.gid].students.push({name,gender,grade,cls});
+  const rawId=(document.getElementById('an-id')||{}).value||'';
+  const cleaned=cleanId(rawId);
+  const stu={name,gender,grade,cls};
+  if(cleaned){
+    try{
+      const hash=await idHashCompute(cleaned);
+      stu.idHash=hash;
+      stu.id=cleaned;
+      setIdMapEntry(CUR.gid, hash, {name, id:cleaned});
+    }catch(e){ console.error('hash failed',e); }
+  }
+  S.groups[CUR.gid].students.push(stu);
   S.groups[CUR.gid].classes=[...new Set(S.groups[CUR.gid].students.map(s=>s.grade+s.cls))].sort((a,b)=>a.localeCompare(b,'he')).join(', ');
   document.getElementById('ic2').textContent=S.groups[CUR.gid].students.length;
+  // Reset id field for next add
+  const idField=document.getElementById('an-id'); if(idField) idField.value='';
   saveState();closeModal('add-modal');renderTable();toast(`"${name}" נוסף ✓`);
 }
 
@@ -3833,6 +4059,310 @@ function saveCustomTest(){
   S.customTests[id]={name,unit,customUnitName,lowerBetter:lb,table:mTbl,tablef:fTbl,group};
   saveState();closeModal('custom-modal');buildTabs();selectTest(id);
   toast(`"${name}" ${_editCT?'עודכן':'נוסף'} ✓`);
+}
+
+// ══ MASHOV (משו"ב) ROUND-TRIP ════════════════════════════════
+// Read a Mashov-format Excel file with student IDs+names → match to group → fill scores.
+// IDs are hashed locally; only idHash is ever sent to Supabase.
+
+// Detect header row of a Mashov file.  Returns { headerRow, cId, cName, cGrade, cCls, cScoreNum, cScoreText, cNote, avgRow }
+function _mashovParseStructure(rows){
+  let headerRow=-1;
+  for(let i=0;i<Math.min(rows.length,20);i++){
+    const r=(rows[i]||[]).map(v=>String(v||''));
+    const joined=r.join(' ');
+    if(joined.includes('ת.ז')&&joined.includes('שם')&&joined.includes('ציון')){ headerRow=i; break; }
+  }
+  if(headerRow<0) return null;
+  const headers=(rows[headerRow]||[]).map(v=>String(v||'').trim());
+  const find=(...names)=>{
+    for(const n of names){
+      const idx=headers.findIndex(h=>h.includes(n));
+      if(idx>=0) return idx;
+    }
+    return -1;
+  };
+  const cId=find('ת.ז');
+  const cName=find('שם התלמיד','שם');
+  const cGrade=find('שכבה');
+  const cCls=find('כיתה');
+  const cScoreNum=find('ציון מספרי','ציון');
+  const cScoreText=find('ציון מילולי');
+  const cNote=find('הערה');
+  if(cId<0||cName<0||cScoreNum<0) return null;
+  // Find "ממוצע" row at the bottom
+  let avgRow=-1;
+  for(let i=rows.length-1;i>headerRow;i--){
+    const c0=String((rows[i]||[])[0]||'').trim();
+    if(c0==='ממוצע'||c0.startsWith('ממוצע')){ avgRow=i; break; }
+  }
+  return { headerRow, cId, cName, cGrade, cCls, cScoreNum, cScoreText, cNote, avgRow };
+}
+
+// Read a Mashov file as ArrayBuffer → return { wb, ws, sheetName, rows, struct, entries }
+// Each entry: { rowIdx, id (cleaned), idHash, name, scoreCellRef }
+async function readMashovWorkbook(arrBuf){
+  const wb=XLSX.read(arrBuf,{type:'array',cellStyles:true,cellNF:true});
+  const sheetName=wb.SheetNames[0];
+  const ws=wb.Sheets[sheetName];
+  const range=XLSX.utils.decode_range(ws['!ref']||'A1');
+  const rows=XLSX.utils.sheet_to_json(ws,{header:1,defval:'',raw:false,blankrows:true});
+  const struct=_mashovParseStructure(rows);
+  if(!struct) throw new Error('פורמט קובץ משו"ב לא זוהה (עמודות "ת.ז התלמיד" / "שם התלמיד" / "ציון מספרי")');
+
+  // Build entries with idHash (this is the slow async part)
+  const dataRows=[];
+  for(let i=struct.headerRow+1; i<rows.length; i++){
+    if(struct.avgRow>=0 && i>=struct.avgRow) break;
+    const row=rows[i]||[];
+    const rawId=row[struct.cId];
+    const name=String(row[struct.cName]||'').trim();
+    if(!name && !rawId) continue;
+    const cleaned=cleanId(rawId);
+    if(!cleaned) continue;
+    dataRows.push({ rowIdx:i, rawId, name, cleanedId:cleaned });
+  }
+  // Compute hashes in batches
+  const ids=dataRows.map(d=>d.cleanedId);
+  const hashes=await idHashBatch(ids);
+  const entries=dataRows.map((d,i)=>({
+    rowIdx: d.rowIdx,
+    id:     d.cleanedId,
+    idHash: hashes[i],
+    name:   d.name,
+    grade:  String((rows[d.rowIdx]||[])[struct.cGrade]||'').trim(),
+    cls:    String((rows[d.rowIdx]||[])[struct.cCls]||'').trim(),
+  }));
+  return { wb, ws, sheetName, rows, struct, entries, range };
+}
+
+// Import a Mashov file into a group: ensures every entry exists in g.students with idHash,
+// updates idMap, returns summary { matched, added, total, entries }
+// `mode`: 'merge' (add missing), 'reuse-only' (don't add new, only attach hashes to existing-by-name)
+async function importMashovIntoGroup(arrBuf, gid, mode){
+  mode = mode || 'merge';
+  const data=await readMashovWorkbook(arrBuf);
+  const g=S.groups[gid];
+  if(!g) throw new Error('קבוצה לא נמצאה');
+  if(!Array.isArray(g.students)) g.students=[];
+
+  // Build hash → idx map of current students
+  const byHash={};
+  g.students.forEach((s,idx)=>{ if(s.idHash) byHash[s.idHash]=idx; });
+
+  // Build name → idx map for legacy matching
+  const byName={};
+  g.students.forEach((s,idx)=>{ if(s.name) byName[s.name.trim()]=idx; });
+
+  let matched=0, attached=0, added=0;
+  for(const e of data.entries){
+    setIdMapEntry(gid, e.idHash, { name:e.name, id:e.id });
+    if(byHash[e.idHash]!=null){
+      // Already protected — refresh name+id locally
+      const s=g.students[byHash[e.idHash]];
+      s.name=e.name; s.id=e.id;
+      matched++;
+      continue;
+    }
+    if(byName[e.name]!=null){
+      // Legacy student matched by name — attach hash & strip plain ID/name from server next save
+      const s=g.students[byName[e.name]];
+      s.idHash=e.idHash;
+      s.id=e.id;
+      // Use mashov-provided grade/cls if present and student lacks them
+      if(e.grade && !s.grade) s.grade=normGrade(e.grade);
+      if(e.cls && !s.cls) s.cls=e.cls;
+      attached++;
+      continue;
+    }
+    if(mode==='merge'){
+      const grade=e.grade?normGrade(e.grade):(g.students[0]?.grade||'');
+      g.students.push({
+        name: e.name,
+        gender: '',
+        grade: grade,
+        cls: e.cls||'',
+        idHash: e.idHash,
+        id: e.id,
+      });
+      added++;
+    }
+  }
+
+  // Update group classes string
+  g.classes=[...new Set(g.students.map(s=>s.grade+s.cls))].sort((a,b)=>a.localeCompare(b,'he')).join(', ');
+
+  return { matched, attached, added, total:data.entries.length, data };
+}
+
+// Compute final score for one student in current group, semester, test — same formula as exportExcel.
+function _finalScoreForStudent(g, studentIdx, testId, semester){
+  const s=g.students[studentIdx];
+  if(!s) return null;
+  const T=getTbl(testId);
+  if(!T) return null;
+  const isFem=s.gender==='נ'||s.gender==='f';
+  if(T.maleOnly && isFem) return null;
+  const da=g.results?.[testId]?.[studentIdx];
+  const db=g.results_b?.[testId]?.[studentIdx];
+  const d=semester==='b'?(db||da):da;
+  if(!d || d.a==='' || d.a==null) return null;
+  const sA=getScore(testId, s.grade, s.gender, d.a);
+  const sB=d.b ? getScore(testId, s.grade, s.gender, d.b) : '';
+  if(sA==null || sA==='') return null;
+  const base=(sB!==''&&sB!=null && Number(sB)>=Number(sA))?Number(sB):Number(sA);
+  const fin=Math.min(100, Math.round(base*(1+(d.bonusA||0)/100)+(d.bonusB||0)));
+  return fin;
+}
+
+// Export: read Mashov file → fill scores by idHash match → download.
+async function exportMashov(arrBuf, originalFileName, gid, testId, semester){
+  // 1) Import into group (also updates idMap & adds new students if needed)
+  const summary=await importMashovIntoGroup(arrBuf, gid);
+  const g=S.groups[gid];
+  const data=summary.data;
+  const ws=data.ws;
+  const struct=data.struct;
+
+  // Build hash → idx for fast lookup
+  const hashToIdx={};
+  g.students.forEach((s,idx)=>{ if(s.idHash) hashToIdx[s.idHash]=idx; });
+
+  let filled=0, missing=0;
+  const filledScores=[];
+  for(const e of data.entries){
+    const studentIdx=hashToIdx[e.idHash];
+    const cellAddr=XLSX.utils.encode_cell({r:e.rowIdx, c:struct.cScoreNum});
+    let score=null;
+    if(studentIdx!=null) score=_finalScoreForStudent(g, studentIdx, testId, semester);
+    if(score!=null && !Number.isNaN(score)){
+      ws[cellAddr]={ t:'n', v:score };
+      filled++;
+      filledScores.push(score);
+    }else{
+      // Leave blank — but make sure cell exists as empty so column width preserved
+      if(!ws[cellAddr]) ws[cellAddr]={ t:'s', v:'' };
+      else { ws[cellAddr].v=''; ws[cellAddr].t='s'; }
+      missing++;
+    }
+  }
+
+  // Update average row if present
+  if(struct.avgRow>=0){
+    const avgCell=XLSX.utils.encode_cell({r:struct.avgRow, c:struct.cScoreNum});
+    if(filledScores.length){
+      const avg=Math.round((filledScores.reduce((a,b)=>a+b,0)/filledScores.length)*100)/100;
+      ws[avgCell]={ t:'n', v:avg };
+    }else{
+      ws[avgCell]={ t:'s', v:'' };
+    }
+  }
+
+  // Persist new hashes to Supabase
+  saveState();
+
+  // Generate output Blob
+  const out=XLSX.write(data.wb, { bookType:'xlsx', type:'array', cellStyles:true });
+  const blob=new Blob([out], { type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');
+  const baseName=(originalFileName||'mashov').replace(/\.xlsx?$/i,'');
+  a.href=url;
+  a.download=baseName+' (עם ציונים).xlsx';
+  document.body.appendChild(a);
+  a.click();
+  setTimeout(()=>{ URL.revokeObjectURL(url); a.remove(); }, 100);
+
+  return { filled, missing, total: data.entries.length, summary };
+}
+
+// ── UI: Mashov export modal ──────────────────────────────────
+let _mashovExportArrBuf=null;
+let _mashovExportFileName='';
+
+function openMashovExportModal(){
+  const gid=CUR.gid;
+  if(gid==null||!S.groups[gid]){ toast('פתח קבוצה תחילה'); return; }
+  if(!SG_USER){ toast('יש להתחבר תחילה'); return; }
+  _mashovExportArrBuf=null;
+  _mashovExportFileName='';
+  // Populate test dropdown
+  const sel=document.getElementById('mashov-test-select');
+  if(sel){
+    const opts=[];
+    (typeof TEST_LIST!=='undefined'?TEST_LIST:[]).forEach(t=>opts.push(`<option value="${t.id}">${t.label||t.id}</option>`));
+    Object.entries(S.customTests||{}).forEach(([id,ct])=>opts.push(`<option value="${id}">${ct.name}</option>`));
+    sel.innerHTML=opts.join('');
+    if(CUR.test) sel.value=CUR.test;
+  }
+  const semSel=document.getElementById('mashov-sem-select');
+  if(semSel) semSel.value=CUR.semester||'a';
+  const fname=document.getElementById('mashov-fname');
+  if(fname) fname.textContent='לא נבחר קובץ';
+  const goBtn=document.getElementById('mashov-go-btn');
+  if(goBtn) goBtn.disabled=true;
+  const fi=document.getElementById('mashov-file-input');
+  if(fi) fi.value='';
+  openModal('mashov-export-modal');
+}
+
+function _onMashovFilePicked(ev){
+  const file=ev.target.files[0];
+  if(!file) return;
+  _mashovExportFileName=file.name;
+  const fname=document.getElementById('mashov-fname');
+  if(fname) fname.textContent=file.name;
+  const reader=new FileReader();
+  reader.onload=e=>{
+    _mashovExportArrBuf=e.target.result;
+    const goBtn=document.getElementById('mashov-go-btn');
+    if(goBtn) goBtn.disabled=false;
+  };
+  reader.readAsArrayBuffer(file);
+  ev.target.value='';
+}
+
+async function runMashovExport(){
+  if(!_mashovExportArrBuf){ toast('בחר קובץ משו"ב'); return; }
+  const testId=document.getElementById('mashov-test-select').value;
+  const semester=document.getElementById('mashov-sem-select').value||'a';
+  const goBtn=document.getElementById('mashov-go-btn');
+  const status=document.getElementById('mashov-status');
+  if(goBtn) goBtn.disabled=true;
+  if(status) status.textContent='מצפין תעודות זהות וממלא ציונים…';
+  try{
+    const r=await exportMashov(_mashovExportArrBuf, _mashovExportFileName, CUR.gid, testId, semester);
+    if(status) status.textContent=`✓ הקובץ ירד. ${r.filled} ציונים מולאו, ${r.missing} ללא ציון.`;
+    toast(`✓ ${r.filled}/${r.total} ציונים מולאו בקובץ המשו"ב`);
+    _updateMashovBanner && _updateMashovBanner();
+    if(typeof renderTable==='function') renderTable();
+    setTimeout(()=>closeModal('mashov-export-modal'), 2000);
+  }catch(err){
+    if(status) status.textContent='שגיאה: '+(err.message||err);
+    toast('שגיאה: '+(err.message||err));
+    if(goBtn) goBtn.disabled=false;
+  }
+}
+
+// ── UI: Mashov import as alphon (no scores) ─────────────────
+async function importMashovAsAlphon(ev){
+  const file=ev.target.files[0];
+  if(!file) return;
+  const gid=CUR.gid;
+  if(gid==null||!S.groups[gid]){ toast('פתח קבוצה תחילה'); ev.target.value=''; return; }
+  toast('מצפין תעודות זהות…');
+  try{
+    const arrBuf=await file.arrayBuffer();
+    const r=await importMashovIntoGroup(arrBuf, gid);
+    saveState();
+    if(typeof renderTable==='function') renderTable();
+    if(typeof renderGroupGrid==='function') renderGroupGrid();
+    _updateMashovBanner && _updateMashovBanner();
+    toast(`✓ ${r.matched+r.attached} שודרגו, ${r.added} נוספו (סה"כ ${r.total})`);
+  }catch(err){
+    toast('שגיאה: '+(err.message||err));
+  }
+  ev.target.value='';
 }
 
 // ── EXPORT ──────────────────────────────────────────────────
@@ -5608,6 +6138,7 @@ function editStudent(idx){
 function deleteStudent(idx){
   const s=S.groups[CUR.gid].students[idx];if(!s)return;
   if(!confirm(`למחוק את "${s.name}"? גם ציוניו יימחקו.`))return;
+  if(s.idHash) removeIdMapEntry(CUR.gid, s.idHash);
   S.groups[CUR.gid].students.splice(idx,1);
   Object.keys(S.groups[CUR.gid].results||{}).forEach(testId=>{
     const res=S.groups[CUR.gid].results[testId];
@@ -9011,6 +9542,7 @@ function geDeleteStudent(idx){
   const g=S.groups[gid];
   const s=g.students[idx];if(!s)return;
   if(!confirm(`למחוק את "${s.name}"? גם ציוניו יימחקו.`))return;
+  if(s.idHash) removeIdMapEntry(gid, s.idHash);
   // Remove from students array
   g.students.splice(idx,1);
   // Shift results indices
@@ -9052,6 +9584,8 @@ function confirmTransferStudent(){
   // Add to target group
   tgtG.students.push({...s});
   tgtG.classes=[...new Set(tgtG.students.map(st=>st.grade+st.cls))].sort((a,b)=>a.localeCompare(b,'he')).join(', ');
+  // Move idMap entry across groups so target device sees the name
+  if(s.idHash) moveIdMapEntry(srcGid, tgtGid, s.idHash);
   // Remove from source
   srcG.students.splice(idx,1);
   Object.keys(srcG.results||{}).forEach(testId=>{
