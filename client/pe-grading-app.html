@@ -3146,7 +3146,7 @@ function buildTabs(){
       </div>
       <div class="tab-cat-body"${isOpen?'':' style="display:none"'}>
         ${tests.map(t=>`<div class="tab tab-${cat.key}${t.id===CUR.test?' sel':''}" onclick="selectTest('${t.id}')" id="tab-${t.id}">${t.label}</div>`).join('')}
-        ${Object.entries(S.customTests||{}).filter(([,ct])=>ct.group===cat.key).map(([id,ct])=>`<div class="tab tab-${cat.key} tab-custom${id===CUR.test?' sel':''}" style="display:flex;align-items:center;gap:4px;" id="tab-${id}"><span onclick="selectTest('${id}')" style="cursor:pointer;">${ct.name}</span><span onclick="deleteCustomTest('${id}')" style="cursor:pointer;opacity:.5;font-size:12px;padding:0 2px;" title="מחק מבחן">✕</span></div>`).join('')}
+        ${Object.entries(S.customTests||{}).filter(([,ct])=>ct.group===cat.key).map(([id,ct])=>`<div class="tab tab-${cat.key} tab-custom${id===CUR.test?' sel':''}" style="display:flex;align-items:center;gap:4px;" id="tab-${id}"><span onclick="selectTest('${id}')" style="cursor:pointer;">${ct.name}</span><span onclick="openCustomModal('${id}')" style="cursor:pointer;opacity:.5;font-size:12px;padding:0 2px;" title="ערוך מבחן">✏</span><span onclick="deleteCustomTest('${id}')" style="cursor:pointer;opacity:.5;font-size:12px;padding:0 2px;" title="מחק מבחן">✕</span></div>`).join('')}
       </div>
     </div>`;
   }
@@ -3160,6 +3160,7 @@ function buildTabs(){
     const ct=S.customTests[id];
     toolsHtml+=`<div class="tab tab-tools${id===CUR.test?' sel':''}" style="display:flex;align-items:center;gap:4px;" id="tab-${id}">
       <span onclick="selectTest('${id}')" style="cursor:pointer;">${ct.name}</span>
+      <span onclick="openCustomModal('${id}')" style="cursor:pointer;opacity:.5;font-size:12px;padding:0 2px;" title="ערוך מבחן">✏</span>
       <span onclick="deleteCustomTest('${id}')" style="cursor:pointer;opacity:.5;font-size:12px;padding:0 2px;" title="מחק מבחן">✕</span>
     </div>`;
   });
@@ -4178,7 +4179,13 @@ function deleteCustomTest(id){
   const name=S.customTests[id]?.name||'המבחן';
   if(!confirm(`למחוק את "${name}"? כל הציונים שהוזנו בו יימחקו.`))return;
   delete S.customTests[id];
-  Object.values(S.groups).forEach(g=>{if(g.results)delete g.results[id];});
+  Object.entries(S.groups).forEach(([gid,g])=>{
+    let dirty=false;
+    if(g.results&&g.results[id]){delete g.results[id];dirty=true;}
+    if(g.customTests&&g.customTests[id]){delete g.customTests[id];dirty=true;}
+    if(dirty&&typeof sbSaveGroup==='function'&&SG_USER&&parseInt(gid)!==CUR.gid)
+      sbSaveGroup(parseInt(gid)).catch(e=>console.error(e));
+  });
   saveState();
   if(CUR.test===id)selectTest('pushups');
   else buildTabs();
