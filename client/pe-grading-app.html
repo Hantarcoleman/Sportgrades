@@ -1141,7 +1141,6 @@ history.pushState(null,'',location.href);
       </div>
       <input type="file" id="fi" accept=".xlsx,.xls" onchange="handleFile(event)">
       <div style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;justify-content:center;">
-        <button class="btn bs bsm" onclick="document.getElementById('fi').click()">+ הוסף מקובץ Excel</button>
         <button class="btn bpu bsm" onclick="openNewGroupModal()">✦ צור כיתה חדשה ידנית</button>
         <button class="btn bsm" style="background:#1d4ed8;color:#fff;" onclick="openMasterBuilderModal()" title="איחוד כל האלפונים לקובץ אחד שאפשר להעלות בכל קבוצה">📦 צור קובץ מאסטר</button>
         <button class="btn bsm" style="background:#0f766e;color:#fff;" onclick="openUpdateGroupModal()" title="הוסף תלמידים חדשים לקבוצה קיימת מאלפון מעודכן">📥 עדכן קבוצה קיימת</button>
@@ -1270,7 +1269,9 @@ history.pushState(null,'',location.href);
       </div>
       <div style="display:flex;gap:8px;flex-wrap:wrap;">
         <button class="btn bg2 bsm" onclick="openAddModal()">+ הוסף תלמיד</button>
-        <button class="btn bg2 bsm" onclick="geRenameGroup()">✏ שנה שם קבוצה</button>
+        <button class="btn bg2 bsm" onclick="geRenameGroup()">✏ שנה שם</button>
+        <button class="btn bg2 bsm" onclick="openMergeModal()">🔗 מזג קבוצה</button>
+        <button class="btn bsm" id="ge-unmerge-btn" style="display:none;background:rgba(251,191,36,.08);border:1px solid rgba(251,191,36,.3);color:#fbbf24;" onclick="geUnmergeGroup()">↩ בטל מיזוג</button>
         <button class="btn bsm" style="background:rgba(248,113,113,.1);border:1px solid rgba(248,113,113,.25);color:#f87171;" onclick="geDeleteGroup()">🗑 מחק קבוצה</button>
         <button class="btn bg2 bsm" onclick="showView('group')">← חזור לציונים</button>
       </div>
@@ -1293,6 +1294,25 @@ history.pushState(null,'',location.href);
     </div>
   </div>
 </div>
+
+<!-- MERGE GROUPS MODAL -->
+<div class="mbg" id="merge-group-modal"><div class="mod mod-wide" onclick="event.stopPropagation()">
+  <div class="mt">🔗 מיזוג קבוצות</div>
+  <div class="ms">כל תלמידי הקבוצה הנבחרת יתווספו לקבוצה: <b id="mg-cur-name"></b><br>
+    <span style="font-size:11px;color:var(--ink3);">עבור תלמידים חופפים — יישמר הציון הגבוה בכל מבחן · הפעולה הפיכה</span>
+  </div>
+  <div class="fg" style="margin-top:14px;">
+    <label class="fl">קבוצה שתמוזג לתוך הנוכחית:</label>
+    <select class="fsel" id="mg-select" onchange="_mgRenderPreview()">
+      <option value="">— בחר קבוצה —</option>
+    </select>
+  </div>
+  <div id="mg-preview" style="display:none;margin-top:12px;padding:12px 14px;background:var(--bg2);border-radius:var(--rs);font-size:13px;line-height:2;border:1px solid var(--bd);"></div>
+  <div class="mf">
+    <button class="btn bg2" onclick="closeModal('merge-group-modal')">ביטול</button>
+    <button class="btn bp" id="mg-confirm-btn" onclick="_confirmMerge()" disabled>🔗 בצע מיזוג</button>
+  </div>
+</div></div>
 
 <!-- NEW GROUP MODAL -->
 <div class="mbg" id="new-group-modal"><div class="mod mod-wide" onclick="event.stopPropagation()">
@@ -1760,9 +1780,13 @@ history.pushState(null,'',location.href);
   <div class="ms" style="line-height:1.5;">
     טען את האלפונים של כל הכיתות שלך (אפשר לבחור כמה קבצים בבת אחת). בלחיצה על "צור קובץ" יווצר קובץ אחד מאוחד שתוכל לשמור במכשיר ולהעלות אותו בכל אחת מהקבוצות בעת ייצוא ציונים למשו״ב. <b>תעודות הזהות לא נשמרות בשרת ולא ברשימות באפליקציה</b> — הן עוברות הצפנה במכשיר שלך ויוצאות בקובץ הירידה בלבד.
   </div>
-  <div style="margin-top:12px;display:flex;gap:8px;align-items:center;">
-    <button type="button" class="btn bs bsm" onclick="document.getElementById('master-file-input').click()">📁 בחר אלפונים</button>
-    <span style="font-size:12px;color:var(--ink3);">חובה: עמודת "ת.ז" באלפון</span>
+  <div id="master-drop-zone" style="margin-top:12px;border:2px dashed var(--bd);border-radius:var(--r);padding:18px 12px;text-align:center;cursor:pointer;transition:border-color .15s,background .15s;"
+    onclick="document.getElementById('master-file-input').click()"
+    ondragover="_masterDragOver(event)" ondragleave="_masterDragLeave(event)" ondrop="_masterDrop(event)">
+    <div style="font-size:22px;margin-bottom:4px;">📁</div>
+    <div style="font-size:14px;font-weight:700;">גרור קבצי Excel לכאן</div>
+    <div style="font-size:12px;color:var(--ink3);margin-top:3px;">או לחץ לבחירת קבצים · ניתן לגרור/לבחור מספר קבצים בו זמנית</div>
+    <div style="font-size:11px;color:var(--ink3);margin-top:3px;">חובה: עמודת "ת.ז" באלפון</div>
   </div>
   <input type="file" id="master-file-input" accept=".xlsx,.xls" multiple style="display:none" onchange="_onMasterFilesPicked(event)">
   <div id="master-files-list" style="margin-top:12px;max-height:280px;overflow-y:auto;"></div>
@@ -4555,26 +4579,6 @@ function _renderMasterBuilderList(){
 function _removeMasterFile(i){
   _masterFiles.splice(i,1);
   _renderMasterBuilderList();
-}
-
-async function _onMasterFilesPicked(ev){
-  const files=Array.from(ev.target.files||[]);
-  if(!files.length) return;
-  const status=document.getElementById('master-status');
-  for(const f of files){
-    const fileName=f.name.replace(/\.xlsx?$/i,'').replace(/_/g,' ');
-    if(status) status.textContent='קורא ומצפין: '+fileName+'…';
-    try{
-      const arrBuf=await f.arrayBuffer();
-      const { students, hasIds }=await _parseStudentSheet(arrBuf);
-      _masterFiles.push({ fileName, students, hasIds });
-    }catch(err){
-      _masterFiles.push({ fileName, students:[], hasIds:false, error:String(err.message||err) });
-    }
-    _renderMasterBuilderList();
-  }
-  if(status) status.textContent='';
-  ev.target.value='';
 }
 
 function _buildMasterFile(){
@@ -7999,9 +8003,37 @@ function undoCompletion(){
 // ── NEW GROUP MANUAL CREATION ────────────────────────────────
 let _ngStudents=[];
 
+let _ngLastAutoName='';
+
+function _ngBuildAutoName(){
+  const grade=document.getElementById('ng-grade').value;
+  if(!_ngStudents.length) return 'חינוך גופני '+grade+'׳';
+  const byGrade={};
+  _ngStudents.forEach(s=>{
+    if(!byGrade[s.grade]) byGrade[s.grade]=[];
+    if(s.cls&&!byGrade[s.grade].includes(s.cls)) byGrade[s.grade].push(s.cls);
+  });
+  const parts=Object.keys(byGrade)
+    .sort((a,b)=>(GRADE_ORDER.indexOf(a)||0)-(GRADE_ORDER.indexOf(b)||0))
+    .map(gr=>{
+      const clss=byGrade[gr].sort((a,b)=>a.localeCompare(b,'he',{numeric:true}));
+      if(!clss.length) return gr+'׳';
+      if(clss.length===1) return gr+'׳'+clss[0];
+      return gr+'׳'+clss[0]+'-'+gr+'׳'+clss[clss.length-1];
+    });
+  return 'חינוך גופני '+parts.join(', ');
+}
+
+function _ngMaybeUpdateName(){
+  const el=document.getElementById('ng-name');
+  if(!el.value||el.value===_ngLastAutoName){
+    _ngLastAutoName=_ngBuildAutoName();
+    el.value=_ngLastAutoName;
+  }
+}
+
 function openNewGroupModal(){
-  _ngStudents=[];
-  document.getElementById('ng-name').value='';
+  _ngStudents=[];_ngLastAutoName='';
   document.getElementById('ng-batch').value='';
   document.getElementById('ng-single').value='';
   document.getElementById('ng-batch-count').textContent='';
@@ -8010,8 +8042,10 @@ function openNewGroupModal(){
   document.querySelectorAll('input[name="ng-gender"]')[0].checked=true;
   const sel=document.getElementById('ng-single-gender');
   sel.value='ז';sel.disabled=false;
+  _ngLastAutoName=_ngBuildAutoName();
+  document.getElementById('ng-name').value=_ngLastAutoName;
   openModal('new-group-modal');
-  setTimeout(()=>document.getElementById('ng-name').focus(),60);
+  setTimeout(()=>document.getElementById('ng-name').select(),60);
 }
 
 function ngGetGradeAndGender(){
@@ -8040,6 +8074,7 @@ function ngParseBatch(){
   });
   document.getElementById('ng-batch-count').textContent=
     added?`נוספו ${added} תלמידים (סה"כ ${_ngStudents.length})`:`${_ngStudents.length} תלמידים ברשימה`;
+  _ngMaybeUpdateName();
   ngRenderPreview();
 }
 
@@ -8052,6 +8087,7 @@ function ngAddSingle(){
   _ngStudents.push({name,gender,grade,cls:''});
   document.getElementById('ng-single').value='';
   document.getElementById('ng-batch-count').textContent=`${_ngStudents.length} תלמידים ברשימה`;
+  _ngMaybeUpdateName();
   ngRenderPreview();
   document.getElementById('ng-single').focus();
 }
@@ -8097,6 +8133,7 @@ document.getElementById('new-group-modal').addEventListener('click',e=>{
 document.getElementById('ng-single').addEventListener('keydown',e=>{
   if(e.key==='Enter'){e.preventDefault();ngAddSingle();}
 });
+document.getElementById('ng-grade').addEventListener('change',()=>_ngMaybeUpdateName());
 document.querySelectorAll('input[name="ng-gender"]').forEach(radio=>{
   radio.addEventListener('change',()=>{
     const v=document.querySelector('input[name="ng-gender"]:checked')?.value;
@@ -9894,7 +9931,10 @@ function renderGroupEditView(){
   if(!g)return;
   document.getElementById('ge-group-name').textContent=g.name;
   document.getElementById('ge-group-meta').textContent=
-    `${g.students.length} תלמידים · ${g.classes||''}`;
+    `${g.students.length} תלמידים · ${g.classes||''}` +
+    (g._mergeBackup?` · מוזג עם "${g._mergeBackup.sourceName}"` : '');
+  const unmergeBtn=document.getElementById('ge-unmerge-btn');
+  if(unmergeBtn) unmergeBtn.style.display=g._mergeBackup?'':'none';
 
   const tbody=document.getElementById('ge-tbody');
   if(!tbody)return;
@@ -10008,6 +10048,149 @@ function geDeleteGroup(){
   delete S.groups[gid];
   saveState();renderGroupGrid();showView('welcome');
   toast('הקבוצה נמחקה');
+}
+
+// ── MERGE GROUPS ───────────────────────────────────────────────
+function _mgNorm(name){ return (name||'').trim().replace(/\s+/g,' '); }
+
+function openMergeModal(){
+  const gid=CUR.gid;const g=S.groups[gid];if(!g)return;
+  const others=Object.entries(S.groups).filter(([id])=>Number(id)!==Number(gid));
+  if(!others.length){toast('אין קבוצות אחרות למיזוג');return;}
+  document.getElementById('mg-cur-name').textContent=g.name;
+  const sel=document.getElementById('mg-select');
+  sel.innerHTML='<option value="">— בחר קבוצה —</option>'+
+    others.map(([id,gr])=>`<option value="${id}">${gr.name} (${gr.students.length} תלמידים)</option>`).join('');
+  document.getElementById('mg-preview').style.display='none';
+  document.getElementById('mg-confirm-btn').disabled=true;
+  openModal('merge-group-modal');
+}
+
+function _mgRenderPreview(){
+  const srcGid=document.getElementById('mg-select').value;
+  const prev=document.getElementById('mg-preview');
+  const btn=document.getElementById('mg-confirm-btn');
+  if(!srcGid){prev.style.display='none';btn.disabled=true;return;}
+  const gA=S.groups[CUR.gid];const gB=S.groups[srcGid];if(!gA||!gB)return;
+  const namesA=new Set(gA.students.map(s=>_mgNorm(s.name)));
+  const namesB=gB.students.map(s=>_mgNorm(s.name));
+  const overlap=namesB.filter(n=>namesA.has(n));
+  const onlyB=namesB.filter(n=>!namesA.has(n));
+  const onlyA=[...namesA].filter(n=>!namesB.includes(n));
+  const previewNames=(arr,max=5)=>arr.length?`<span style="font-size:11px;color:var(--ink3)">${arr.slice(0,max).join(' · ')+(arr.length>max?` +${arr.length-max} נוספים`:'')}</span>`:'';
+  prev.innerHTML=
+    `<div>תלמידים חופפים (בשתי הקבוצות): <b>${overlap.length}</b> ${previewNames(overlap)}</div>`+
+    `<div>רק ב"${gA.name}": <b>${onlyA.length}</b></div>`+
+    `<div>רק ב"${gB.name}" — יתווספו: <b style="color:var(--gn)">${onlyB.length}</b> ${previewNames(onlyB)}</div>`+
+    `<div style="margin-top:6px;padding-top:6px;border-top:1px solid var(--bd)">סה"כ לאחר מיזוג: <b style="color:var(--ac)">${gA.students.length+onlyB.length} תלמידים</b></div>`+
+    `<div style="font-size:11px;color:var(--ink3);margin-top:4px;">• לתלמידים חופפים — יישמר הציון הגבוה בכל מבחן<br>• ניתן לבטל את המיזוג בלחיצת "בטל מיזוג" בעריכת הקבוצה</div>`;
+  prev.style.display='block';
+  btn.disabled=false;
+}
+
+function _confirmMerge(){
+  const srcGid=Number(document.getElementById('mg-select').value);
+  if(!srcGid)return;
+  const gA=S.groups[CUR.gid];const gB=S.groups[srcGid];
+  if(!gA||!gB)return;
+  // Save backup for reversibility
+  gA._mergeBackup={
+    sourceGid:srcGid,sourceName:gB.name,
+    originalStudents:JSON.parse(JSON.stringify(gA.students)),
+    originalResults:JSON.parse(JSON.stringify(gA.results||{})),
+    originalResultsB:JSON.parse(JSON.stringify(gA.results_b||{})),
+    mergedAt:Date.now()
+  };
+  const nameMapA=new Map();
+  gA.students.forEach((s,i)=>nameMapA.set(_mgNorm(s.name),i));
+  let overlap=0,added=0;
+  gB.students.forEach((bStu,bIdx)=>{
+    const norm=_mgNorm(bStu.name);
+    const aIdx=nameMapA.get(norm);
+    if(aIdx!==undefined){
+      overlap++;
+      ['results','results_b'].forEach(sem=>{
+        Object.entries(gB[sem]||{}).forEach(([testId,bTests])=>{
+          const bR=bTests[bIdx];if(!bR||!bR.a)return;
+          if(!gA[sem])gA[sem]={};if(!gA[sem][testId])gA[sem][testId]={};
+          const aR=gA[sem][testId][aIdx];
+          if(!aR||!aR.a){gA[sem][testId][aIdx]={...bR};return;}
+          const aStu=gA.students[aIdx];
+          const aScore=getScore(testId,aStu.grade,aStu.gender,aR.a);
+          const bScore=getScore(testId,bStu.grade,bStu.gender,bR.a);
+          if(bScore!==null&&(aScore===null||bScore>aScore)) gA[sem][testId][aIdx]={...bR};
+        });
+      });
+    } else {
+      const newIdx=gA.students.length;
+      gA.students.push({...bStu});nameMapA.set(norm,newIdx);added++;
+      ['results','results_b'].forEach(sem=>{
+        Object.entries(gB[sem]||{}).forEach(([testId,bTests])=>{
+          const bR=bTests[bIdx];if(!bR)return;
+          if(!gA[sem])gA[sem]={};if(!gA[sem][testId])gA[sem][testId]={};
+          gA[sem][testId][newIdx]={...bR};
+        });
+      });
+    }
+  });
+  gA.classes=[...new Set(gA.students.map(s=>`${s.grade}${s.cls}`))].sort((a,b)=>a.localeCompare(b,'he')).join(', ');
+  closeModal('merge-group-modal');
+  saveState();renderGroupEditView();
+  toast(`✓ מוזג — ${overlap} חופפים, ${added} תלמידים חדשים נוספו`);
+}
+
+function geUnmergeGroup(){
+  const gid=CUR.gid;const g=S.groups[gid];
+  if(!g?._mergeBackup)return;
+  const b=g._mergeBackup;
+  if(!confirm(`לבטל את המיזוג עם "${b.sourceName}" ולשחזר את הקבוצה?`))return;
+  g.students=b.originalStudents;
+  g.results=b.originalResults;
+  g.results_b=b.originalResultsB;
+  delete g._mergeBackup;
+  g.classes=[...new Set(g.students.map(s=>`${s.grade}${s.cls}`))].sort((a,b)=>a.localeCompare(b,'he')).join(', ');
+  saveState();renderGroupEditView();
+  toast('↩ מיזוג בוטל — הקבוצה שוחזרה');
+}
+
+// ── MASTER DRAG & DROP ──────────────────────────────────────────
+function _masterDragOver(e){
+  e.preventDefault();e.stopPropagation();
+  const z=document.getElementById('master-drop-zone');
+  z.style.borderColor='var(--ac)';z.style.background='rgba(249,115,22,.07)';
+}
+function _masterDragLeave(e){
+  const z=document.getElementById('master-drop-zone');
+  z.style.borderColor='';z.style.background='';
+}
+async function _masterDrop(e){
+  e.preventDefault();e.stopPropagation();
+  _masterDragLeave(e);
+  const files=Array.from(e.dataTransfer?.files||[]).filter(f=>/\.xlsx?$/i.test(f.name));
+  if(!files.length){toast('יש לגרור קבצי Excel בלבד (.xlsx/.xls)');return;}
+  await _processMasterFiles(files);
+}
+async function _onMasterFilesPicked(ev){
+  const files=Array.from(ev.target.files||[]);
+  if(!files.length)return;
+  await _processMasterFiles(files);
+  ev.target.value='';
+}
+async function _processMasterFiles(files){
+  const status=document.getElementById('master-status');
+  for(const f of files){
+    const fileName=f.name.replace(/\.xlsx?$/i,'').replace(/_/g,' ');
+    if(status) status.textContent='קורא ומצפין: '+fileName+'…';
+    try{
+      const arrBuf=await f.arrayBuffer();
+      const {students,hasIds}=await _parseStudentSheet(arrBuf);
+      _masterFiles.push({fileName,students,hasIds});
+    }catch(err){
+      _masterFiles.push({fileName,students:[],hasIds:false,error:String(err.message||err)});
+    }
+    _renderMasterBuilderList();
+  }
+  if(status) status.textContent='';
 }
 
 // ── SIDEBAR PIN ────────────────────────────────────────────────
