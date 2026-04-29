@@ -4057,14 +4057,16 @@ function openCustomModal(editId){
   document.getElementById('cm-unit').value=ct?.unit||'חזרות';
   const scoreKeys={100:'v100m',90:'v90m',80:'v80m',70:'v70m',60:'v60m'};
   const fKeys={100:'v100f',90:'v90f',80:'v80f',70:'v70f',60:'v60f'};
+  const isTimeEdit=ct?.unit==='דקות-';
   for(const[sc,k]of Object.entries(scoreKeys)){
     const pt=ct?.table?.find(([,s])=>Math.round(s)===parseInt(sc));
-    document.getElementById('cm-'+k).value=pt?pt[0]:'';
+    document.getElementById('cm-'+k).value=pt?(isTimeEdit?fmtTime(pt[0]):pt[0]):'';
   }
   for(const[sc,k]of Object.entries(fKeys)){
     const pt=ct?.tablef?.find(([,s])=>Math.round(s)===parseInt(sc));
-    document.getElementById('cm-'+k).value=pt?pt[0]:'';
+    document.getElementById('cm-'+k).value=pt?(isTimeEdit?fmtTime(pt[0]):pt[0]):'';
   }
+  toggleCustomUnit();
   if(ct?.unit==='מדד אחר'){
     document.getElementById('cm-custom-unit-wrap').style.display='block';
     document.getElementById('cm-custom-unit').value=ct?.customUnitName||'';
@@ -4079,13 +4081,25 @@ function editCurrentCustom(){openCustomModal(CUR.test);}
 function toggleCustomUnit(){
   const v=document.getElementById('cm-unit').value;
   document.getElementById('cm-custom-unit-wrap').style.display=v==='מדד אחר'?'block':'none';
+  const isTime=v==='דקות-';
+  for(const sc of[100,90,80,70,60]){
+    for(const sfx of['m','f']){
+      const el=document.getElementById(`cm-v${sc}${sfx}`);if(!el)continue;
+      el.type=isTime?'text':'number';
+      const req=(sc===100&&sfx==='m')||(sc===60&&sfx==='m');
+      el.placeholder=isTime?(req?'0:00 חובה':'0:00'):(req?'חובה':'');
+    }
+  }
 }
 
 function getCustomAnchors(sfx){
+  const isTime=document.getElementById('cm-unit').value==='דקות-';
   const res=[];
   for(const sc of[100,90,80,70,60]){
-    const v=parseFloat(document.getElementById(`cm-v${sc}${sfx}`).value);
-    if(!isNaN(v))res.push([sc,v]);
+    const raw=document.getElementById(`cm-v${sc}${sfx}`).value.trim();
+    if(raw==='')continue;
+    const v=isTime?parseTime(raw):parseFloat(raw);
+    if(v!==null&&!isNaN(v))res.push([sc,v]);
   }
   return res;
 }
