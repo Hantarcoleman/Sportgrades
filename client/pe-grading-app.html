@@ -742,6 +742,9 @@ async function sbLoadUserData() {
       nextId = gid + 1;
     });
     S.nextId = nextId;
+    // Merge customTests from all groups into global S.customTests
+    S.customTests = {};
+    Object.values(S.groups).forEach(g => Object.assign(S.customTests, g.customTests || {}));
   }
 
   // Update UI after loading
@@ -939,9 +942,16 @@ function stripLocalFields(students){
 function hydrateGroupFromIdMap(gid, group){
   if(!group||!Array.isArray(group.students)) return;
   let needsBanner=false;
+  const fullMap=getIdMap();
   group.students.forEach(s=>{
     if(s.idHash && (!s.name || s.name==='')){
-      const info=idMapLookup(gid, s.idHash);
+      let info=idMapLookup(gid, s.idHash);
+      if(!info){
+        // gid may have been reassigned — search all keys
+        for(const k in fullMap){
+          if(fullMap[k][s.idHash]){info=fullMap[k][s.idHash];setIdMapEntry(gid,s.idHash,info);break;}
+        }
+      }
       if(info && info.name){
         s.name=info.name;
         s.id=info.id||'';
@@ -4192,7 +4202,13 @@ function saveCustomTest(){
   if(!S.customTests)S.customTests={};
   const id=_editCT||('ct_'+Date.now());
   const group=document.getElementById('cm-group').value||'strength';
-  S.customTests[id]={name,unit,customUnitName,lowerBetter:lb,table:mTbl,tablef:fTbl,group};
+  const ctObj={name,unit,customUnitName,lowerBetter:lb,table:mTbl,tablef:fTbl,group};
+  S.customTests[id]=ctObj;
+  // Save into current group so Supabase syncs it
+  if(CUR.gid!=null&&S.groups[CUR.gid]){
+    if(!S.groups[CUR.gid].customTests)S.groups[CUR.gid].customTests={};
+    S.groups[CUR.gid].customTests[id]=ctObj;
+  }
   saveState();closeModal('custom-modal');buildTabs();selectTest(id);
   toast(`"${name}" ${_editCT?'עודכן':'נוסף'} ✓`);
 }
