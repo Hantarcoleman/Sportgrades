@@ -1137,12 +1137,14 @@ history.pushState(null,'',location.href);
         <span class="upi">📋</span>
         <div class="upt">גרור קובץ Excel לכאן</div>
         <div class="ups">כל קובץ = קבוצה אחת · ניתן לטעון מספר קבצים</div>
-        <div class="upn">✔ שם תלמיד · מין · שכבה · מקבילה — ללא ת"ז</div>
+        <div class="upn">✔ שם תלמיד · מין · שכבה · מקבילה · ת״ז (אופציונלי, נשמר מקומית בלבד)</div>
       </div>
       <input type="file" id="fi" accept=".xlsx,.xls" onchange="handleFile(event)">
       <div style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;justify-content:center;">
         <button class="btn bs bsm" onclick="document.getElementById('fi').click()">+ הוסף מקובץ Excel</button>
         <button class="btn bpu bsm" onclick="openNewGroupModal()">✦ צור כיתה חדשה ידנית</button>
+        <button class="btn bsm" style="background:#1d4ed8;color:#fff;" onclick="openMasterBuilderModal()" title="איחוד כל האלפונים לקובץ אחד שאפשר להעלות בכל קבוצה">📦 צור קובץ מאסטר</button>
+        <button class="btn bsm" style="background:#0f766e;color:#fff;" onclick="openUpdateGroupModal()" title="הוסף תלמידים חדשים לקבוצה קיימת מאלפון מעודכן">📥 עדכן קבוצה קיימת</button>
       </div>
     </div>
   </div>
@@ -1753,6 +1755,43 @@ history.pushState(null,'',location.href);
 
 <!-- Hidden Mashov-as-alphon importer (used from banner) -->
 <input type="file" id="mashov-alphon-input" accept=".xlsx,.xls" style="display:none" onchange="importMashovAsAlphon(event)">
+
+<!-- ── Master File Builder Modal ── -->
+<div class="mbg" id="master-builder-modal"><div class="mod mod-wide" onclick="event.stopPropagation()">
+  <div class="mt">📦 צור קובץ מאסטר</div>
+  <div class="ms" style="line-height:1.5;">
+    טען את האלפונים של כל הכיתות שלך (אפשר לבחור כמה קבצים בבת אחת). בלחיצה על "צור קובץ" יווצר קובץ אחד מאוחד שתוכל לשמור במכשיר ולהעלות אותו בכל אחת מהקבוצות בעת ייצוא ציונים למשו״ב. <b>תעודות הזהות לא נשמרות בשרת ולא ברשימות באפליקציה</b> — הן עוברות הצפנה במכשיר שלך ויוצאות בקובץ הירידה בלבד.
+  </div>
+  <div style="margin-top:12px;display:flex;gap:8px;align-items:center;">
+    <button type="button" class="btn bs bsm" onclick="document.getElementById('master-file-input').click()">📁 בחר אלפונים</button>
+    <span style="font-size:12px;color:var(--ink3);">חובה: עמודת "ת.ז" באלפון</span>
+  </div>
+  <input type="file" id="master-file-input" accept=".xlsx,.xls" multiple style="display:none" onchange="_onMasterFilesPicked(event)">
+  <div id="master-files-list" style="margin-top:12px;max-height:280px;overflow-y:auto;"></div>
+  <div id="master-status" style="margin-top:8px;font-size:13px;color:var(--ink2);min-height:20px;"></div>
+  <div class="mf">
+    <button class="btn bg2" onclick="closeModal('master-builder-modal')">סגור</button>
+    <button class="btn bp" id="master-build-btn" onclick="_buildMasterFile()" disabled>✓ צור והורד קובץ מאסטר</button>
+  </div>
+</div></div>
+
+<!-- ── Update Existing Group Modal ── -->
+<div class="mbg" id="update-group-modal"><div class="mod" onclick="event.stopPropagation()">
+  <div class="mt">📥 עדכון קבוצה קיימת</div>
+  <div class="ms" style="line-height:1.5;">
+    העלה אלפון מעודכן של כיתה. האפליקציה תזהה אוטומטית את הקבוצה המתאימה, תציג רשימה של התלמידים החדשים שהתווספו לכיתה, ותוסיף אותם בלבד לרשימה — מבלי למחוק תלמידים קיימים או ציונים שכבר הוזנו.
+  </div>
+  <div style="margin-top:12px;display:flex;gap:8px;align-items:center;">
+    <button type="button" class="btn bs bsm" onclick="document.getElementById('update-group-file-input').click()">📁 בחר אלפון מעודכן</button>
+    <span id="update-group-fname" style="font-size:13px;color:var(--ink2);">לא נבחר קובץ</span>
+  </div>
+  <input type="file" id="update-group-file-input" accept=".xlsx,.xls" style="display:none" onchange="_onUpdateGroupFilePicked(event)">
+  <div id="update-group-summary" style="margin-top:14px;"></div>
+  <div class="mf">
+    <button class="btn bg2" onclick="closeModal('update-group-modal')">ביטול</button>
+    <button class="btn bp" id="update-group-go-btn" onclick="applyGroupUpdate()" disabled>✓ הוסף תלמידים חדשים</button>
+  </div>
+</div></div>
 
 <div class="mbg" id="custom-modal"><div class="mod mod-wide" onclick="event.stopPropagation()">
   <div class="mt" id="cm-title">יצירת מבחן חדש</div>
@@ -2886,53 +2925,56 @@ function handleFile(e){
   reader.onload=ev=>parseXLSX(ev.target.result,name);
   reader.readAsArrayBuffer(file);e.target.value='';
 }
+
+// Pure parser: read an alphon/Mashov-style sheet → return {students, hasIds}.
+// Side-effect-free; used by parseXLSX, master builder, and update-group flow.
+async function _parseStudentSheet(arrBuf){
+  const wb=XLSX.read(arrBuf,{type:'array'});
+  const ws=wb.Sheets[wb.SheetNames[0]];
+  const rows=XLSX.utils.sheet_to_json(ws,{header:1,defval:''});
+  let hIdx=-1;
+  for(let i=0;i<Math.min(rows.length,20);i++){
+    const r=(rows[i]||[]).join(' ');
+    if(r.includes('שם')&&(r.includes('שכבה')||r.includes('מקבילה')||r.includes('מין')||r.includes('ת.ז')||r.includes('תעודת זהות'))){hIdx=i;break;}
+  }
+  if(hIdx<0) throw new Error('פורמט אלפון לא מוכר');
+  const headers=(rows[hIdx]||[]).map(h=>(h+'').trim());
+  const col=name=>headers.findIndex(h=>h.includes(name));
+  const cN=col('שם התלמיד')>=0?col('שם התלמיד'):col('שם');
+  const cG=col('מין'),cGr=col('שכבה'),cC=col('מקבילה');
+  let cId=col('ת.ז');if(cId<0)cId=col('תעודת זהות');
+  const cClsAlt=cC<0?col('כיתה'):-1;
+  if(cN<0) throw new Error('עמודת "שם התלמיד" לא נמצאה');
+
+  const students=[];
+  const idsToHash=[];
+  for(let i=hIdx+1;i<rows.length;i++){
+    const row=rows[i]||[]; const name=(row[cN]+'').trim();
+    if(!name||name==='ממוצע') continue;
+    const gender=cG>=0?(row[cG]+'').trim():'';
+    const gradeRaw=cGr>=0?(row[cGr]+'').trim():'';
+    const grade=normGrade(GMAP[gradeRaw]||gradeRaw);
+    const cls=cC>=0?(row[cC]+'').trim():(cClsAlt>=0?(row[cClsAlt]+'').trim():'');
+    const stu={name,gender,grade,cls};
+    if(cId>=0){
+      const cleaned=cleanId(row[cId]);
+      if(cleaned){ stu.id=cleaned; idsToHash.push({stu,cleaned}); }
+    }
+    students.push(stu);
+  }
+  if(idsToHash.length){
+    try{
+      const hashes=await idHashBatch(idsToHash.map(x=>x.cleaned));
+      idsToHash.forEach((x,i)=>{ x.stu.idHash=hashes[i]; });
+    }catch(e){ console.error('hash failed',e); }
+  }
+  return { students, hasIds: idsToHash.length>0 };
+}
+
 async function parseXLSX(data,fileName){
   try{
-    const wb=XLSX.read(data,{type:'array'});
-    const ws=wb.Sheets[wb.SheetNames[0]];
-    const rows=XLSX.utils.sheet_to_json(ws,{header:1,defval:''});
-    let hIdx=-1;
-    for(let i=0;i<Math.min(rows.length,12);i++){
-      const r=rows[i].join(' ');
-      if(r.includes('שם')&&(r.includes('שכבה')||r.includes('מקבילה')||r.includes('מין')||r.includes('ת.ז')||r.includes('תעודת זהות'))){hIdx=i;break;}
-    }
-    if(hIdx<0){toast('פורמט אלפון לא מוכר');return;}
-    const headers=rows[hIdx].map(h=>(h+'').trim());
-    const col=name=>headers.findIndex(h=>h.includes(name));
-    const cN=col('שם התלמיד')>=0?col('שם התלמיד'):col('שם');
-    const cG=col('מין'),cGr=col('שכבה'),cC=col('מקבילה');
-    let cId=col('ת.ז');if(cId<0)cId=col('תעודת זהות');
-    // Mashov-style files use "כיתה" instead of "מקבילה"
-    const cClsAlt = cC<0 ? col('כיתה') : -1;
-    if(cN<0){toast('עמודת "שם התלמיד" לא נמצאה');return;}
-    const students=[];
-    const idsToHash=[];
-    for(let i=hIdx+1;i<rows.length;i++){
-      const row=rows[i];const name=(row[cN]+'').trim();if(!name)continue;
-      // Skip footer rows like "ממוצע"
-      if(name==='ממוצע') continue;
-      const gender=cG>=0?(row[cG]+'').trim():'';
-      const gradeRaw=cGr>=0?(row[cGr]+'').trim():'';
-      const grade=normGrade(GMAP[gradeRaw]||gradeRaw);
-      const cls=cC>=0?(row[cC]+'').trim() : (cClsAlt>=0?(row[cClsAlt]+'').trim():'');
-      const stu={name,gender,grade,cls};
-      if(cId>=0){
-        const cleaned=cleanId(row[cId]);
-        if(cleaned){
-          stu.id=cleaned;
-          idsToHash.push({stu, cleaned});
-        }
-      }
-      students.push(stu);
-    }
+    const { students } = await _parseStudentSheet(data);
     if(!students.length){toast('לא נמצאו תלמידים');return;}
-    // Compute hashes if any IDs found
-    if(idsToHash.length){
-      try{
-        const hashes=await idHashBatch(idsToHash.map(x=>x.cleaned));
-        idsToHash.forEach((x,i)=>{ x.stu.idHash=hashes[i]; });
-      }catch(e){ console.error('hash failed',e); }
-    }
     const classes=[...new Set(students.map(s=>s.grade+s.cls))].sort((a,b)=>a.localeCompare(b,'he')).join(', ');
     const gid=S.nextId++;
     S.groups[gid]={name:fileName,classes,students,results:{}};
@@ -2940,15 +2982,15 @@ async function parseXLSX(data,fileName){
     students.forEach(s=>{
       if(s.idHash) setIdMapEntry(gid, s.idHash, {name:s.name, id:s.id||''});
     });
-  // Save to Supabase
-  if(typeof sbSaveGroup === 'function' && SG_USER){
-    sbSaveGroup(gid).then(()=>{ toast('✓ הקבוצה נשמרה'); renderGroupGrid(); }).catch(e=>console.error('Save failed:',e));
-  } else {
-    toast('✓ הקבוצה נטענה');
-    renderGroupGrid();
-  }
+    // Save to Supabase
+    if(typeof sbSaveGroup === 'function' && SG_USER){
+      sbSaveGroup(gid).then(()=>{ toast('✓ הקבוצה נשמרה'); renderGroupGrid(); }).catch(e=>console.error('Save failed:',e));
+    } else {
+      toast('✓ הקבוצה נטענה');
+      renderGroupGrid();
+    }
     saveState();renderGroupGrid();toast(`"${fileName}" נטענה — ${students.length} תלמידים ✓`);
-  }catch(err){toast('שגיאה: '+err.message);}
+  }catch(err){toast('שגיאה: '+(err.message||err));}
 }
 const GRADE_ORDER=['א','ב','ג','ד','ה','ו','ז','ח','ט','י','יא','יב'];
 function gradeKey(name){
@@ -3966,6 +4008,10 @@ async function addStudent(){
   // Reset id field for next add
   const idField=document.getElementById('an-id'); if(idField) idField.value='';
   saveState();closeModal('add-modal');renderTable();toast(`"${name}" נוסף ✓`);
+  // Warning popup: ensure teacher uses an updated master/alphon file when exporting to Mashov
+  setTimeout(()=>{
+    alert('⚠ שים לב\n\n"'+name+'" נוסף ידנית לקבוצה. כדי שהציון שלו יוזן במשו"ב, וודא שהקובץ שאתה משתמש בו לייצוא (מאסטר או אלפון כיתתי) מכיל אותו עם תעודת זהות.\n\nאם אין לך קובץ מעודכן — צור קובץ מאסטר חדש מהתפריט הראשי, או עדכן את הקבוצה הזו דרך "עדכן קבוצה קיימת".');
+  }, 80);
 }
 
 // ── CUSTOM TEST ──────────────────────────────────────────────
@@ -4261,6 +4307,29 @@ async function exportMashov(arrBuf, originalFileName, gid, testId, semester){
   const struct=data.struct;
   const sourceRows=data.rows;
 
+  // 1a) STRICT WARNING: are there students IN THIS GROUP that are NOT in the uploaded file?
+  // Those students will not appear in the output → their score won't reach Mashov.
+  const matchedIdxSet=new Set(summary.matches.map(m=>m.studentIdx));
+  const unmatchedStudents=[];
+  g.students.forEach((s,idx)=>{
+    if(s._guest) return; // guests aren't part of mashov anyway
+    if(matchedIdxSet.has(idx)) return;
+    unmatchedStudents.push({ idx, name: s.name||('תלמיד #'+(s.idHash||'').slice(0,6)) });
+  });
+  if(unmatchedStudents.length){
+    const list=unmatchedStudents.slice(0,10).map(u=>'• '+u.name).join('\n');
+    const more=unmatchedStudents.length>10?`\n• ועוד ${unmatchedStudents.length-10} תלמידים…`:'';
+    const msg='⚠ שים לב — תלמידים חסרים בקובץ\n\n'+
+      'התלמידים הבאים קיימים בקבוצה שלך אך לא נמצאים בקובץ שהעלית. '+
+      'הציון שלהם לא יוזן במשו״ב כשתשתמש בקובץ הזה:\n\n'+
+      list+more+'\n\n'+
+      'מומלץ לסגור, לייצר קובץ מאסטר מעודכן (או לעדכן את האלפון), ולחזור לפה.\n\n'+
+      'האם להמשיך בכל זאת ולהוריד קובץ ללא הציונים האלה?';
+    if(!confirm(msg)){
+      throw new Error('בוטל ע״י המשתמש — יש לעדכן את הקובץ');
+    }
+  }
+
   // 2) Compute final score for each matched student
   let filled=0, missing=0;
   const filledScores=[];
@@ -4329,6 +4398,7 @@ async function exportMashov(arrBuf, originalFileName, gid, testId, semester){
     filled,                       // students in this group with scores filled
     missing: enrichedMatches.length - filled, // students in this group without scores
     inGroup: enrichedMatches.length,           // total students from group matched in master
+    unmatchedInGroup: unmatchedStudents.length, // students in group missing from the master file (warning shown)
     droppedFromMaster: summary.dropped,        // entries in master file not belonging to this group
     masterTotal: data.entries.length,
     summary,
@@ -4394,17 +4464,20 @@ async function runMashovExport(){
     const groupSize=(S.groups[CUR.gid]?.students||[]).length;
     let msg=`✓ הקובץ ירד. ${r.filled} ציונים מולאו עבור הקבוצה`;
     if(r.missing) msg+=`, ${r.missing} תלמידים ללא ציון`;
+    if(r.unmatchedInGroup) msg+=`. ⚠ ${r.unmatchedInGroup} תלמידים מהקבוצה לא נמצאו בקובץ`;
     if(r.droppedFromMaster) msg+=`. ${r.droppedFromMaster} תלמידים מהקובץ אינם שייכים לקבוצה זו והושמטו.`;
     if(status) status.textContent=msg;
     let toastMsg=`✓ ${r.filled} ציונים מולאו (${r.inGroup}/${groupSize} מהקבוצה זוהו)`;
+    if(r.unmatchedInGroup) toastMsg+=` · ⚠ ${r.unmatchedInGroup} חסרים בקובץ`;
     if(r.droppedFromMaster) toastMsg+=` · ${r.droppedFromMaster} סוננו`;
     toast(toastMsg);
     _updateMashovBanner && _updateMashovBanner();
     if(typeof renderTable==='function') renderTable();
     setTimeout(()=>closeModal('mashov-export-modal'), 2500);
   }catch(err){
-    if(status) status.textContent='שגיאה: '+(err.message||err);
-    toast('שגיאה: '+(err.message||err));
+    const m=String(err.message||err);
+    if(status) status.textContent=m.includes('בוטל')?m:('שגיאה: '+m);
+    if(!m.includes('בוטל')) toast('שגיאה: '+m);
     if(goBtn) goBtn.disabled=false;
   }
 }
@@ -4433,6 +4506,277 @@ async function importMashovAsAlphon(ev){
     toast('שגיאה: '+(err.message||err));
   }
   ev.target.value='';
+}
+
+// ══ MASTER FILE BUILDER ══════════════════════════════════════
+// Combine multiple per-class alphon files into a single Mashov-format master file.
+// The merged students live only in memory long enough to write the output xlsx.
+// Nothing is saved to Supabase or to the app's groups.
+
+let _masterFiles=[]; // [{ fileName, students, hasIds, error? }]
+
+function openMasterBuilderModal(){
+  _masterFiles=[];
+  const fi=document.getElementById('master-file-input');
+  if(fi) fi.value='';
+  _renderMasterBuilderList();
+  const status=document.getElementById('master-status');
+  if(status) status.textContent='';
+  openModal('master-builder-modal');
+}
+
+function _renderMasterBuilderList(){
+  const list=document.getElementById('master-files-list');
+  if(!list) return;
+  if(!_masterFiles.length){
+    list.innerHTML='<div style="font-size:12px;color:var(--ink3);text-align:center;padding:14px;">אין קבצים שנטענו. גרור או בחר את האלפונים של כל הכיתות שלך.</div>';
+  }else{
+    let totalStudents=0, totalWithIds=0;
+    list.innerHTML=_masterFiles.map((f,i)=>{
+      if(f.error){
+        return `<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 12px;background:rgba(220,38,38,.08);border:1px solid rgba(220,38,38,.2);border-radius:8px;margin-bottom:6px;font-size:13px;"><span>❌ ${f.fileName} — ${f.error}</span><button onclick="_removeMasterFile(${i})" style="background:none;border:none;color:#dc2626;cursor:pointer;font-size:14px;">✕</button></div>`;
+      }
+      totalStudents+=f.students.length;
+      const withIds=f.students.filter(s=>s.idHash).length;
+      totalWithIds+=withIds;
+      const idIcon=withIds===f.students.length?'🔐':(withIds?'⚠':'❌');
+      return `<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 12px;background:var(--bg);border:1px solid var(--bd);border-radius:8px;margin-bottom:6px;font-size:13px;"><span>${idIcon} <b>${f.fileName}</b> — ${f.students.length} תלמידים${withIds<f.students.length?` (${withIds} עם ת״ז)`:''}</span><button onclick="_removeMasterFile(${i})" style="background:none;border:none;color:var(--ink3);cursor:pointer;font-size:14px;">✕</button></div>`;
+    }).join('');
+    const summary=document.createElement('div');
+    summary.style.cssText='margin-top:8px;padding:8px 12px;background:var(--abg);border-radius:8px;font-size:13px;font-weight:600;color:var(--ac);';
+    summary.textContent=`סך הכל: ${totalStudents} תלמידים${totalWithIds<totalStudents?` (${totalWithIds} עם ת״ז · ${totalStudents-totalWithIds} ללא — לא ייכללו במאסטר)`:' · כולם עם ת״ז ✓'}`;
+    list.appendChild(summary);
+  }
+  const goBtn=document.getElementById('master-build-btn');
+  if(goBtn){
+    const okFiles=_masterFiles.filter(f=>!f.error && f.students.some(s=>s.idHash));
+    goBtn.disabled=okFiles.length===0;
+  }
+}
+
+function _removeMasterFile(i){
+  _masterFiles.splice(i,1);
+  _renderMasterBuilderList();
+}
+
+async function _onMasterFilesPicked(ev){
+  const files=Array.from(ev.target.files||[]);
+  if(!files.length) return;
+  const status=document.getElementById('master-status');
+  for(const f of files){
+    const fileName=f.name.replace(/\.xlsx?$/i,'').replace(/_/g,' ');
+    if(status) status.textContent='קורא ומצפין: '+fileName+'…';
+    try{
+      const arrBuf=await f.arrayBuffer();
+      const { students, hasIds }=await _parseStudentSheet(arrBuf);
+      _masterFiles.push({ fileName, students, hasIds });
+    }catch(err){
+      _masterFiles.push({ fileName, students:[], hasIds:false, error:String(err.message||err) });
+    }
+    _renderMasterBuilderList();
+  }
+  if(status) status.textContent='';
+  ev.target.value='';
+}
+
+function _buildMasterFile(){
+  // Merge all loaded alphons into a single Mashov-format xlsx — students with ת״ז only.
+  const merged=[];
+  const seenHashes=new Set();
+  for(const f of _masterFiles){
+    if(f.error) continue;
+    for(const s of f.students){
+      if(!s.idHash || !s.id) continue; // skip students without ת״ז (can't be matched later)
+      if(seenHashes.has(s.idHash)) continue; // dedupe across alphons
+      seenHashes.add(s.idHash);
+      merged.push(s);
+    }
+  }
+  if(!merged.length){ toast('אין תלמידים עם ת״ז במאסטר'); return; }
+
+  // Sort by שכבה then מקבילה then name (for consistent output)
+  const gradeIdx=name=>{ const i=GRADE_ORDER.indexOf(name); return i<0?99:i; };
+  merged.sort((a,b)=>{
+    const ga=gradeIdx(a.grade), gb=gradeIdx(b.grade);
+    if(ga!==gb) return ga-gb;
+    const ca=String(a.cls||''), cb=String(b.cls||'');
+    if(ca!==cb) return ca.localeCompare(cb,'he',{numeric:true});
+    return String(a.name||'').localeCompare(String(b.name||''),'he');
+  });
+
+  const today=new Date();
+  const dateStr=today.toLocaleDateString('he-IL',{day:'2-digit',month:'2-digit',year:'numeric'});
+  const aoa=[
+    ['קובץ מאסטר — אלפון מאוחד · ' + dateStr],
+    [],
+    ['מס\'', 'ת.ז התלמיד', 'שם התלמיד', 'שכבה', 'כיתה', 'ציון מספרי', 'ציון מילולי', 'הערה חופשית'],
+  ];
+  merged.forEach((s,i)=>{
+    aoa.push([ i+1, s.id, s.name, s.grade||'', s.cls||'', '', '', '' ]);
+  });
+  aoa.push(['ממוצע', '', '', '', '', '', '', '']);
+
+  const ws=XLSX.utils.aoa_to_sheet(aoa);
+  ws['!cols']=[{wch:5},{wch:14},{wch:24},{wch:8},{wch:8},{wch:14},{wch:14},{wch:18}];
+  const wb=XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb,ws,'מאסטר');
+
+  const out=XLSX.write(wb,{bookType:'xlsx',type:'array'});
+  const blob=new Blob([out],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');
+  a.href=url;
+  a.download=`מאסטר_${today.toISOString().slice(0,10)}.xlsx`;
+  document.body.appendChild(a);
+  a.click();
+  setTimeout(()=>{ URL.revokeObjectURL(url); a.remove(); }, 100);
+
+  const status=document.getElementById('master-status');
+  if(status) status.textContent=`✓ הקובץ ירד · ${merged.length} תלמידים מאוחדים מ-${_masterFiles.filter(f=>!f.error).length} כיתות.`;
+  toast(`✓ קובץ מאסטר נוצר עם ${merged.length} תלמידים`);
+}
+
+// ══ UPDATE EXISTING GROUP FROM ALPHON ════════════════════════
+// Teacher uploads a fresh alphon → app auto-detects which group it belongs to →
+// shows a confirm dialog with a list of new students → on accept, only NEW students
+// are appended to g.students (existing scores/indices preserved).
+
+let _ugParsed=null;       // {students, hasIds}
+let _ugCandidate=null;    // {gid, name, overlap, total}
+let _ugFileName='';
+
+function openUpdateGroupModal(){
+  _ugParsed=null; _ugCandidate=null; _ugFileName='';
+  const fi=document.getElementById('update-group-file-input');
+  if(fi) fi.value='';
+  const fname=document.getElementById('update-group-fname');
+  if(fname) fname.textContent='לא נבחר קובץ';
+  const summary=document.getElementById('update-group-summary');
+  if(summary) summary.innerHTML='';
+  const goBtn=document.getElementById('update-group-go-btn');
+  if(goBtn) goBtn.disabled=true;
+  openModal('update-group-modal');
+}
+
+function _normName(n){ return String(n||'').trim().replace(/\s+/g,' '); }
+
+function _scoreGroupOverlap(gid, students){
+  const g=S.groups[gid]; if(!g) return null;
+  const byHash={}; g.students.forEach(s=>{ if(s.idHash) byHash[s.idHash]=true; });
+  const byName={}; g.students.forEach(s=>{ if(s.name) byName[_normName(s.name)]=true; });
+  let hashOverlap=0, nameOverlap=0;
+  for(const s of students){
+    if(s.idHash && byHash[s.idHash]) { hashOverlap++; continue; }
+    if(byName[_normName(s.name)]) { nameOverlap++; }
+  }
+  // Class-number overlap bonus
+  const fileClasses=new Set(students.map(s=>s.grade+s.cls));
+  const groupClasses=new Set(g.students.map(s=>s.grade+s.cls));
+  let classOverlap=0;
+  fileClasses.forEach(c=>{ if(groupClasses.has(c)) classOverlap++; });
+  return {
+    gid:parseInt(gid), name:g.name, total:g.students.length,
+    hashOverlap, nameOverlap, classOverlap,
+    score: hashOverlap*3 + nameOverlap*1 + classOverlap*0.5,
+  };
+}
+
+async function _onUpdateGroupFilePicked(ev){
+  const file=ev.target.files[0]; if(!file) return;
+  _ugFileName=file.name.replace(/\.xlsx?$/i,'');
+  const fname=document.getElementById('update-group-fname');
+  if(fname) fname.textContent=file.name;
+  const summary=document.getElementById('update-group-summary');
+  if(summary) summary.innerHTML='<div style="color:var(--ink2);font-size:13px;">קורא קובץ ומצפין ת״ז…</div>';
+  try{
+    const arrBuf=await file.arrayBuffer();
+    _ugParsed=await _parseStudentSheet(arrBuf);
+    if(!_ugParsed.students.length) throw new Error('לא נמצאו תלמידים בקובץ');
+    // Score all existing groups for overlap
+    const candidates=Object.keys(S.groups)
+      .map(gid=>_scoreGroupOverlap(gid, _ugParsed.students))
+      .filter(c=>c && c.score>0)
+      .sort((a,b)=>b.score-a.score);
+    if(!candidates.length){
+      _ugCandidate=null;
+      if(summary) summary.innerHTML='<div style="color:#dc2626;font-size:13px;font-weight:700;">⚠ לא זוהתה התאמה לאף אחת מהקבוצות הקיימות. אם זו קבוצה חדשה — צור אותה דרך "הוסף מקובץ Excel".</div>';
+      const goBtn=document.getElementById('update-group-go-btn'); if(goBtn) goBtn.disabled=true;
+      return;
+    }
+    _ugCandidate=candidates[0];
+    _renderUpdateGroupSummary(candidates);
+  }catch(err){
+    _ugParsed=null; _ugCandidate=null;
+    if(summary) summary.innerHTML=`<div style="color:#dc2626;font-size:13px;font-weight:700;">שגיאה: ${err.message||err}</div>`;
+    const goBtn=document.getElementById('update-group-go-btn'); if(goBtn) goBtn.disabled=true;
+  }
+  ev.target.value='';
+}
+
+function _renderUpdateGroupSummary(candidates){
+  const summary=document.getElementById('update-group-summary'); if(!summary) return;
+  // Group selector
+  const selOpts=candidates.map(c=>`<option value="${c.gid}">${c.name} · ${c.total} תלמידים בקבוצה (חפיפה: ${c.hashOverlap+c.nameOverlap})</option>`).join('');
+  // Compute new students for the selected (top) candidate
+  const c=_ugCandidate;
+  const g=S.groups[c.gid];
+  const byHash={}; g.students.forEach(s=>{ if(s.idHash) byHash[s.idHash]=true; });
+  const byName={}; g.students.forEach(s=>{ if(s.name) byName[_normName(s.name)]=true; });
+  const newStudents=_ugParsed.students.filter(s=>{
+    if(s.idHash && byHash[s.idHash]) return false;
+    if(byName[_normName(s.name)]) return false;
+    return true;
+  });
+  const overlapping=_ugParsed.students.length-newStudents.length;
+  const newList=newStudents.map(s=>`<li>${s.name} <span style="color:var(--ink3);font-size:11px;">(${s.grade}${s.cls})</span></li>`).join('');
+  summary.innerHTML=`
+    <div style="background:var(--abg);border:1px solid var(--abd);border-radius:8px;padding:10px 14px;margin-bottom:10px;">
+      <div style="font-weight:700;color:var(--ac);">⚠ קבוצה כבר קיימת: ${c.name}</div>
+      <div style="font-size:12px;color:var(--ink2);margin-top:4px;">${overlapping} תלמידים חופפים · ${newStudents.length} תלמידים חדשים בקובץ</div>
+    </div>
+    ${candidates.length>1?`<div class="fg" style="margin-bottom:10px;"><label class="fl">קבוצה לעדכון</label><select class="fsel" id="update-group-select" onchange="_onUpdateGroupChanged()">${selOpts}</select></div>`:''}
+    ${newStudents.length?`<div style="font-size:13px;font-weight:700;margin-bottom:6px;">תלמידים חדשים שיתווספו:</div><ul style="font-size:13px;color:var(--ink);list-style:none;padding:0;max-height:200px;overflow-y:auto;background:var(--bg);border:1px solid var(--bd);border-radius:8px;padding:8px 14px;">${newList}</ul>`:'<div style="font-size:13px;color:var(--ink2);text-align:center;padding:20px;">אין תלמידים חדשים בקובץ — הקבוצה כבר עדכנית.</div>'}
+  `;
+  const goBtn=document.getElementById('update-group-go-btn'); if(goBtn) goBtn.disabled=newStudents.length===0;
+  // Cache the diff
+  _ugCandidate.newStudents=newStudents;
+}
+
+function _onUpdateGroupChanged(){
+  const sel=document.getElementById('update-group-select'); if(!sel) return;
+  const newGid=parseInt(sel.value);
+  const candidates=Object.keys(S.groups)
+    .map(gid=>_scoreGroupOverlap(gid, _ugParsed.students))
+    .filter(c=>c && c.score>0)
+    .sort((a,b)=>b.score-a.score);
+  _ugCandidate=candidates.find(c=>c.gid===newGid)||candidates[0];
+  _renderUpdateGroupSummary(candidates);
+}
+
+async function applyGroupUpdate(){
+  if(!_ugParsed||!_ugCandidate) return;
+  const c=_ugCandidate;
+  const g=S.groups[c.gid]; if(!g) return;
+  const newStudents=c.newStudents||[];
+  if(!newStudents.length){ toast('אין תלמידים חדשים להוספה'); return; }
+  // Append new students (existing indices/results untouched)
+  for(const s of newStudents){
+    g.students.push({
+      name: s.name,
+      gender: s.gender||'',
+      grade: s.grade||'',
+      cls: s.cls||'',
+      ...(s.idHash?{idHash:s.idHash, id:s.id}:{}),
+    });
+    if(s.idHash) setIdMapEntry(c.gid, s.idHash, {name:s.name, id:s.id||''});
+  }
+  // Refresh class signature
+  g.classes=[...new Set(g.students.map(s=>s.grade+s.cls))].sort((a,b)=>a.localeCompare(b,'he')).join(', ');
+  saveState();
+  if(typeof renderGroupGrid==='function') renderGroupGrid();
+  if(typeof renderTable==='function' && CUR.gid===c.gid) renderTable();
+  closeModal('update-group-modal');
+  toast(`✓ ${newStudents.length} תלמידים נוספו ל-"${g.name}" · הציונים הקיימים נשמרו`);
 }
 
 // ── EXPORT ──────────────────────────────────────────────────
