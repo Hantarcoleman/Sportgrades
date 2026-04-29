@@ -1727,7 +1727,7 @@ history.pushState(null,'',location.href);
 <div class="mbg" id="mashov-export-modal"><div class="mod" onclick="event.stopPropagation()">
   <div class="mt">🔐 ייצוא לקובץ משו״ב</div>
   <div class="ms" style="line-height:1.5;">
-    טען את קובץ האקסל שהורדת ממערכת המשו״ב. האפליקציה תזהה תלמידים לפי תעודת זהות (בצורה מוצפנת — תעודות הזהות לא נשלחות לשרת), תמלא ציונים מהמבחן שתבחר, ותחזיר קובץ זהה במבנה.
+    טען קובץ אקסל ממערכת המשו״ב — אפשר קובץ "מאסטר" עם כל תלמידי בית הספר. האפליקציה תזהה רק את התלמידים השייכים לקבוצה הנוכחית (לפי תעודת זהות מוצפנת), תמלא להם ציונים מהמבחן שתבחר, ותחזיר קובץ שמכיל רק אותם. תעודות הזהות לא נשלחות לשרת.
   </div>
   <div class="fr" style="margin-top:12px;">
     <div class="fg"><label class="fl">מבחן</label><select class="fsel" id="mashov-test-select"></select></div>
@@ -4173,11 +4173,14 @@ async function readMashovWorkbook(arrBuf){
   return { wb, ws, sheetName, rows, struct, entries, range };
 }
 
-// Import a Mashov file into a group: ensures every entry exists in g.students with idHash,
-// updates idMap, returns summary { matched, added, total, entries }
-// `mode`: 'merge' (add missing), 'reuse-only' (don't add new, only attach hashes to existing-by-name)
-async function importMashovIntoGroup(arrBuf, gid, mode){
-  mode = mode || 'merge';
+// Match a Mashov "master" file (which may contain hundreds of students from multiple classes)
+// against the CURRENT group's students. Only entries that match an existing student are processed —
+// students from the master file that aren't already in the group are IGNORED (not added).
+// Returns: { matched, attached, dropped, total, matches: [{entry, studentIdx}], data }
+//   - matched: entries matched by idHash (already protected)
+//   - attached: entries matched by name (legacy student → hash attached now)
+//   - dropped: entries from master file that don't belong to this group (ignored)
+async function importMashovIntoGroup(arrBuf, gid){
   const data=await readMashovWorkbook(arrBuf);
   const g=S.groups[gid];
   if(!g) throw new Error('קבוצה לא נמצאה');
@@ -4187,49 +4190,44 @@ async function importMashovIntoGroup(arrBuf, gid, mode){
   const byHash={};
   g.students.forEach((s,idx)=>{ if(s.idHash) byHash[s.idHash]=idx; });
 
-  // Build name → idx map for legacy matching
+  // Build name → idx map for legacy matching (tolerant: trim + collapse internal whitespace)
+  const norm = n => String(n||'').trim().replace(/\s+/g,' ');
   const byName={};
-  g.students.forEach((s,idx)=>{ if(s.name) byName[s.name.trim()]=idx; });
+  g.students.forEach((s,idx)=>{ if(s.name) byName[norm(s.name)]=idx; });
 
-  let matched=0, attached=0, added=0;
+  let matched=0, attached=0, dropped=0;
+  const matches=[]; // ordered list of {entry, studentIdx} that belong to this group
   for(const e of data.entries){
-    setIdMapEntry(gid, e.idHash, { name:e.name, id:e.id });
+    let studentIdx=null;
     if(byHash[e.idHash]!=null){
       // Already protected — refresh name+id locally
-      const s=g.students[byHash[e.idHash]];
+      studentIdx=byHash[e.idHash];
+      const s=g.students[studentIdx];
       s.name=e.name; s.id=e.id;
       matched++;
-      continue;
-    }
-    if(byName[e.name]!=null){
+    } else if(byName[norm(e.name)]!=null){
       // Legacy student matched by name — attach hash & strip plain ID/name from server next save
-      const s=g.students[byName[e.name]];
+      studentIdx=byName[norm(e.name)];
+      const s=g.students[studentIdx];
       s.idHash=e.idHash;
       s.id=e.id;
-      // Use mashov-provided grade/cls if present and student lacks them
       if(e.grade && !s.grade) s.grade=normGrade(e.grade);
       if(e.cls && !s.cls) s.cls=e.cls;
       attached++;
+    } else {
+      // Master-file student that doesn't belong to this group — ignore
+      dropped++;
       continue;
     }
-    if(mode==='merge'){
-      const grade=e.grade?normGrade(e.grade):(g.students[0]?.grade||'');
-      g.students.push({
-        name: e.name,
-        gender: '',
-        grade: grade,
-        cls: e.cls||'',
-        idHash: e.idHash,
-        id: e.id,
-      });
-      added++;
-    }
+    // Update local idMap only for matched students
+    setIdMapEntry(gid, e.idHash, { name:e.name, id:e.id });
+    matches.push({ entry:e, studentIdx });
   }
 
-  // Update group classes string
+  // Update group classes string (no new students were added; this just refreshes from current state)
   g.classes=[...new Set(g.students.map(s=>s.grade+s.cls))].sort((a,b)=>a.localeCompare(b,'he')).join(', ');
 
-  return { matched, attached, added, total:data.entries.length, data };
+  return { matched, attached, dropped, total:data.entries.length, matches, data };
 }
 
 // Compute final score for one student in current group, semester, test — same formula as exportExcel.
@@ -4252,65 +4250,89 @@ function _finalScoreForStudent(g, studentIdx, testId, semester){
   return fin;
 }
 
-// Export: read Mashov file → fill scores by idHash match → download.
+// Export: read master Mashov file → match against current group → produce output containing
+// ONLY students from the current group, with scores filled. Students in the master that don't
+// belong to this group are silently dropped from the output (and never added to the app's data).
 async function exportMashov(arrBuf, originalFileName, gid, testId, semester){
-  // 1) Import into group (also updates idMap & adds new students if needed)
+  // 1) Match master against this group (no new students are added)
   const summary=await importMashovIntoGroup(arrBuf, gid);
   const g=S.groups[gid];
   const data=summary.data;
-  const ws=data.ws;
   const struct=data.struct;
+  const sourceRows=data.rows;
 
-  // Build hash → idx for fast lookup
-  const hashToIdx={};
-  g.students.forEach((s,idx)=>{ if(s.idHash) hashToIdx[s.idHash]=idx; });
-
+  // 2) Compute final score for each matched student
   let filled=0, missing=0;
   const filledScores=[];
-  for(const e of data.entries){
-    const studentIdx=hashToIdx[e.idHash];
-    const cellAddr=XLSX.utils.encode_cell({r:e.rowIdx, c:struct.cScoreNum});
-    let score=null;
-    if(studentIdx!=null) score=_finalScoreForStudent(g, studentIdx, testId, semester);
-    if(score!=null && !Number.isNaN(score)){
-      ws[cellAddr]={ t:'n', v:score };
-      filled++;
-      filledScores.push(score);
-    }else{
-      // Leave blank — but make sure cell exists as empty so column width preserved
-      if(!ws[cellAddr]) ws[cellAddr]={ t:'s', v:'' };
-      else { ws[cellAddr].v=''; ws[cellAddr].t='s'; }
-      missing++;
-    }
-  }
+  const enrichedMatches = summary.matches.map(m=>{
+    const score=_finalScoreForStudent(g, m.studentIdx, testId, semester);
+    if(score!=null && !Number.isNaN(score)){ filled++; filledScores.push(score); }
+    else { missing++; }
+    return { ...m, score };
+  });
 
-  // Update average row if present
+  // 3) Build NEW workbook containing only matched rows
+  const newRows=[];
+  // 3a) Pre-header rows (title, blank lines, etc.)
+  for(let i=0; i<=struct.headerRow; i++){
+    newRows.push((sourceRows[i]||[]).slice());
+  }
+  // 3b) Filtered + renumbered data rows
+  enrichedMatches.forEach((m, i)=>{
+    const sourceRow=(sourceRows[m.entry.rowIdx]||[]).slice();
+    sourceRow[0] = i+1; // re-number "מס'" sequentially
+    if(m.score!=null && !Number.isNaN(m.score)){
+      sourceRow[struct.cScoreNum] = m.score;
+    }else{
+      sourceRow[struct.cScoreNum] = '';
+    }
+    newRows.push(sourceRow);
+  });
+  // 3c) Average row (if present in source)
   if(struct.avgRow>=0){
-    const avgCell=XLSX.utils.encode_cell({r:struct.avgRow, c:struct.cScoreNum});
+    const avgRow=(sourceRows[struct.avgRow]||[]).slice();
     if(filledScores.length){
-      const avg=Math.round((filledScores.reduce((a,b)=>a+b,0)/filledScores.length)*100)/100;
-      ws[avgCell]={ t:'n', v:avg };
+      avgRow[struct.cScoreNum] = Math.round((filledScores.reduce((a,b)=>a+b,0)/filledScores.length)*100)/100;
     }else{
-      ws[avgCell]={ t:'s', v:'' };
+      avgRow[struct.cScoreNum] = '';
     }
+    newRows.push(avgRow);
   }
 
-  // Persist new hashes to Supabase
+  const newWs=XLSX.utils.aoa_to_sheet(newRows);
+  // Try to preserve column widths from source
+  if(data.ws['!cols']) newWs['!cols']=data.ws['!cols'];
+  // Preserve merges that fall in pre-header range (title spans, etc.)
+  if(Array.isArray(data.ws['!merges'])){
+    const validMerges=data.ws['!merges'].filter(m=>m.s.r<=struct.headerRow && m.e.r<=struct.headerRow);
+    if(validMerges.length) newWs['!merges']=validMerges;
+  }
+  const newWb=XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(newWb, newWs, data.sheetName||'ציונים');
+
+  // 4) Persist any newly-attached hashes to Supabase (and to localStorage)
   saveState();
 
-  // Generate output Blob
-  const out=XLSX.write(data.wb, { bookType:'xlsx', type:'array', cellStyles:true });
+  // 5) Download
+  const out=XLSX.write(newWb, { bookType:'xlsx', type:'array' });
   const blob=new Blob([out], { type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
   const url=URL.createObjectURL(blob);
   const a=document.createElement('a');
   const baseName=(originalFileName||'mashov').replace(/\.xlsx?$/i,'');
   a.href=url;
-  a.download=baseName+' (עם ציונים).xlsx';
+  a.download=baseName+' (' + (g.name||'קבוצה') + ' עם ציונים).xlsx';
   document.body.appendChild(a);
   a.click();
   setTimeout(()=>{ URL.revokeObjectURL(url); a.remove(); }, 100);
 
-  return { filled, missing, total: data.entries.length, summary };
+  return {
+    filled,                       // students in this group with scores filled
+    missing: enrichedMatches.length - filled, // students in this group without scores
+    inGroup: enrichedMatches.length,           // total students from group matched in master
+    droppedFromMaster: summary.dropped,        // entries in master file not belonging to this group
+    masterTotal: data.entries.length,
+    summary,
+  };
 }
 
 // ── UI: Mashov export modal ──────────────────────────────────
@@ -4369,11 +4391,17 @@ async function runMashovExport(){
   if(status) status.textContent='מצפין תעודות זהות וממלא ציונים…';
   try{
     const r=await exportMashov(_mashovExportArrBuf, _mashovExportFileName, CUR.gid, testId, semester);
-    if(status) status.textContent=`✓ הקובץ ירד. ${r.filled} ציונים מולאו, ${r.missing} ללא ציון.`;
-    toast(`✓ ${r.filled}/${r.total} ציונים מולאו בקובץ המשו"ב`);
+    const groupSize=(S.groups[CUR.gid]?.students||[]).length;
+    let msg=`✓ הקובץ ירד. ${r.filled} ציונים מולאו עבור הקבוצה`;
+    if(r.missing) msg+=`, ${r.missing} תלמידים ללא ציון`;
+    if(r.droppedFromMaster) msg+=`. ${r.droppedFromMaster} תלמידים מהקובץ אינם שייכים לקבוצה זו והושמטו.`;
+    if(status) status.textContent=msg;
+    let toastMsg=`✓ ${r.filled} ציונים מולאו (${r.inGroup}/${groupSize} מהקבוצה זוהו)`;
+    if(r.droppedFromMaster) toastMsg+=` · ${r.droppedFromMaster} סוננו`;
+    toast(toastMsg);
     _updateMashovBanner && _updateMashovBanner();
     if(typeof renderTable==='function') renderTable();
-    setTimeout(()=>closeModal('mashov-export-modal'), 2000);
+    setTimeout(()=>closeModal('mashov-export-modal'), 2500);
   }catch(err){
     if(status) status.textContent='שגיאה: '+(err.message||err);
     toast('שגיאה: '+(err.message||err));
@@ -4381,7 +4409,9 @@ async function runMashovExport(){
   }
 }
 
-// ── UI: Mashov import as alphon (no scores) ─────────────────
+// ── UI: Mashov match-only — used by the banner to attach hashes/names without exporting ──
+// (Master file may contain many classes; only students that are already in this group are matched.
+//  Students from the master not in this group are silently ignored.)
 async function importMashovAsAlphon(ev){
   const file=ev.target.files[0];
   if(!file) return;
@@ -4395,7 +4425,10 @@ async function importMashovAsAlphon(ev){
     if(typeof renderTable==='function') renderTable();
     if(typeof renderGroupGrid==='function') renderGroupGrid();
     _updateMashovBanner && _updateMashovBanner();
-    toast(`✓ ${r.matched+r.attached} שודרגו, ${r.added} נוספו (סה"כ ${r.total})`);
+    const linked=r.matched+r.attached;
+    let msg=`✓ ${linked} תלמידים בקבוצה זוהו`;
+    if(r.dropped) msg+=` · ${r.dropped} מהקובץ לא שייכים לקבוצה והושמטו`;
+    toast(msg);
   }catch(err){
     toast('שגיאה: '+(err.message||err));
   }
