@@ -1,0 +1,27 @@
+{
+  "name": "SportGrade — הערכה בחינוך גופני",
+  "short_name": "SportGrade",
+  "description": "מערכת הערכה וניהול ציונים בחינוך גופני",
+  "start_url": "/Sportgrades/client/pe-grading-app.html",
+  "scope": "/Sportgrades/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#ffffff",
+  "theme_color": "#ea580c",
+  "lang": "he",
+  "dir": "rtl",
+  "icons": [
+    {
+      "src": "/Sportgrades/client/assets/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/Sportgrades/client/assets/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}
