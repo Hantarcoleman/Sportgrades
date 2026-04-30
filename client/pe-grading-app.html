@@ -1009,6 +1009,19 @@ async function loadStandards(){
 }
 window.addEventListener('DOMContentLoaded', ()=>{ loadStandards(); sbInit(); loadA11ySettings(); });
 
+// מניעת pull-to-refresh ב-iOS Safari (overscroll-behavior CSS לא נתמך שם)
+document.addEventListener('touchmove', function(e) {
+  let el = e.target;
+  while (el && el !== document.body) {
+    const s = getComputedStyle(el);
+    if ((s.overflow + s.overflowY).match(/scroll|auto/)) return;
+    el = el.parentElement;
+  }
+  if (document.scrollingElement && document.scrollingElement.scrollTop === 0) {
+    e.preventDefault();
+  }
+}, { passive: false });
+
 // ── Offline Detection & Queue ─────────────────────────────────
 let _offlineQueue = []; // gids waiting to sync
 let _isOnline = navigator.onLine;
