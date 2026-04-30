@@ -3937,6 +3937,26 @@ function _ftiSetMicUI(on){
   if(!on){const il=document.getElementById('fti-interim');if(il)il.textContent='';}
 }
 
+function _ftiBestMatch(text,students){
+  // Always returns the closest student — never null
+  if(!students.length)return null;
+  const m=fuzzyFindStudent(text,students);
+  if(m&&!m.ambiguous)return m;
+  if(m&&m.ambiguous)return m.candidates[0]; // take top of ambiguous list
+  // Zero-score fallback: pick by minimum edit distance across all name words
+  const words=text.toLowerCase().split(/\s+/).filter(w=>w.length>1);
+  let best=null,bestDist=Infinity;
+  students.forEach((s,idx)=>{
+    const nameParts=s.name.toLowerCase().split(/\s+/);
+    let minDist=Infinity;
+    for(const np of nameParts)
+      for(const w of words){const d=editDist(w,np);if(d<minDist)minDist=d;}
+    if(words.length===0)minDist=editDist(text.toLowerCase(),s.name.toLowerCase());
+    if(minDist<bestDist){bestDist=minDist;best={idx,student:s,score:1};}
+  });
+  return best||{idx:0,student:students[0],score:0};
+}
+
 function _ftiShowVoiceConfirm(text){
   const students=S.groups[CUR.gid]?.students||[];
   const lines=text.split(/[\n;]+/).map(l=>l.trim()).filter(Boolean);
@@ -3946,19 +3966,16 @@ function _ftiShowVoiceConfirm(text){
       .replace(/דקה\s+וחצי/g,'1.5')
       .replace(/\b(עשה|עשתה|הגיע|הגיעה|חזרות|שניות|שניה|שנייה|דקות|דקה|מטר|שכיבות|סמיכה|ביפ|קפיצות)\b/gi,' ');
     const nums=[...pl.matchAll(/(\d+(?:[.,:\-]\d+)*)/g)];
-    if(!nums.length){preview.push(`"${line}" — לא זוהה מספר`);continue;}
-    const numStr=nums[nums.length-1][1].replace(',','.');
-    const nameText=pl.slice(0,nums[nums.length-1].index).trim();
-    const m=fuzzyFindStudent(nameText||pl,students);
-    if(m&&!m.ambiguous){
-      const sc=getScore(CUR.test,m.student.grade,m.student.gender,numStr);
-      preview.push(`${m.student.name} → ${numStr}${sc!==null?' (ציון: '+Math.round(sc)+')':''}`);
-    } else {
-      preview.push(`"${line}" — ${m?.ambiguous?'שם לא חד-משמעי':'שם לא זוהה'}`);
+    const numStr=nums.length?nums[nums.length-1][1].replace(',','.'):'';
+    const nameText=nums.length?pl.slice(0,nums[nums.length-1].index).trim():pl;
+    const m=_ftiBestMatch(nameText||pl,students);
+    if(m){
+      const sc=numStr?getScore(CUR.test,m.student.grade,m.student.gender,numStr):null;
+      preview.push(`${m.student.name} → ${numStr||'?'}${sc!==null?' (ציון: '+Math.round(sc)+')':''}`);
     }
   }
   const ct=document.getElementById('fti-voice-confirm-text');
-  if(ct)ct.textContent='הבנתי: '+preview.join(' · ');
+  if(ct)ct.textContent='הבנתי: '+(preview.join(' · ')||text);
   const cv=document.getElementById('fti-voice-confirm');
   if(cv)cv.style.display='block';
 }
