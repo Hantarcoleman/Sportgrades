@@ -3881,7 +3881,7 @@ function ftiDisambigSkip(){
 }
 
 // ── FTI voice input ───────────────────────────────────────────
-let _ftiRecog=null,_ftiRecording=false;
+let _ftiRecog=null,_ftiRecording=false,_ftiProcessedIdx=-1;
 
 function ftiMicToggle(){
   if(!('webkitSpeechRecognition' in window)&&!('SpeechRecognition' in window)){
@@ -3900,13 +3900,15 @@ function ftiStartMic(){
   ta.value='';
   document.getElementById('fti-voice-confirm').style.display='none';
 
+  _ftiProcessedIdx=-1;
   _ftiRecog.onresult=e=>{
-    let interim='',final='';
+    let interim='';
     for(let i=e.resultIndex;i<e.results.length;i++){
-      if(e.results[i].isFinal)final+=e.results[i][0].transcript;
-      else interim=e.results[i][0].transcript;
+      if(e.results[i].isFinal&&i>_ftiProcessedIdx){
+        ta.value=(ta.value?ta.value+' ':'')+e.results[i][0].transcript.trim();
+        autoResizeFTI(ta);_ftiProcessedIdx=i;
+      }else if(!e.results[i].isFinal){interim=e.results[i][0].transcript;}
     }
-    if(final){ta.value=(ta.value?ta.value+' ':'')+final.trim();autoResizeFTI(ta);}
     const il=document.getElementById('fti-interim');if(il)il.textContent=interim;
   };
   _ftiRecog.onerror=e=>{if(e.error!=='no-speech')toast('שגיאה בהקלטה');ftiStopMic();};
@@ -4010,7 +4012,7 @@ function openFreeEntryModal(){
 }
 
 // ── Voice input for free-entry modal ─────────────────────────
-let _feRecog=null,_feRecording=false;
+let _feRecog=null,_feRecording=false,_feProcessedIdx=-1;
 
 function feToggleMic(){
   if(!('webkitSpeechRecognition' in window)&&!('SpeechRecognition' in window)){
@@ -4026,15 +4028,15 @@ function feStartMic(){
   _feRecog.continuous=true;
   _feRecog.interimResults=true;
 
+  _feProcessedIdx=-1;
   _feRecog.onresult=e=>{
-    let interim='',final='';
+    let interim='';
     for(let i=e.resultIndex;i<e.results.length;i++){
-      if(e.results[i].isFinal)final+=e.results[i][0].transcript;
-      else interim=e.results[i][0].transcript;
-    }
-    if(final){
-      const ta=document.getElementById('fe-text');
-      ta.value=(ta.value?ta.value+'\n':'')+final.trim();
+      if(e.results[i].isFinal&&i>_feProcessedIdx){
+        const ta=document.getElementById('fe-text');
+        ta.value=(ta.value?ta.value+'\n':'')+e.results[i][0].transcript.trim();
+        _feProcessedIdx=i;
+      }else if(!e.results[i].isFinal){interim=e.results[i][0].transcript;}
     }
     document.getElementById('fe-interim').textContent=interim;
   };
