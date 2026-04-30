@@ -2175,7 +2175,10 @@ history.pushState(null,'',location.href);
   <div class="mt" id="srm-title">דוח תלמיד</div>
   <div style="display:flex;gap:4px;margin:10px 0 0;border-bottom:2px solid var(--bd2);" id="srm-tab-nav"></div>
   <div id="srm-content" style="margin-top:12px;"></div>
-  <div class="mf"><button class="btn bg2" onclick="closeModal('student-report-modal')">סגור</button></div>
+  <div class="mf" style="gap:8px;">
+    <button class="btn bg2" onclick="closeModal('student-report-modal')">סגור</button>
+    <button class="btn bp" onclick="srmExportPDF()">📄 ייצוא PDF</button>
+  </div>
 </div></div>
 
 <!-- RECORD DETAIL POPUP -->
@@ -8699,6 +8702,103 @@ function _srmRenderTabs(){
 }
 
 function _srmSetTab(i){_srmState.tab=i;_srmRenderTabs();}
+
+function srmExportPDF(){
+  const {gid,idx}=_srmState;
+  const g=S.groups[gid];if(!g)return;
+  const s=g.students[idx];if(!s)return;
+
+  function loadScript(src){
+    return new Promise((res,rej)=>{
+      if(document.querySelector(`script[src="${src}"]`)){res();return;}
+      const el=document.createElement('script');el.src=src;el.onload=res;el.onerror=rej;document.head.appendChild(el);
+    });
+  }
+
+  toast('מכין PDF…');
+  Promise.all([
+    loadScript('https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js'),
+    loadScript('https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js')
+  ]).then(()=>{
+    const isFem=s.gender==='נ'||s.gender==='f';
+    const allTests=[...TEST_LIST,...Object.entries(S.customTests||{}).map(([id,ct])=>({id,label:ct.name}))];
+    const scores=[];
+    let rows='';
+
+    allTests.forEach(({id,label})=>{
+      const da=g.results?.[id]?.[idx];
+      const db=g.results_b?.[id]?.[idx];
+      const d=CUR.semester==='b'?(db||da):da;
+      if(!d||d.a==='')return;
+      const T=getTbl(id);if(T.maleOnly&&isFem)return;
+      const sA=getScore(id,s.grade,s.gender,d.a);
+      const sB=d.b?getScore(id,s.grade,s.gender,d.b):null;
+      const base=(sB!==null&&sB>=(sA||0))?sB:sA;
+      const fin=calcFinal(base,d.bonusA||0,0);
+      if(fin!==null)scores.push(fin);
+      const col=fin===null?'#555':fin>=80?'#15803d':fin>=60?'#b45309':'#dc2626';
+      const bg=fin===null?'#f9f9f9':fin>=80?'#f0fdf4':fin>=60?'#fffbeb':'#fef2f2';
+      const dateStr=d._ts?new Date(d._ts).toLocaleDateString('he-IL',{day:'2-digit',month:'2-digit',year:'2-digit'}):'—';
+      rows+=`<tr style="border-bottom:1px solid #e5e7eb;">
+        <td style="padding:8px 12px;font-weight:600;color:#111;">${label}</td>
+        <td style="padding:8px 12px;color:#444;">${d.a}${d.b?` / ${d.b}`:''}${d.bonusA?` +${d.bonusA}%`:''}</td>
+        <td style="padding:8px 12px;text-align:center;"><span style="background:${bg};color:${col};font-weight:700;padding:3px 10px;border-radius:20px;font-size:13px;">${fin!==null?fin:'—'}</span></td>
+        <td style="padding:8px 12px;font-size:11px;color:#888;">${dateStr}</td>
+      </tr>`;
+    });
+
+    const avg=scores.length?(scores.reduce((a,b)=>a+b,0)/scores.length).toFixed(1):null;
+    const now=new Date().toLocaleDateString('he-IL',{day:'2-digit',month:'2-digit',year:'numeric'});
+    const semLabel=CUR.semester==='b'?'מחצית ב׳':'מחצית א׳';
+
+    const html=`<div style="font-family:Arial,Helvetica,sans-serif;direction:rtl;color:#111;background:#fff;padding:28px;width:720px;box-sizing:border-box;">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;padding-bottom:14px;border-bottom:3px solid #ea580c;margin-bottom:18px;">
+        <div>
+          <div style="font-size:23px;font-weight:800;color:#111;">${s.name}</div>
+          <div style="font-size:13px;color:#555;margin-top:4px;">${g.name} · כיתה ${s.grade}${s.cls||''} · ${isFem?'בת':'בן'} · ${semLabel}</div>
+        </div>
+        <div style="text-align:left;">
+          <div style="font-weight:800;color:#ea580c;font-size:16px;">SportGrade</div>
+          <div style="font-size:11px;color:#999;margin-top:2px;">הופק: ${now}</div>
+        </div>
+      </div>
+      ${rows?`
+        <table style="width:100%;border-collapse:collapse;font-size:13px;">
+          <thead><tr style="background:#f3f4f6;">
+            <th style="padding:8px 12px;text-align:right;color:#666;font-size:11px;font-weight:700;letter-spacing:.4px;">מבחן</th>
+            <th style="padding:8px 12px;text-align:right;color:#666;font-size:11px;font-weight:700;">תוצאה</th>
+            <th style="padding:8px 12px;text-align:center;color:#666;font-size:11px;font-weight:700;">ציון</th>
+            <th style="padding:8px 12px;text-align:right;color:#666;font-size:11px;font-weight:700;">תאריך</th>
+          </tr></thead>
+          <tbody>${rows}</tbody>
+        </table>
+        ${avg!==null?`<div style="margin-top:16px;background:#fff7ed;border:1.5px solid #fed7aa;border-radius:8px;padding:12px 18px;display:flex;justify-content:space-between;align-items:center;">
+          <span style="font-weight:700;font-size:14px;">ממוצע כל המבחנים</span>
+          <span style="font-size:28px;font-weight:800;color:#ea580c;">${avg}</span>
+        </div>`:''}
+      `:'<div style="padding:40px;text-align:center;color:#999;">אין ציונים להצגה במחצית זו</div>'}
+    </div>`;
+
+    const wrap=document.createElement('div');
+    wrap.style.cssText='position:fixed;left:-9999px;top:0;';
+    wrap.innerHTML=html;
+    document.body.appendChild(wrap);
+
+    html2canvas(wrap.firstElementChild,{scale:2,useCORS:true,backgroundColor:'#ffffff'}).then(canvas=>{
+      document.body.removeChild(wrap);
+      const {jsPDF}=window.jspdf;
+      const pageW=595,pageH=841;
+      const doc=new jsPDF({orientation:'p',unit:'pt',format:'a4'});
+      const drawH=canvas.height*(pageW/canvas.width);
+      const imgData=canvas.toDataURL('image/jpeg',0.93);
+      let y=0;
+      while(y<drawH){if(y>0)doc.addPage();doc.addImage(imgData,'JPEG',0,-y,pageW,drawH);y+=pageH;}
+      const fname=(s.name.replace(/\s+/g,'_')||'תלמיד')+'_ציונים.pdf';
+      doc.save(fname);
+      toast('PDF הורד בהצלחה');
+    }).catch(()=>toast('שגיאה בייצוא PDF'));
+  }).catch(()=>toast('לא ניתן לטעון ספריות PDF'));
+}
 
 function _srmRenderContent(){
   const {gid,idx,tab}=_srmState;
