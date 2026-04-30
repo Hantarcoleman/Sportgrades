@@ -3416,13 +3416,59 @@ function showFullTbl(testId,grade){
 
 function printFullTable(){
   const title=document.getElementById('ftm-title')?.textContent||'טבלת ציונים';
-  const content=document.getElementById('ftm-content')?.innerHTML||'';
-  let wrap=document.getElementById('ftm-print-wrap');
-  if(!wrap){wrap=document.createElement('div');wrap.id='ftm-print-wrap';wrap.style.display='none';document.body.appendChild(wrap);}
-  wrap.innerHTML=`<div id="ftm-print-title">${title}</div>${content}`;
-  document.body.classList.add('print-ftbl');
-  window.print();
-  document.body.classList.remove('print-ftbl');
+  const content=document.getElementById('ftm-content');
+  if(!content)return;
+
+  // טעינה עצלה של ספריות PDF
+  function loadScript(src){
+    return new Promise((res,rej)=>{
+      if(document.querySelector(`script[src="${src}"]`)){res();return;}
+      const s=document.createElement('script');
+      s.src=src;s.onload=res;s.onerror=rej;
+      document.head.appendChild(s);
+    });
+  }
+
+  toast('מכין PDF…');
+
+  Promise.all([
+    loadScript('https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js'),
+    loadScript('https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js')
+  ]).then(()=>{
+    // עטיפה זמנית עם כותרת לצילום
+    const wrap=document.createElement('div');
+    wrap.style.cssText='position:fixed;left:-9999px;top:0;background:#fff;padding:16px;direction:rtl;font-family:Arial,sans-serif;width:900px;';
+    const h=document.createElement('h2');
+    h.textContent=title;
+    h.style.cssText='margin:0 0 12px;font-size:18px;color:#222;text-align:right;';
+    wrap.appendChild(h);
+    wrap.appendChild(content.cloneNode(true));
+    document.body.appendChild(wrap);
+
+    html2canvas(wrap,{scale:2,useCORS:true,backgroundColor:'#ffffff'}).then(canvas=>{
+      document.body.removeChild(wrap);
+      const {jsPDF}=window.jspdf;
+      const imgW=canvas.width;const imgH=canvas.height;
+      const pdfW=595; // A4 נקודות
+      const scaledH=imgH*(pdfW/imgW);
+      const orientation=scaledH>841?'p':'l';
+      const doc=new jsPDF({orientation,unit:'pt',format:'a4'});
+      const pageW=doc.internal.pageSize.getWidth();
+      const pageH=doc.internal.pageSize.getHeight();
+      const imgData=canvas.toDataURL('image/jpeg',0.92);
+      const drawH=imgH*(pageW/imgW);
+      // פיצול לעמודות אם הטבלה ארוכה מעמוד אחד
+      let yOffset=0;
+      while(yOffset<drawH){
+        if(yOffset>0)doc.addPage();
+        doc.addImage(imgData,'JPEG',0,-yOffset,pageW,drawH);
+        yOffset+=pageH;
+      }
+      const fname=(title.replace(/[^א-תa-zA-Z0-9 ]/g,'').trim()||'טבלת ציונים')+'.pdf';
+      doc.save(fname);
+      toast('PDF הורד בהצלחה');
+    }).catch(()=>toast('שגיאה בייצוא PDF'));
+  }).catch(()=>toast('לא ניתן לטעון ספריות PDF — בדוק חיבור לאינטרנט'));
 }
 
 // Find value for a given score (inverse of getScore) for full table display
