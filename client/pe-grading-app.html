@@ -3307,7 +3307,7 @@ function selectTest(testId){
   if(!T.isPaste)document.getElementById('ppc').style.display='none';
   document.getElementById('edit-custom-btn').style.display=ct?'':'none';
   const liveBtn=document.getElementById('live-test-btn');
-  if(liveBtn) liveBtn.style.display=testId==='cooper'?'none':'';
+  if(liveBtn) liveBtn.style.display=(testId==='cooper'||testId==='xtest')?'none':'';
   const isMetro=testId==='pushups_metro';
   const metroBtn=document.getElementById('metro-btn');
   if(metroBtn)metroBtn.style.display=isMetro?'':'none';
@@ -3381,7 +3381,7 @@ function showFullTbl(testId,grade){
       html+=`<tr><td style="font-weight:700">${sc}</td><td>${mv?fmt(mv[0]):'-'}</td><td>${fv?fmt(fv[0]):'-'}</td></tr>`;
     });
   } else {
-    grades.forEach(g=>html+=`<th>${g} ז</th>`);
+    grades.forEach(g=>html+=`<th>${T.maleOnly?g:`${g} ז`}</th>`);
     if(!T.maleOnly)grades.forEach(g=>html+=`<th>${g} נ</th>`);
     html+='</tr></thead><tbody>';
     scores.forEach(sc=>{
