@@ -3186,42 +3186,49 @@ function renameGroup(gid){
 function deleteGroup(gid){if(!confirm(`למחוק "${S.groups[gid]?.name}"?`))return;sbDeleteGroup&&sbDeleteGroup(gid);delete S.groups[gid];saveState();renderGroupGrid();}
 function ensureDemoGroups(){
   try{
-    if(localStorage.getItem('sg_demo_created_v1'))return;
-    localStorage.setItem('sg_demo_created_v1','1');
+    // v2 — מיון א-ב. מחיקת קבוצות דמו ישנות (אם קיימות) ויצירה מחדש
+    if(localStorage.getItem('sg_demo_created_v2'))return;
+    Object.keys(S.groups).forEach(gid=>{
+      const n=S.groups[gid]?.name||'';
+      if(n==='קבוצת למידה ותרגול — בנים'||n==='קבוצת למידה ותרגול — בנות')delete S.groups[gid];
+    });
+    localStorage.setItem('sg_demo_created_v2','1');
     createDemoGroups();
   }catch(e){}
 }
 
 function createDemoGroups(){
+  // בנים — ממוינים לפי א-ב
   const boys=[
-    {name:"מייקל ג'ורדן",gender:'ז',grade:'יב',cls:''},
-    {name:"לברון ג'יימס",gender:'ז',grade:'יב',cls:''},
-    {name:'ליאונל מסי',gender:'ז',grade:'יב',cls:''},
-    {name:'כריסטיאנו רונלדו',gender:'ז',grade:'יב',cls:''},
-    {name:"קיליאן מבאפה",gender:'ז',grade:'יב',cls:''},
-    {name:'פלה',gender:'ז',grade:'יב',cls:''},
-    {name:'מייקל פלפס',gender:'ז',grade:'יב',cls:''},
     {name:'אוסיין בולט',gender:'ז',grade:'יב',cls:''},
     {name:"אליוד קיפצ'וגה",gender:'ז',grade:'יב',cls:''},
+    {name:'אריק זאבי',gender:'ז',grade:'יב',cls:''},
+    {name:'כריסטיאנו רונלדו',gender:'ז',grade:'יב',cls:''},
+    {name:"לברון ג'יימס",gender:'ז',grade:'יב',cls:''},
+    {name:'ליאונל מסי',gender:'ז',grade:'יב',cls:''},
     {name:'מוחמד עלי',gender:'ז',grade:'יב',cls:''},
+    {name:"מייקל ג'ורדן",gender:'ז',grade:'יב',cls:''},
+    {name:'מייקל פלפס',gender:'ז',grade:'יב',cls:''},
+    {name:'פלה',gender:'ז',grade:'יב',cls:''},
+    {name:"קיליאן מבאפה",gender:'ז',grade:'יב',cls:''},
     {name:"רוג'ר פדרר",gender:'ז',grade:'יב',cls:''},
     {name:'שחר צוברי',gender:'ז',grade:'יב',cls:''},
-    {name:'אריק זאבי',gender:'ז',grade:'יב',cls:''},
   ];
+  // בנות — ממוינות לפי א-ב
   const girls=[
-    {name:'מריה שרפובה',gender:'נ',grade:'יב',cls:''},
-    {name:'סרינה וויליאמס',gender:'נ',grade:'יב',cls:''},
     {name:'ונוס וויליאמס',gender:'נ',grade:'יב',cls:''},
-    {name:'נאומי אוסקה',gender:'נ',grade:'יב',cls:''},
-    {name:'סימון בילס',gender:'נ',grade:'יב',cls:''},
-    {name:"נדיה קומנצ'י",gender:'נ',grade:'יב',cls:''},
-    {name:'לינוי אשרם',gender:'נ',grade:'יב',cls:''},
-    {name:"קאטי לדקי",gender:'נ',grade:'יב',cls:''},
-    {name:"פלורנס גריפית' ג'וינר",gender:'נ',grade:'יב',cls:''},
-    {name:"שלי-אן פרייזר-פרייס",gender:'נ',grade:'יב',cls:''},
-    {name:"סילבי ז'אן",gender:'נ',grade:'יב',cls:''},
     {name:"ירדן ג'רבי",gender:'נ',grade:'יב',cls:''},
+    {name:'לינוי אשרם',gender:'נ',grade:'יב',cls:''},
+    {name:'מריה שרפובה',gender:'נ',grade:'יב',cls:''},
+    {name:'נאומי אוסקה',gender:'נ',grade:'יב',cls:''},
+    {name:"נדיה קומנצ'י",gender:'נ',grade:'יב',cls:''},
+    {name:"סילבי ז'אן",gender:'נ',grade:'יב',cls:''},
+    {name:'סימון בילס',gender:'נ',grade:'יב',cls:''},
+    {name:'סרינה וויליאמס',gender:'נ',grade:'יב',cls:''},
+    {name:"פלורנס גריפית' ג'וינר",gender:'נ',grade:'יב',cls:''},
+    {name:"קאטי לדקי",gender:'נ',grade:'יב',cls:''},
     {name:'רבקה אנדרדה',gender:'נ',grade:'יב',cls:''},
+    {name:"שלי-אן פרייזר-פרייס",gender:'נ',grade:'יב',cls:''},
   ];
   const gidB=S.nextId++;
   S.groups[gidB]={name:'קבוצת למידה ותרגול — בנים',classes:'',students:boys,results:{}};
