@@ -765,6 +765,7 @@ async function sbLoadUserData() {
   }
 
   // Update UI after loading
+  ensureDemoGroups && ensureDemoGroups();
   renderGroupGrid && renderGroupGrid();
   checkYearEndNotice();
   _updateMashovBanner && _updateMashovBanner();
@@ -1158,6 +1159,16 @@ history.pushState(null,'',location.href);
 <!-- WELCOME -->
 <div class="view active" id="view-welcome">
   <div class="pgh"><div class="pgt">ניהול מבחני כושר</div><div class="pgs">ניהול קבוצות ומבחני כושר · נשמר אוטומטית</div></div>
+
+  <!-- כפתור התקנת PWA — מוצג רק על מובייל ורק כשהאפליקציה לא מותקנת -->
+  <div id="pwa-install-bar" style="display:none;margin-bottom:14px;background:linear-gradient(135deg,rgba(234,88,12,.1),rgba(234,88,12,.03));border:1.5px solid rgba(234,88,12,.3);border-radius:var(--r);padding:14px 16px;align-items:center;gap:12px;">
+    <div style="font-size:26px;flex-shrink:0;">📲</div>
+    <div style="flex:1;">
+      <div style="font-weight:800;color:var(--ac);font-size:14px;">הוסף לדף הבית</div>
+      <div style="font-size:11px;color:var(--ink3);margin-top:2px;">גישה מהירה ישירות מהמסך הראשי</div>
+    </div>
+    <button class="btn bp bsm" onclick="pwaInstall()" style="flex-shrink:0;">התקן</button>
+  </div>
 
   <!-- כלים מהירים -->
   <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px;">
@@ -3173,6 +3184,52 @@ function renameGroup(gid){
   if(CUR.gid==gid){document.getElementById('bc-g').textContent=name;document.getElementById('ig').textContent=name;document.getElementById('hpill').textContent=name;}
 }
 function deleteGroup(gid){if(!confirm(`למחוק "${S.groups[gid]?.name}"?`))return;sbDeleteGroup&&sbDeleteGroup(gid);delete S.groups[gid];saveState();renderGroupGrid();}
+function ensureDemoGroups(){
+  try{
+    if(localStorage.getItem('sg_demo_created_v1'))return;
+    localStorage.setItem('sg_demo_created_v1','1');
+    createDemoGroups();
+  }catch(e){}
+}
+
+function createDemoGroups(){
+  const boys=[
+    {name:"מייקל ג'ורדן",gender:'ז',grade:'יב',cls:''},
+    {name:"לברון ג'יימס",gender:'ז',grade:'יב',cls:''},
+    {name:'ליאונל מסי',gender:'ז',grade:'יב',cls:''},
+    {name:'כריסטיאנו רונלדו',gender:'ז',grade:'יב',cls:''},
+    {name:"קיליאן מבאפה",gender:'ז',grade:'יב',cls:''},
+    {name:'פלה',gender:'ז',grade:'יב',cls:''},
+    {name:'מייקל פלפס',gender:'ז',grade:'יב',cls:''},
+    {name:'אוסיין בולט',gender:'ז',grade:'יב',cls:''},
+    {name:"אליוד קיפצ'וגה",gender:'ז',grade:'יב',cls:''},
+    {name:'מוחמד עלי',gender:'ז',grade:'יב',cls:''},
+    {name:"רוג'ר פדרר",gender:'ז',grade:'יב',cls:''},
+    {name:'שחר צוברי',gender:'ז',grade:'יב',cls:''},
+    {name:'אריק זאבי',gender:'ז',grade:'יב',cls:''},
+  ];
+  const girls=[
+    {name:'מריה שרפובה',gender:'נ',grade:'יב',cls:''},
+    {name:'סרינה וויליאמס',gender:'נ',grade:'יב',cls:''},
+    {name:'ונוס וויליאמס',gender:'נ',grade:'יב',cls:''},
+    {name:'נאומי אוסקה',gender:'נ',grade:'יב',cls:''},
+    {name:'סימון בילס',gender:'נ',grade:'יב',cls:''},
+    {name:"נדיה קומנצ'י",gender:'נ',grade:'יב',cls:''},
+    {name:'לינוי אשרם',gender:'נ',grade:'יב',cls:''},
+    {name:"קאטי לדקי",gender:'נ',grade:'יב',cls:''},
+    {name:"פלורנס גריפית' ג'וינר",gender:'נ',grade:'יב',cls:''},
+    {name:"שלי-אן פרייזר-פרייס",gender:'נ',grade:'יב',cls:''},
+    {name:"סילבי ז'אן",gender:'נ',grade:'יב',cls:''},
+    {name:"ירדן ג'רבי",gender:'נ',grade:'יב',cls:''},
+    {name:'רבקה אנדרדה',gender:'נ',grade:'יב',cls:''},
+  ];
+  const gidB=S.nextId++;
+  S.groups[gidB]={name:'קבוצת למידה ותרגול — בנים',classes:'',students:boys,results:{}};
+  const gidG=S.nextId++;
+  S.groups[gidG]={name:'קבוצת למידה ותרגול — בנות',classes:'',students:girls,results:{}};
+  saveState();
+}
+
 function loadDemo(){
   const d=[
     {name:'אברמוביץ גל',gender:'ז',grade:'ט',cls:'1'},{name:'בן-דוד נועה',gender:'נ',grade:'ט',cls:'1'},
@@ -14444,6 +14501,47 @@ if('serviceWorker' in navigator){
     navigator.serviceWorker.register('/Sportgrades/client/sw.js').catch(()=>{});
   });
 }
+
+// ── PWA Install ──────────────────────────────────────────────
+let _pwaPrompt = null;
+
+window.addEventListener('beforeinstallprompt', e => {
+  e.preventDefault();
+  _pwaPrompt = e;
+  // הצג רק על מובייל, רק אם לא כבר מותקן
+  const isMobile = /Mobile|Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+  if (!isMobile) return;
+  const bar = document.getElementById('pwa-install-bar');
+  if (bar) bar.style.display = 'flex';
+});
+
+window.addEventListener('appinstalled', () => {
+  const bar = document.getElementById('pwa-install-bar');
+  if (bar) bar.style.display = 'none';
+  toast('האפליקציה הותקנה בהצלחה ✓');
+});
+
+function pwaInstall() {
+  if (_pwaPrompt) {
+    // אנדרואיד — פתח דיאלוג התקנה
+    _pwaPrompt.prompt();
+    _pwaPrompt.userChoice.then(() => { _pwaPrompt = null; });
+  } else {
+    // iOS — הראה הוראות
+    alert('להתקנה בספארי:\nלחץ על ↗ "שתף" ← "הוסף למסך הבית"');
+  }
+}
+
+// iOS: הצג כפתור בטעינה אם לא כבר מותקן
+document.addEventListener('DOMContentLoaded', () => {
+  const isIOS = /iPhone|iPad|iPod/i.test(navigator.userAgent);
+  const isStandalone = window.navigator.standalone === true ||
+    window.matchMedia('(display-mode: standalone)').matches;
+  if (isIOS && !isStandalone) {
+    const bar = document.getElementById('pwa-install-bar');
+    if (bar) bar.style.display = 'flex';
+  }
+});
 </script>
 </body>
 </html>
