@@ -1484,7 +1484,15 @@ history.pushState(null,'',location.href);
     <div class="fti-label">⚡ הזנה מהירה — <span id="fti-test-label">מבחן נוכחי</span></div>
     <div class="fti-row">
       <textarea class="fti" id="fti" rows="1" placeholder="שם התלמיד/ה ותוצאה, לדוגמה: ישראל ישראלי 15" oninput="autoResizeFTI(this)" onkeydown="ftiFastSubmit(event)"></textarea>
+      <button id="fti-mic-btn" onclick="ftiMicToggle()" style="flex-shrink:0;padding:6px 10px;border-radius:var(--rs);border:1px solid var(--bd);background:var(--bg2);color:var(--ink);cursor:pointer;font-size:18px;line-height:1;font-family:'Heebo',sans-serif;" title="הקלט קול">🎤</button>
       <button class="btn bp bsm" onclick="submitFTI()">⏎ הזן</button>
+    </div>
+    <div id="fti-interim-wrap" style="display:none;padding:3px 2px;font-size:12px;color:var(--ink3);font-style:italic;margin-top:3px;">
+      <span style="color:#ef4444;font-weight:700;">● </span><span id="fti-interim"></span>
+    </div>
+    <div id="fti-voice-confirm" style="display:none;margin-top:6px;padding:8px 10px;background:var(--abg);border:1px solid var(--abd);border-radius:var(--rs);">
+      <div style="font-size:13px;color:var(--ink);margin-bottom:6px;" id="fti-voice-confirm-text"></div>
+      <div style="display:flex;gap:6px;"><button class="btn bp bsm" onclick="ftiVoiceApply()">✓ אשר</button><button class="btn bg2 bsm" onclick="ftiVoiceClear()">✕ ביטול</button></div>
     </div>
     <div style="font-size:11px;color:var(--ink3);margin-top:5px;">לדוגמה: "<span id="fti-example"></span>" · אנטר לאישור</div>
   </div>
@@ -3242,6 +3250,7 @@ function buildTabs(){
   });
   toolsHtml+=`<div class="tab tab-tools${CUR.test==='__completion__'?' sel':''}" onclick="selectCompletion()" id="tab-__completion__">⚠ השלמת מבחנים</div>`;
   toolsHtml+=`<div class="tab tab-tools${CUR.test==='__entered__'?' sel':''}" onclick="selectEntered()" id="tab-__entered__">✓ תיעוד הזנות למערכת ביה"ס</div>`;
+  toolsHtml+=`<div class="tab tab-tools" onclick="openFreeEntryModal()">📝 הזנה חופשית (AI)</div>`;
   toolsHtml+=`<div class="tab tab-tools" onclick="openCustomModal()">＋ יצירת מבחן חדש</div>`;
   toolsHtml+=`<div class="tab tab-tools" onclick="showGroupEditView()" title="עריכת קבוצה">✏ עריכת קבוצה</div>`;
   html+=`<div class="tab-cat">
@@ -3870,6 +3879,101 @@ function ftiDisambigSkip(){
   _ftiAmbiguous.shift();
   if(_ftiAmbiguous.length>0) setTimeout(showFTIDisambiguation,300);
   else toast('דילוג על כל השאלות');
+}
+
+// ── FTI voice input ───────────────────────────────────────────
+let _ftiRecog=null,_ftiRecording=false;
+
+function ftiMicToggle(){
+  if(!('webkitSpeechRecognition' in window)&&!('SpeechRecognition' in window)){
+    toast('הדפדפן שלך לא תומך בהקלטת קול — נסה Chrome');return;
+  }
+  _ftiRecording?ftiStopMic():ftiStartMic();
+}
+
+function ftiStartMic(){
+  const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+  _ftiRecog=new SR();
+  _ftiRecog.lang='he-IL';
+  _ftiRecog.continuous=true;
+  _ftiRecog.interimResults=true;
+  const ta=document.getElementById('fti');
+  ta.value='';
+  document.getElementById('fti-voice-confirm').style.display='none';
+
+  _ftiRecog.onresult=e=>{
+    let interim='',final='';
+    for(let i=e.resultIndex;i<e.results.length;i++){
+      if(e.results[i].isFinal)final+=e.results[i][0].transcript;
+      else interim=e.results[i][0].transcript;
+    }
+    if(final){ta.value=(ta.value?ta.value+' ':'')+final.trim();autoResizeFTI(ta);}
+    const il=document.getElementById('fti-interim');if(il)il.textContent=interim;
+  };
+  _ftiRecog.onerror=e=>{if(e.error!=='no-speech')toast('שגיאה בהקלטה');ftiStopMic();};
+  _ftiRecog.onend=()=>_ftiMicStopped();
+  _ftiRecog.start();
+  _ftiSetMicUI(true);
+}
+
+function ftiStopMic(){
+  if(_ftiRecog){try{_ftiRecog.stop();}catch(e){}  _ftiRecog=null;}
+}
+
+function _ftiMicStopped(){
+  _ftiSetMicUI(false);
+  const text=document.getElementById('fti').value.trim();
+  if(text)_ftiShowVoiceConfirm(text);
+}
+
+function _ftiSetMicUI(on){
+  _ftiRecording=on;
+  const btn=document.getElementById('fti-mic-btn');if(!btn)return;
+  btn.style.background=on?'#ef4444':'';
+  btn.style.color=on?'#fff':'';
+  btn.style.border=on?'1px solid #ef4444':'1px solid var(--bd)';
+  btn.innerHTML=on?'⏹':'🎤';
+  btn.title=on?'עצור הקלטה':'הקלט קול';
+  const iw=document.getElementById('fti-interim-wrap');
+  if(iw)iw.style.display=on?'block':'none';
+  if(!on){const il=document.getElementById('fti-interim');if(il)il.textContent='';}
+}
+
+function _ftiShowVoiceConfirm(text){
+  const students=S.groups[CUR.gid]?.students||[];
+  const lines=text.split(/[\n;]+/).map(l=>l.trim()).filter(Boolean);
+  const preview=[];
+  for(const line of lines){
+    let pl=line
+      .replace(/דקה\s+וחצי/g,'1.5')
+      .replace(/\b(עשה|עשתה|הגיע|הגיעה|חזרות|שניות|שניה|שנייה|דקות|דקה|מטר|שכיבות|סמיכה|ביפ|קפיצות)\b/gi,' ');
+    const nums=[...pl.matchAll(/(\d+(?:[.,:\-]\d+)*)/g)];
+    if(!nums.length){preview.push(`"${line}" — לא זוהה מספר`);continue;}
+    const numStr=nums[nums.length-1][1].replace(',','.');
+    const nameText=pl.slice(0,nums[nums.length-1].index).trim();
+    const m=fuzzyFindStudent(nameText||pl,students);
+    if(m&&!m.ambiguous){
+      const sc=getScore(CUR.test,m.student.grade,m.student.gender,numStr);
+      preview.push(`${m.student.name} → ${numStr}${sc!==null?' (ציון: '+Math.round(sc)+')':''}`);
+    } else {
+      preview.push(`"${line}" — ${m?.ambiguous?'שם לא חד-משמעי':'שם לא זוהה'}`);
+    }
+  }
+  const ct=document.getElementById('fti-voice-confirm-text');
+  if(ct)ct.textContent='הבנתי: '+preview.join(' · ');
+  const cv=document.getElementById('fti-voice-confirm');
+  if(cv)cv.style.display='block';
+}
+
+function ftiVoiceApply(){
+  document.getElementById('fti-voice-confirm').style.display='none';
+  submitFTI();
+}
+
+function ftiVoiceClear(){
+  document.getElementById('fti-voice-confirm').style.display='none';
+  document.getElementById('fti').value='';
+  document.getElementById('fti').style.height='';
 }
 
 // ── FREE ENTRY MODAL (cross-test) ────────────────────────────
