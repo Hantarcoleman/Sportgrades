@@ -754,6 +754,13 @@ async function sbLoadUserData() {
         if(!_catSeen.has(cat.key)){_catSeen.add(cat.key);S.customCategories.push(cat);}
       });
     });
+    // Push restored names back to Supabase so other devices (phone) can see them
+    Object.entries(S.groups).forEach(([gid, grp]) => {
+      const hasRestoredNames = (grp.students||[]).some(
+        s => s.idHash && s.name && !s.name.startsWith('תלמיד #')
+      );
+      if (hasRestoredNames) sbSaveGroup(parseInt(gid)).catch(() => {});
+    });
   }
 
   // Update UI after loading
