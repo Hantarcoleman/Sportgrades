@@ -1010,7 +1010,13 @@ async function loadStandards(){
 window.addEventListener('DOMContentLoaded', ()=>{ loadStandards(); sbInit(); loadA11ySettings(); });
 
 // מניעת pull-to-refresh ב-iOS Safari (overscroll-behavior CSS לא נתמך שם)
+let _ptrLastY = 0;
+document.addEventListener('touchstart', function(e) {
+  _ptrLastY = e.touches[0].clientY;
+}, { passive: true });
 document.addEventListener('touchmove', function(e) {
+  const draggingDown = e.touches[0].clientY > _ptrLastY; // אצבע יורדת = gesture של pull-to-refresh
+  if (!draggingDown) return; // גלילה למעלה — לא נגע בה
   let el = e.target;
   while (el && el !== document.body) {
     const s = getComputedStyle(el);
@@ -1064,6 +1070,9 @@ window.addEventListener('popstate', function(e) {
   // Check metro open
   const metro = document.getElementById('metro-modal');
   if (metro && metro.classList.contains('open')) { closeMetronome(); history.pushState(null,'',location.href); return; }
+  // Check timer open (פלנק / ריצות)
+  const timerModal = document.getElementById('timer-modal');
+  if (timerModal && timerModal.classList.contains('open')) { timerStop(true); timerModal.classList.remove('open'); history.pushState(null,'',location.href); return; }
   // Check tournament panel open
   const tmPanel = document.getElementById('tm-panel');
   if (tmPanel && tmPanel.style.display !== 'none') { closeTournamentPanel && closeTournamentPanel(); history.pushState(null,'',location.href); return; }
@@ -1962,7 +1971,10 @@ history.pushState(null,'',location.href);
 <div class="mbg" id="ftbl-modal"><div class="mod mod-wide" onclick="event.stopPropagation()">
   <div class="mt" id="ftm-title">טבלת ציונים מלאה</div>
   <div style="margin-top:12px;overflow-x:auto;" id="ftm-content"></div>
-  <div class="mf"><button class="btn bg2" onclick="closeModal('ftbl-modal')">סגור</button></div>
+  <div class="mf" style="gap:8px;">
+    <button class="btn bg2" onclick="closeModal('ftbl-modal')">סגור</button>
+    <button class="btn bp" onclick="printFullTable()">📄 ייצוא PDF</button>
+  </div>
 </div></div>
 
 <div class="mbg" id="free-entry-modal"><div class="mod" onclick="event.stopPropagation()">
@@ -2175,7 +2187,7 @@ history.pushState(null,'',location.href);
   <div style="font-size:11px;color:var(--ink3);margin-bottom:12px;">דקה</div>
   <!-- Counter -->
   <div id="srl-count" style="font-size:60px;font-weight:900;color:var(--gn);line-height:1;">0</div>
-  <div style="font-size:12px;color:var(--ink3);margin-bottom:6px;">קפיצות</div>
+  <div id="srl-unit-label" style="font-size:12px;color:var(--ink3);margin-bottom:6px;">קפיצות</div>
   <!-- Potential score -->
   <div id="srl-potential-score" style="font-size:28px;font-weight:900;color:var(--bl);min-height:34px;line-height:1;"></div>
   <div id="srl-potential-label" style="font-size:11px;color:var(--ink3);margin-bottom:10px;display:none;">ציון פוטנציאלי</div>
@@ -2193,7 +2205,7 @@ history.pushState(null,'',location.href);
   <!-- Finish row — shown after time ends -->
   <div id="srl-finish-row" style="display:none;background:var(--bg2);border:1px solid var(--bd);border-radius:var(--rs);padding:14px;margin-bottom:12px;text-align:right;">
     <div style="font-size:24px;font-weight:900;color:var(--gn);text-align:center;margin-bottom:2px;"><span id="srl-final">0</span></div>
-    <div style="font-size:11px;color:var(--ink3);text-align:center;margin-bottom:14px;">קפיצות</div>
+    <div id="srl-unit-label2" style="font-size:11px;color:var(--ink3);text-align:center;margin-bottom:14px;">קפיצות</div>
     <input id="srl-student-name" type="text" list="srl-names-list" placeholder="שם התלמיד" autocomplete="off"
       style="width:100%;padding:10px 12px;font-size:15px;font-family:'Heebo',sans-serif;border:1.5px solid var(--bd2);border-radius:var(--rs);background:var(--sf);color:var(--ink);margin-bottom:10px;box-sizing:border-box;direction:rtl;"
       onkeydown="if(event.key==='Enter'){_acFirst(this,'srl-names-list');srlSave();}" />
@@ -3389,6 +3401,17 @@ function showFullTbl(testId,grade){
   document.getElementById('ftm-title').textContent=`טבלה מלאה — ${ct?ct.name:(TEST_LIST.find(t=>t.id===testId)?.label||testId)}${grade?' כיתה '+grade:''}`;
   document.getElementById('ftm-content').innerHTML=html;
   openModal('ftbl-modal');
+}
+
+function printFullTable(){
+  const title=document.getElementById('ftm-title')?.textContent||'טבלת ציונים';
+  const content=document.getElementById('ftm-content')?.innerHTML||'';
+  let wrap=document.getElementById('ftm-print-wrap');
+  if(!wrap){wrap=document.createElement('div');wrap.id='ftm-print-wrap';wrap.style.display='none';document.body.appendChild(wrap);}
+  wrap.innerHTML=`<div id="ftm-print-title">${title}</div>${content}`;
+  document.body.classList.add('print-ftbl');
+  window.print();
+  document.body.classList.remove('print-ftbl');
 }
 
 // Find value for a given score (inverse of getScore) for full table display
@@ -6181,6 +6204,8 @@ function openSkipropeLive(testId='skiprope'){
   if(SRL.interval){clearInterval(SRL.interval);SRL.interval=null;}
   const titleEl=document.getElementById('srl-title');
   if(titleEl)titleEl.textContent=cfg.title;
+  const ul=document.getElementById('srl-unit-label');if(ul)ul.textContent=cfg.unit;
+  const ul2=document.getElementById('srl-unit-label2');if(ul2)ul2.textContent=cfg.unit;
   const g=S.groups[gid];
   const first=g?.students?.[0];
   SRL.refGrade=first?.grade||'ט';SRL.refGender=first?.gender||'ז';
@@ -13477,6 +13502,17 @@ body::after{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;
 .tm-wrap .gender-badge {display:inline-flex;align-items:center;gap:4px;background:var(--pubg);border:1px solid var(--pubd);border-radius:20px;padding:2px 10px;font-size:11px;color:var(--pu);font-weight:700;}
 
 /* ── PRINT STYLES ─────────────────────────────────────────── */
+/* הדפסת טבלת ציונים מלאה */
+@media print{
+  body.print-ftbl > *:not(#ftm-print-wrap){ display:none!important; }
+  body.print-ftbl #ftm-print-wrap{ display:block!important; }
+  body.print-ftbl #ftm-print-title{ font-size:16px;font-weight:900;margin-bottom:10px;text-align:center; }
+  body.print-ftbl table{ border-collapse:collapse;width:100%;font-size:11px; }
+  body.print-ftbl th,body.print-ftbl td{ border:1px solid #bbb;padding:4px 6px;text-align:center;color:#000; }
+  body.print-ftbl th{ background:#eee;font-weight:700; }
+  @page{ margin:10mm; }
+}
+
 @media print{
 .tm-wrap header, .tm-wrap #app-sidebar, .tm-wrap .hbtn, .tm-wrap button:not(.print-keep), .tm-wrap .modal-bg {display:none!important;}
   body{background:#fff;color:#000;font-size:12px;}
