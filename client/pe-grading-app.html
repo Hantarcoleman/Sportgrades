@@ -1840,10 +1840,14 @@ history.pushState(null,'',location.href);
   <div class="ms" style="line-height:1.5;">
     העלה אלפון מעודכן של כיתה. האפליקציה תזהה אוטומטית את הקבוצה המתאימה, תציג רשימה של התלמידים החדשים שהתווספו לכיתה, ותוסיף אותם בלבד לרשימה — מבלי למחוק תלמידים קיימים או ציונים שכבר הוזנו.
   </div>
-  <div style="margin-top:12px;display:flex;gap:8px;align-items:center;">
-    <button type="button" class="btn bs bsm" onclick="document.getElementById('update-group-file-input').click()">📁 בחר אלפון מעודכן</button>
-    <span id="update-group-fname" style="font-size:13px;color:var(--ink2);">לא נבחר קובץ</span>
+  <div id="update-group-drop-zone" style="margin-top:12px;border:2px dashed var(--bd);border-radius:var(--r);padding:18px 12px;text-align:center;cursor:pointer;transition:border-color .15s,background .15s;"
+    onclick="document.getElementById('update-group-file-input').click()"
+    ondragover="_ugDragOver(event)" ondragleave="_ugDragLeave(event)" ondrop="_ugDrop(event)">
+    <div style="font-size:22px;margin-bottom:4px;">📁</div>
+    <div style="font-size:14px;font-weight:700;">גרור אלפון Excel לכאן</div>
+    <div style="font-size:12px;color:var(--ink3);margin-top:3px;">או לחץ לבחירת קובץ · .xlsx / .xls</div>
   </div>
+  <div style="margin-top:6px;font-size:13px;color:var(--ink2);" id="update-group-fname"></div>
   <input type="file" id="update-group-file-input" accept=".xlsx,.xls" style="display:none" onchange="_onUpdateGroupFilePicked(event)">
   <div id="update-group-summary" style="margin-top:14px;"></div>
   <div class="mf">
@@ -4946,7 +4950,26 @@ function _scoreGroupOverlap(gid, students){
 }
 
 async function _onUpdateGroupFilePicked(ev){
-  const file=ev.target.files[0]; if(!file) return;
+  const file=ev.target.files[0];if(!file)return;
+  await _ugHandleFile(file);
+}
+function _ugDragOver(e){
+  e.preventDefault();e.stopPropagation();
+  const z=document.getElementById('update-group-drop-zone');
+  if(z){z.style.borderColor='var(--ac)';z.style.background='rgba(249,115,22,.07)';}
+}
+function _ugDragLeave(e){
+  const z=document.getElementById('update-group-drop-zone');
+  if(z){z.style.borderColor='';z.style.background='';}
+}
+async function _ugDrop(e){
+  e.preventDefault();e.stopPropagation();
+  _ugDragLeave(e);
+  const file=Array.from(e.dataTransfer?.files||[]).find(f=>/\.xlsx?$/i.test(f.name));
+  if(!file){toast('יש לגרור קובץ Excel בלבד (.xlsx/.xls)');return;}
+  await _ugHandleFile(file);
+}
+async function _ugHandleFile(file){
   _ugFileName=file.name.replace(/\.xlsx?$/i,'');
   const fname=document.getElementById('update-group-fname');
   if(fname) fname.textContent=file.name;
