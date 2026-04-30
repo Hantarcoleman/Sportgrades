@@ -1483,15 +1483,7 @@ history.pushState(null,'',location.href);
     <div class="fti-label">⚡ הזנה מהירה — <span id="fti-test-label">מבחן נוכחי</span></div>
     <div class="fti-row">
       <textarea class="fti" id="fti" rows="1" placeholder="שם התלמיד/ה ותוצאה, לדוגמה: ישראל ישראלי 15" oninput="autoResizeFTI(this)" onkeydown="ftiFastSubmit(event)"></textarea>
-      <button id="fti-mic-btn" onclick="ftiMicToggle()" style="flex-shrink:0;padding:6px 10px;border-radius:var(--rs);border:1px solid var(--bd);background:var(--bg2);color:var(--ink);cursor:pointer;font-size:18px;line-height:1;font-family:'Heebo',sans-serif;" title="הקלט קול">🎤</button>
       <button class="btn bp bsm" onclick="submitFTI()">⏎ הזן</button>
-    </div>
-    <div id="fti-interim-wrap" style="display:none;padding:3px 2px;font-size:12px;color:var(--ink3);font-style:italic;margin-top:3px;">
-      <span style="color:#ef4444;font-weight:700;">● </span><span id="fti-interim"></span>
-    </div>
-    <div id="fti-voice-confirm" style="display:none;margin-top:6px;padding:8px 10px;background:var(--abg);border:1px solid var(--abd);border-radius:var(--rs);">
-      <div style="font-size:13px;color:var(--ink);margin-bottom:6px;" id="fti-voice-confirm-text"></div>
-      <div style="display:flex;gap:6px;"><button class="btn bp bsm" onclick="ftiVoiceApply()">✓ אשר</button><button class="btn bg2 bsm" onclick="ftiVoiceClear()">✕ ביטול</button></div>
     </div>
     <div style="font-size:11px;color:var(--ink3);margin-top:5px;">לדוגמה: "<span id="fti-example"></span>" · אנטר לאישור</div>
   </div>
@@ -1953,14 +1945,7 @@ history.pushState(null,'',location.href);
   <div class="mt">הזנת ציון במלל חופשי</div>
   <div class="ms">כתוב תוצאות של תלמידים — גם במספרים וגם במילים, גם ממספר מבחנים יחד</div>
   <div class="fg">
-    <div style="display:flex;gap:8px;align-items:flex-start;">
-      <textarea class="fi2" id="fe-text" rows="4" style="resize:vertical;flex:1;" placeholder="לדוגמה: גילי עשתה 30 שכיבות סמיכה ודקה וחצי פלנק&#10;דן רץ 1000 מטר בחמש דקות ועשרים שניות"></textarea>
-      <button id="fe-mic-btn" onclick="feToggleMic()" style="flex-shrink:0;padding:9px 13px;border-radius:var(--rs);border:1px solid var(--bd);background:var(--bg2);color:var(--ink);cursor:pointer;font-size:20px;line-height:1;font-family:'Heebo',sans-serif;" title="הקלטת קול">🎤</button>
-    </div>
-    <div id="fe-interim-wrap" style="display:none;margin-top:6px;padding:6px 10px;background:var(--bg2);border-radius:var(--rs);border:1px solid var(--bd);display:flex;align-items:center;gap:8px;">
-      <span style="font-size:11px;color:#ef4444;font-weight:700;animation:pulse 1s infinite;">● מקשיב</span>
-      <span id="fe-interim" style="font-size:13px;color:var(--ink2);font-style:italic;"></span>
-    </div>
+    <textarea class="fi2" id="fe-text" rows="4" style="resize:vertical;" placeholder="לדוגמה: גילי עשתה 30 שכיבות סמיכה ודקה וחצי פלנק&#10;דן רץ 1000 מטר בחמש דקות ועשרים שניות"></textarea>
   </div>
   <div id="fe-results" style="display:none;">
     <div style="font-size:12px;font-weight:700;color:var(--ink2);margin-bottom:10px;">מה הבנתי — אשר או ערוך:</div>
@@ -1968,7 +1953,7 @@ history.pushState(null,'',location.href);
   </div>
   <div id="fe-loading" style="display:none;text-align:center;padding:20px;color:var(--ink3);">⏳ מנתח טקסט...</div>
   <div class="mf">
-    <button class="btn bg2" onclick="feStopMic();closeModal('free-entry-modal')">ביטול</button>
+    <button class="btn bg2" onclick="closeModal('free-entry-modal')">ביטול</button>
     <button class="btn bs" id="fe-parse-btn" onclick="parseFreeEntry()">🔍 נתח</button>
     <button class="btn bp" id="fe-confirm-btn" onclick="confirmFreeEntry()" style="display:none;">✓ אשר והזן</button>
   </div>
@@ -3880,120 +3865,6 @@ function ftiDisambigSkip(){
   else toast('דילוג על כל השאלות');
 }
 
-// ── FTI voice input ───────────────────────────────────────────
-let _ftiRecog=null,_ftiRecording=false,_ftiProcessedIdx=-1;
-
-function ftiMicToggle(){
-  if(!('webkitSpeechRecognition' in window)&&!('SpeechRecognition' in window)){
-    toast('הדפדפן שלך לא תומך בהקלטת קול — נסה Chrome');return;
-  }
-  _ftiRecording?ftiStopMic():ftiStartMic();
-}
-
-function ftiStartMic(){
-  const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
-  _ftiRecog=new SR();
-  _ftiRecog.lang='he-IL';
-  _ftiRecog.continuous=true;
-  _ftiRecog.interimResults=true;
-  const ta=document.getElementById('fti');
-  ta.value='';
-  document.getElementById('fti-voice-confirm').style.display='none';
-
-  _ftiProcessedIdx=-1;
-  _ftiRecog.onresult=e=>{
-    let interim='';
-    for(let i=e.resultIndex;i<e.results.length;i++){
-      if(e.results[i].isFinal&&i>_ftiProcessedIdx){
-        ta.value=(ta.value?ta.value+' ':'')+e.results[i][0].transcript.trim();
-        autoResizeFTI(ta);_ftiProcessedIdx=i;
-      }else if(!e.results[i].isFinal){interim=e.results[i][0].transcript;}
-    }
-    const il=document.getElementById('fti-interim');if(il)il.textContent=interim;
-  };
-  _ftiRecog.onerror=e=>{if(e.error!=='no-speech')toast('שגיאה בהקלטה');ftiStopMic();};
-  _ftiRecog.onend=()=>_ftiMicStopped();
-  _ftiRecog.start();
-  _ftiSetMicUI(true);
-}
-
-function ftiStopMic(){
-  if(_ftiRecog){try{_ftiRecog.stop();}catch(e){}  _ftiRecog=null;}
-}
-
-function _ftiMicStopped(){
-  _ftiSetMicUI(false);
-  const text=document.getElementById('fti').value.trim();
-  if(text)_ftiShowVoiceConfirm(text);
-}
-
-function _ftiSetMicUI(on){
-  _ftiRecording=on;
-  const btn=document.getElementById('fti-mic-btn');if(!btn)return;
-  btn.style.background=on?'#ef4444':'';
-  btn.style.color=on?'#fff':'';
-  btn.style.border=on?'1px solid #ef4444':'1px solid var(--bd)';
-  btn.innerHTML=on?'⏹':'🎤';
-  btn.title=on?'עצור הקלטה':'הקלט קול';
-  const iw=document.getElementById('fti-interim-wrap');
-  if(iw)iw.style.display=on?'block':'none';
-  if(!on){const il=document.getElementById('fti-interim');if(il)il.textContent='';}
-}
-
-function _ftiBestMatch(text,students){
-  // Always returns the closest student — never null
-  if(!students.length)return null;
-  const m=fuzzyFindStudent(text,students);
-  if(m&&!m.ambiguous)return m;
-  if(m&&m.ambiguous)return m.candidates[0]; // take top of ambiguous list
-  // Zero-score fallback: pick by minimum edit distance across all name words
-  const words=text.toLowerCase().split(/\s+/).filter(w=>w.length>1);
-  let best=null,bestDist=Infinity;
-  students.forEach((s,idx)=>{
-    const nameParts=s.name.toLowerCase().split(/\s+/);
-    let minDist=Infinity;
-    for(const np of nameParts)
-      for(const w of words){const d=editDist(w,np);if(d<minDist)minDist=d;}
-    if(words.length===0)minDist=editDist(text.toLowerCase(),s.name.toLowerCase());
-    if(minDist<bestDist){bestDist=minDist;best={idx,student:s,score:1};}
-  });
-  return best||{idx:0,student:students[0],score:0};
-}
-
-function _ftiShowVoiceConfirm(text){
-  const students=S.groups[CUR.gid]?.students||[];
-  const lines=text.split(/[\n;]+/).map(l=>l.trim()).filter(Boolean);
-  const preview=[];
-  for(const line of lines){
-    let pl=line
-      .replace(/דקה\s+וחצי/g,'1.5')
-      .replace(/\b(עשה|עשתה|הגיע|הגיעה|חזרות|שניות|שניה|שנייה|דקות|דקה|מטר|שכיבות|סמיכה|ביפ|קפיצות)\b/gi,' ');
-    const nums=[...pl.matchAll(/(\d+(?:[.,:\-]\d+)*)/g)];
-    const numStr=nums.length?nums[nums.length-1][1].replace(',','.'):'';
-    const nameText=nums.length?pl.slice(0,nums[nums.length-1].index).trim():pl;
-    const m=_ftiBestMatch(nameText||pl,students);
-    if(m){
-      const sc=numStr?getScore(CUR.test,m.student.grade,m.student.gender,numStr):null;
-      preview.push(`${m.student.name} → ${numStr||'?'}${sc!==null?' (ציון: '+Math.round(sc)+')':''}`);
-    }
-  }
-  const ct=document.getElementById('fti-voice-confirm-text');
-  if(ct)ct.textContent='הבנתי: '+(preview.join(' · ')||text);
-  const cv=document.getElementById('fti-voice-confirm');
-  if(cv)cv.style.display='block';
-}
-
-function ftiVoiceApply(){
-  document.getElementById('fti-voice-confirm').style.display='none';
-  submitFTI();
-}
-
-function ftiVoiceClear(){
-  document.getElementById('fti-voice-confirm').style.display='none';
-  document.getElementById('fti').value='';
-  document.getElementById('fti').style.height='';
-}
-
 // ── FREE ENTRY MODAL (cross-test) ────────────────────────────
 let _feItems=[];
 function openFreeEntryModal(){
@@ -4004,64 +3875,7 @@ function openFreeEntryModal(){
   document.getElementById('fe-confirm-btn').style.display='none';
   _feItems=[];
   openModal('free-entry-modal');
-  feStopMic();
-  document.getElementById('fe-text').value='';
-  document.getElementById('fe-interim-wrap').style.display='none';
-  document.getElementById('fe-interim').textContent='';
   setTimeout(()=>document.getElementById('fe-text').focus(),60);
-}
-
-// ── Voice input for free-entry modal ─────────────────────────
-let _feRecog=null,_feRecording=false,_feProcessedIdx=-1;
-
-function feToggleMic(){
-  if(!('webkitSpeechRecognition' in window)&&!('SpeechRecognition' in window)){
-    toast('הדפדפן שלך לא תומך בהקלטת קול — נסה Chrome');return;
-  }
-  _feRecording?feStopMic():feStartMic();
-}
-
-function feStartMic(){
-  const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
-  _feRecog=new SR();
-  _feRecog.lang='he-IL';
-  _feRecog.continuous=true;
-  _feRecog.interimResults=true;
-
-  _feProcessedIdx=-1;
-  _feRecog.onresult=e=>{
-    let interim='';
-    for(let i=e.resultIndex;i<e.results.length;i++){
-      if(e.results[i].isFinal&&i>_feProcessedIdx){
-        const ta=document.getElementById('fe-text');
-        ta.value=(ta.value?ta.value+'\n':'')+e.results[i][0].transcript.trim();
-        _feProcessedIdx=i;
-      }else if(!e.results[i].isFinal){interim=e.results[i][0].transcript;}
-    }
-    document.getElementById('fe-interim').textContent=interim;
-  };
-  _feRecog.onerror=e=>{if(e.error!=='no-speech')toast('שגיאה בהקלטה');feStopMic();};
-  _feRecog.onend=()=>_feSetUI(false);
-  _feRecog.start();
-  _feSetUI(true);
-}
-
-function feStopMic(){
-  if(_feRecog){try{_feRecog.stop();}catch(e){}  _feRecog=null;}
-  _feSetUI(false);
-}
-
-function _feSetUI(on){
-  _feRecording=on;
-  const btn=document.getElementById('fe-mic-btn');if(!btn)return;
-  btn.style.background=on?'#ef4444':'';
-  btn.style.color=on?'#fff':'';
-  btn.style.border=on?'1px solid #ef4444':'';
-  btn.innerHTML=on?'⏹':'🎤';
-  btn.title=on?'עצור הקלטה':'הקלט קול';
-  const iw=document.getElementById('fe-interim-wrap');
-  if(iw)iw.style.display=on?'flex':'none';
-  if(!on){const il=document.getElementById('fe-interim');if(il)il.textContent='';}
 }
 
 async function parseFreeEntry(){
