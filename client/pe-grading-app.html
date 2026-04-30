@@ -3306,8 +3306,11 @@ function selectTest(testId){
   document.getElementById('pbtn').style.display=T.isPaste?'':'none';
   if(!T.isPaste)document.getElementById('ppc').style.display='none';
   document.getElementById('edit-custom-btn').style.display=ct?'':'none';
+  const noLive=testId==='cooper'||testId==='xtest';
   const liveBtn=document.getElementById('live-test-btn');
-  if(liveBtn) liveBtn.style.display=(testId==='cooper'||testId==='xtest')?'none':'';
+  if(liveBtn) liveBtn.style.display=noLive?'none':'';
+  const smartBtn=document.getElementById('smart-test-btn-sb');
+  if(smartBtn) smartBtn.style.display=noLive?'none':'';
   const isMetro=testId==='pushups_metro';
   const metroBtn=document.getElementById('metro-btn');
   if(metroBtn)metroBtn.style.display=isMetro?'':'none';
@@ -3357,6 +3360,8 @@ function updateRef(){
       html+='</div>';
     });
   }
+  if(!ct&&T.maleOnly&&T.grades)
+    html+=`<button class="btn bp bsm" style="width:100%;margin-top:6px;" onclick="showFullTbl('${CUR.test}','')">📋 טבלת ציונים מלאה לכל הכיתות</button>`;
   const hint=TEST_HINTS[CUR.test];
   if(hint) html+=`<details class="test-hint-row"><summary>📋 אופן ביצוע</summary><div class="test-hint-body">${hint}</div></details>`;
   document.getElementById('ref').innerHTML=html||'';
