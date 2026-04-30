@@ -939,9 +939,8 @@ function stripLocalFields(students){
     if(!s || typeof s!=='object') return s;
     if(s.idHash){
       const c={...s};
-      delete c.name;
-      delete c.id;
-      delete c._local; // legacy from intermediate plan iterations
+      delete c.id; // raw ID number never leaves the device; name is fine
+      delete c._local;
       return c;
     }
     return s;
