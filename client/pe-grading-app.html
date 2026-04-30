@@ -1946,7 +1946,14 @@ history.pushState(null,'',location.href);
   <div class="mt">הזנת ציון במלל חופשי</div>
   <div class="ms">כתוב תוצאות של תלמידים — גם במספרים וגם במילים, גם ממספר מבחנים יחד</div>
   <div class="fg">
-    <textarea class="fi2" id="fe-text" rows="4" style="resize:vertical;" placeholder="לדוגמה: גילי עשתה 30 שכיבות סמיכה ודקה וחצי פלנק&#10;דן רץ 1000 מטר בחמש דקות ועשרים שניות"></textarea>
+    <div style="display:flex;gap:8px;align-items:flex-start;">
+      <textarea class="fi2" id="fe-text" rows="4" style="resize:vertical;flex:1;" placeholder="לדוגמה: גילי עשתה 30 שכיבות סמיכה ודקה וחצי פלנק&#10;דן רץ 1000 מטר בחמש דקות ועשרים שניות"></textarea>
+      <button id="fe-mic-btn" onclick="feToggleMic()" style="flex-shrink:0;padding:9px 13px;border-radius:var(--rs);border:1px solid var(--bd);background:var(--bg2);color:var(--ink);cursor:pointer;font-size:20px;line-height:1;font-family:'Heebo',sans-serif;" title="הקלטת קול">🎤</button>
+    </div>
+    <div id="fe-interim-wrap" style="display:none;margin-top:6px;padding:6px 10px;background:var(--bg2);border-radius:var(--rs);border:1px solid var(--bd);display:flex;align-items:center;gap:8px;">
+      <span style="font-size:11px;color:#ef4444;font-weight:700;animation:pulse 1s infinite;">● מקשיב</span>
+      <span id="fe-interim" style="font-size:13px;color:var(--ink2);font-style:italic;"></span>
+    </div>
   </div>
   <div id="fe-results" style="display:none;">
     <div style="font-size:12px;font-weight:700;color:var(--ink2);margin-bottom:10px;">מה הבנתי — אשר או ערוך:</div>
@@ -1954,7 +1961,7 @@ history.pushState(null,'',location.href);
   </div>
   <div id="fe-loading" style="display:none;text-align:center;padding:20px;color:var(--ink3);">⏳ מנתח טקסט...</div>
   <div class="mf">
-    <button class="btn bg2" onclick="closeModal('free-entry-modal')">ביטול</button>
+    <button class="btn bg2" onclick="feStopMic();closeModal('free-entry-modal')">ביטול</button>
     <button class="btn bs" id="fe-parse-btn" onclick="parseFreeEntry()">🔍 נתח</button>
     <button class="btn bp" id="fe-confirm-btn" onclick="confirmFreeEntry()" style="display:none;">✓ אשר והזן</button>
   </div>
@@ -3875,7 +3882,64 @@ function openFreeEntryModal(){
   document.getElementById('fe-confirm-btn').style.display='none';
   _feItems=[];
   openModal('free-entry-modal');
+  feStopMic();
+  document.getElementById('fe-text').value='';
+  document.getElementById('fe-interim-wrap').style.display='none';
+  document.getElementById('fe-interim').textContent='';
   setTimeout(()=>document.getElementById('fe-text').focus(),60);
+}
+
+// ── Voice input for free-entry modal ─────────────────────────
+let _feRecog=null,_feRecording=false;
+
+function feToggleMic(){
+  if(!('webkitSpeechRecognition' in window)&&!('SpeechRecognition' in window)){
+    toast('הדפדפן שלך לא תומך בהקלטת קול — נסה Chrome');return;
+  }
+  _feRecording?feStopMic():feStartMic();
+}
+
+function feStartMic(){
+  const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+  _feRecog=new SR();
+  _feRecog.lang='he-IL';
+  _feRecog.continuous=true;
+  _feRecog.interimResults=true;
+
+  _feRecog.onresult=e=>{
+    let interim='',final='';
+    for(let i=e.resultIndex;i<e.results.length;i++){
+      if(e.results[i].isFinal)final+=e.results[i][0].transcript;
+      else interim=e.results[i][0].transcript;
+    }
+    if(final){
+      const ta=document.getElementById('fe-text');
+      ta.value=(ta.value?ta.value+'\n':'')+final.trim();
+    }
+    document.getElementById('fe-interim').textContent=interim;
+  };
+  _feRecog.onerror=e=>{if(e.error!=='no-speech')toast('שגיאה בהקלטה');feStopMic();};
+  _feRecog.onend=()=>_feSetUI(false);
+  _feRecog.start();
+  _feSetUI(true);
+}
+
+function feStopMic(){
+  if(_feRecog){try{_feRecog.stop();}catch(e){}  _feRecog=null;}
+  _feSetUI(false);
+}
+
+function _feSetUI(on){
+  _feRecording=on;
+  const btn=document.getElementById('fe-mic-btn');if(!btn)return;
+  btn.style.background=on?'#ef4444':'';
+  btn.style.color=on?'#fff':'';
+  btn.style.border=on?'1px solid #ef4444':'';
+  btn.innerHTML=on?'⏹':'🎤';
+  btn.title=on?'עצור הקלטה':'הקלט קול';
+  const iw=document.getElementById('fe-interim-wrap');
+  if(iw)iw.style.display=on?'flex':'none';
+  if(!on){const il=document.getElementById('fe-interim');if(il)il.textContent='';}
 }
 
 async function parseFreeEntry(){
