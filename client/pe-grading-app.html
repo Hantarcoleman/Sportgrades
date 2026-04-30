@@ -8991,6 +8991,7 @@ function lrTick(){
   document.getElementById('lr-clock').innerHTML=
     `${String(m).padStart(2,'0')}:${String(s%60<10?'0':'')+(Math.floor(s%60))}<span style="font-size:24px;color:rgba(255,255,255,.5);">.${String(cs).padStart(2,'0')}</span>`;
   lrUpdatePotential(s);
+  lrUpdateCardScores(s);
   LR.raf=requestAnimationFrame(lrTick);
 }
 
@@ -9002,6 +9003,19 @@ function lrUpdatePotential(secs){
   const score=getScore(LR.testId,LR.refGrade||'ט',LR.refGender||'ז',rawVal);
   el.textContent=score!==null?score:'—';
   if(lb)lb.style.display='';
+}
+
+function lrUpdateCardScores(secs){
+  if(secs<1)return;
+  const rawVal=fmtTime(secs);
+  LR.students.forEach((s,i)=>{
+    if(s.state!=='active')return;
+    const el=document.getElementById('lrcs-'+i);
+    if(!el)return;
+    const score=getScore(LR.testId,s.grade||LR.refGrade,s.gender||LR.refGender,rawVal);
+    el.textContent=score!==null?score:'—';
+    el.className='bl-card-score '+blScoreClass(score);
+  });
 }
 
 function lrStop(){
@@ -9083,7 +9097,7 @@ function lrRenderGrid(){
     const lrName=LR.gid==='__random__'
       ?`<input class="rg-name-input" placeholder="שם רץ" value="${s.name}" oninput="LR.students[${i}].name=this.value;" onclick="event.stopPropagation();">`
       :s.name;
-    div.innerHTML=`<div class="bl-card-name">${lrName}</div><div class="bl-card-potential" style="color:rgba(255,255,255,.3);font-size:10px;">${lrLabel(LR.gid).tap}</div>`;
+    div.innerHTML=`<div class="bl-card-name">${lrName}</div><div class="bl-card-score s-none" id="lrcs-${i}">—</div><div class="bl-card-potential" style="color:rgba(255,255,255,.3);font-size:10px;">${lrLabel(LR.gid).tap}</div>`;
     div.onclick=()=>lrTapStudent(i);
     grid.appendChild(div);
   });
