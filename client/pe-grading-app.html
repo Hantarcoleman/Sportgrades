@@ -1255,7 +1255,7 @@ history.pushState(null,'',location.href);
         <div class="rg-add-row" id="rg-manual-add">
           <input type="text" id="rg-name" placeholder="שם נבחן">
           <input type="text" id="rg-result" placeholder="תוצאה">
-          <select id="rg-test-sel" class="fsel" style="width:130px;">
+          <select id="rg-test-sel" class="fsel" style="width:130px;" onchange="rgUpdateInputMode()">
             <option value="beep">ביפ טסט</option>
             <option value="run1000">ריצה 1000</option>
             <option value="run2000">ריצה 2000</option>
@@ -3521,6 +3521,7 @@ function renderTable(){
     const sBh=!hasResult?'<span class="spn" style="opacity:.25;">—</span>':(sB===null?'<span class="spn">—</span>':`<span class="sp ${spCls(sB)}">${sB}</span>`);
     const fh=!hasResult?'<span class="spn" style="opacity:.2;">—</span>':(gradeScore===null?'<span class="spn">—</span>':gradeScoreIsInherited?`<span class="sp spf spf-inh" title="ציון ממחצית א׳ — טרם הוזנה תוצאה במחצית ב׳">${gradeScore}</span>`:`<span class="sp spf">${gradeScore}</span>`);
     const rc=(isTime||isSeconds)?'ri ri-t':'ri';
+    const inputMode=(T.lb||isTime||isSeconds)?'decimal':'numeric';
     const bonA=`
       <div class="bonw"><span class="bonl">בונוס %:</span>
         <input type="number" class="boni" min="0" max="50" value="${d.bonusA||0}" data-idx="${idx}" data-f="bonusA" onchange="onFC(event)">
@@ -3540,7 +3541,7 @@ function renderTable(){
       </td>
       <td style="font-size:11px;color:var(--ink3);">${s.grade}${s.cls}</td>
       <td>
-        <input type="text" class="${rc}" value="${d.a}" ${dis?'disabled':''} placeholder="${ph}"
+        <input type="text" class="${rc}" value="${d.a}" ${dis?'disabled':''} placeholder="${ph}" inputmode="${inputMode}"
           data-idx="${idx}" data-f="a" onfocus="this.dataset.orig=this.value" oninput="onLive(event)" onchange="onFC(event)">
         ${bonA}
       </td>
@@ -9999,6 +10000,14 @@ function rgAddResult(name,testId,result,gender,grade){
 }
 
 // ── Beep live for random group ─────────────────────────────────
+function rgUpdateInputMode(){
+  const testId=document.getElementById('rg-test-sel')?.value||'beep';
+  const T=getTbl(testId);
+  const isTime=T.isTime;const isSeconds=T.isSeconds;
+  const mode=(T.lb||isTime||isSeconds)?'decimal':'numeric';
+  const el=document.getElementById('rg-result');
+  if(el)el.inputMode=mode;
+}
 function rgStartTest(testId){
   // Store context so we know this is random mode
   RG.testId=testId;
