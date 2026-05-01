@@ -4641,7 +4641,7 @@ function _mashovParseStructure(rows){
   for(let i=0;i<Math.min(rows.length,20);i++){
     const r=(rows[i]||[]).map(v=>String(v||''));
     const joined=r.join(' ');
-    if(joined.includes('ת.ז')&&joined.includes('שם')&&joined.includes('ציון')){ headerRow=i; break; }
+    if(joined.includes('ת.ז')&&joined.includes('שם')){ headerRow=i; break; }
   }
   if(headerRow<0) return null;
   const headers=(rows[headerRow]||[]).map(v=>String(v||'').trim());
@@ -4659,7 +4659,7 @@ function _mashovParseStructure(rows){
   const cScoreNum=find('ציון מספרי','ציון');
   const cScoreText=find('ציון מילולי');
   const cNote=find('הערה');
-  if(cId<0||cName<0||cScoreNum<0) return null;
+  if(cId<0||cName<0) return null;
   // Find "ממוצע" row at the bottom
   let avgRow=-1;
   for(let i=rows.length-1;i>headerRow;i--){
@@ -4678,7 +4678,8 @@ async function readMashovWorkbook(arrBuf){
   const range=XLSX.utils.decode_range(ws['!ref']||'A1');
   const rows=XLSX.utils.sheet_to_json(ws,{header:1,defval:'',raw:false,blankrows:true});
   const struct=_mashovParseStructure(rows);
-  if(!struct) throw new Error('פורמט קובץ משו"ב לא זוהה (עמודות "ת.ז התלמיד" / "שם התלמיד" / "ציון מספרי")');
+  if(!struct) throw new Error('פורמט קובץ משו"ב לא זוהה — ודא שיש עמודות ת.ז ושם בקובץ');
+  if(struct.cScoreNum<0) throw new Error('קובץ זה הוא אלפון בלבד — אין עמודת ציון. הורד ממשו"ב את גיליון הציונים (לא האלפון)');
 
   // Build entries with idHash (this is the slow async part)
   const dataRows=[];
@@ -5242,7 +5243,6 @@ async function _ugHandleFile(file){
     if(summary) summary.innerHTML=`<div style="color:#dc2626;font-size:13px;font-weight:700;">שגיאה: ${err.message||err}</div>`;
     const goBtn=document.getElementById('update-group-go-btn'); if(goBtn) goBtn.disabled=true;
   }
-  ev.target.value='';
 }
 
 function _renderUpdateGroupSummary(candidates){
