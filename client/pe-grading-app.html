@@ -852,6 +852,35 @@ async function sbSignOut() {
 // המפה idHash → {name, id} חיה רק ב-localStorage המקומי.
 
 const ID_MAP_LS = 'sg_id_map_v1';
+const MASHOV_TMPL_LS = 'sg_mashov_tmpl_v1';
+
+function _mashovTmplSave(gid, fileName, arrBuf){
+  try{
+    const bytes=new Uint8Array(arrBuf);
+    let bin='';
+    for(let i=0;i<bytes.length;i++) bin+=String.fromCharCode(bytes[i]);
+    const all=JSON.parse(localStorage.getItem(MASHOV_TMPL_LS)||'{}');
+    all[String(gid)]={fileName,data:btoa(bin),savedAt:Date.now()};
+    localStorage.setItem(MASHOV_TMPL_LS,JSON.stringify(all));
+  }catch(e){}
+}
+function _mashovTmplLoad(gid){
+  try{
+    const all=JSON.parse(localStorage.getItem(MASHOV_TMPL_LS)||'{}');
+    const e=all[String(gid)];if(!e)return null;
+    const bin=atob(e.data);
+    const bytes=new Uint8Array(bin.length);
+    for(let i=0;i<bin.length;i++) bytes[i]=bin.charCodeAt(i);
+    return{fileName:e.fileName,arrBuf:bytes.buffer,savedAt:e.savedAt};
+  }catch(e){return null;}
+}
+function _mashovTmplClear(gid){
+  try{
+    const all=JSON.parse(localStorage.getItem(MASHOV_TMPL_LS)||'{}');
+    delete all[String(gid)];
+    localStorage.setItem(MASHOV_TMPL_LS,JSON.stringify(all));
+  }catch(e){}
+}
 
 function _bytesToHex(bytes){
   let s=''; for(let i=0;i<bytes.length;i++) s+=bytes[i].toString(16).padStart(2,'0');
@@ -1826,7 +1855,13 @@ history.pushState(null,'',location.href);
   </div>
   <div class="fg" style="margin-top:8px;">
     <label class="fl">קובץ משו״ב (.xlsx)</label>
-    <div style="display:flex;gap:8px;align-items:center;">
+    <div id="mashov-cached-row" style="display:none;margin-bottom:4px;">
+      <div style="display:flex;align-items:center;gap:8px;padding:7px 10px;background:rgba(34,197,94,.08);border:1px solid rgba(34,197,94,.2);border-radius:8px;font-size:13px;">
+        <span style="color:#16a34a;flex:1;">📋 <b id="mashov-cached-name"></b> <span id="mashov-cached-date" style="color:var(--ink3);font-size:11px;margin-right:4px;"></span></span>
+        <button type="button" class="btn bg2 bsm" onclick="_mashovReplaceTemplate()">🔄 החלף</button>
+      </div>
+    </div>
+    <div id="mashov-file-row" style="display:flex;gap:8px;align-items:center;">
       <button type="button" class="btn bs bsm" onclick="document.getElementById('mashov-file-input').click()">📁 בחר קובץ</button>
       <span id="mashov-fname" style="font-size:13px;color:var(--ink2);">לא נבחר קובץ</span>
     </div>
@@ -4878,13 +4913,44 @@ function openMashovExportModal(){
   }
   const semSel=document.getElementById('mashov-sem-select');
   if(semSel) semSel.value=CUR.semester||'a';
-  const fname=document.getElementById('mashov-fname');
-  if(fname) fname.textContent='לא נבחר קובץ';
   const goBtn=document.getElementById('mashov-go-btn');
-  if(goBtn) goBtn.disabled=true;
   const fi=document.getElementById('mashov-file-input');
   if(fi) fi.value='';
+  // Try to restore cached template for this group
+  const cached=_mashovTmplLoad(gid);
+  const cachedRow=document.getElementById('mashov-cached-row');
+  const fileRow=document.getElementById('mashov-file-row');
+  if(cached){
+    _mashovExportArrBuf=cached.arrBuf;
+    _mashovExportFileName=cached.fileName;
+    const dateStr=new Date(cached.savedAt).toLocaleDateString('he-IL',{day:'numeric',month:'numeric',year:'2-digit'});
+    const el=document.getElementById('mashov-cached-name');if(el)el.textContent=cached.fileName;
+    const dt=document.getElementById('mashov-cached-date');if(dt)dt.textContent='('+dateStr+')';
+    if(cachedRow)cachedRow.style.display='';
+    if(fileRow)fileRow.style.display='none';
+    if(goBtn)goBtn.disabled=false;
+  }else{
+    if(cachedRow)cachedRow.style.display='none';
+    if(fileRow)fileRow.style.display='';
+    const fname=document.getElementById('mashov-fname');
+    if(fname)fname.textContent='לא נבחר קובץ';
+    if(goBtn)goBtn.disabled=true;
+  }
+  const status=document.getElementById('mashov-status');
+  if(status)status.textContent='';
   openModal('mashov-export-modal');
+}
+
+function _mashovReplaceTemplate(){
+  _mashovExportArrBuf=null;
+  _mashovExportFileName='';
+  _mashovTmplClear(CUR.gid);
+  const cachedRow=document.getElementById('mashov-cached-row');
+  const fileRow=document.getElementById('mashov-file-row');
+  if(cachedRow)cachedRow.style.display='none';
+  if(fileRow)fileRow.style.display='';
+  const fname=document.getElementById('mashov-fname');if(fname)fname.textContent='לא נבחר קובץ';
+  const goBtn=document.getElementById('mashov-go-btn');if(goBtn)goBtn.disabled=true;
 }
 
 function _onMashovFilePicked(ev){
@@ -4896,6 +4962,7 @@ function _onMashovFilePicked(ev){
   const reader=new FileReader();
   reader.onload=e=>{
     _mashovExportArrBuf=e.target.result;
+    _mashovTmplSave(CUR.gid, file.name, e.target.result);
     const goBtn=document.getElementById('mashov-go-btn');
     if(goBtn) goBtn.disabled=false;
   };
