@@ -490,11 +490,11 @@ async function doGoogle() {
 }
 
 function translateError(msg) {
-  const map = {
-    'Email rate limit exceeded': 'יותר מדי ניסיונות — נסה שוב בעוד מספר דקות',
-    'Unable to validate email address': 'כתובת אימייל לא תקינה',
-  };
-  return map[msg] || 'שגיאה: ' + msg;
+  const m = (msg || '').toLowerCase();
+  if (m.includes('rate limit') || m.includes('too many')) return 'יותר מדי ניסיונות — המתן מספר דקות ונסה שוב';
+  if (m.includes('unable to validate')) return 'כתובת אימייל לא תקינה';
+  if (m.includes('invalid')) return 'כתובת אימייל לא תקינה';
+  return 'שגיאה: ' + msg;
 }
 </script>
 </body>
