@@ -10750,11 +10750,18 @@ function _confirmMerge(){
     mergedAt:Date.now()
   };
   const nameMapTarget=new Map();
-  gTarget.students.forEach((s,i)=>nameMapTarget.set(_mgNorm(s.name),i));
+  const hashMapTarget=new Map();
+  gTarget.students.forEach((s,i)=>{
+    nameMapTarget.set(_mgNorm(s.name),i);
+    if(s.idHash) hashMapTarget.set(s.idHash,i);
+  });
   let overlap=0,added=0;
   gOlder.students.forEach((oldStu,oldIdx)=>{
     const norm=_mgNorm(oldStu.name);
-    const tIdx=nameMapTarget.get(norm);
+    // idHash match takes priority — same person even if name differs
+    const tIdx=( oldStu.idHash && hashMapTarget.has(oldStu.idHash) )
+      ? hashMapTarget.get(oldStu.idHash)
+      : nameMapTarget.get(norm);
     if(tIdx!==undefined){
       overlap++;
       ['results','results_b'].forEach(sem=>{
