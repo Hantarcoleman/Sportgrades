@@ -4674,9 +4674,18 @@ async function readMashovWorkbook(arrBuf){
   const sheetName=wb.SheetNames[0];
   const ws=wb.Sheets[sheetName];
   const range=XLSX.utils.decode_range(ws['!ref']||'A1');
-  const rows=XLSX.utils.sheet_to_json(ws,{header:1,defval:'',raw:false,blankrows:true});
-  const struct=_mashovParseStructure(rows);
-  if(!struct) throw new Error('פורמט קובץ לא זוהה — ודא שיש עמודות ת.ז ושם בקובץ');
+  let rows=XLSX.utils.sheet_to_json(ws,{header:1,defval:'',raw:false,blankrows:true});
+  let struct=_mashovParseStructure(rows);
+  if(!struct){
+    // Fallback: try without blankrows in case XLSX.js version skips blank rows differently
+    rows=XLSX.utils.sheet_to_json(ws,{header:1,defval:'',raw:false});
+    struct=_mashovParseStructure(rows);
+  }
+  if(!struct){
+    const sample=rows.slice(0,5).map((r,i)=>`שורה ${i}: ${(r||[]).slice(0,5).join(' | ')}`).join('\n');
+    console.error('_mashovParseStructure נכשל. שורות ראשונות:\n'+sample);
+    throw new Error('פורמט קובץ לא זוהה — ודא שיש עמודות ת.ז ושם בקובץ');
+  }
 
   // Build entries with idHash (this is the slow async part)
   const dataRows=[];
