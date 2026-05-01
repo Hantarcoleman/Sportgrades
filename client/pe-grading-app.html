@@ -1376,8 +1376,8 @@ history.pushState(null,'',location.href);
 <!-- MERGE GROUPS MODAL -->
 <div class="mbg" id="merge-group-modal"><div class="mod mod-wide" onclick="event.stopPropagation()">
   <div class="mt">🔗 מיזוג קבוצות</div>
-  <div class="ms">כל תלמידי הקבוצה הנבחרת יתווספו לקבוצה: <b id="mg-cur-name"></b><br>
-    <span style="font-size:11px;color:var(--ink3);">עבור תלמידים חופפים — יישמר הציון הגבוה בכל מבחן · הקבוצה הנבחרת תימחק · ניתן לפצל בחזרה בכפתור "פצל קבוצות"</span>
+  <div class="ms">הציונים ישוזרו לקבוצה החדשה יותר; הישנה תימחק.<br>
+    <span style="font-size:11px;color:var(--ink3);">עבור תלמידים חופפים — יישמר הציון הגבוה בכל מבחן · ניתן לפצל בחזרה בכפתור "פצל קבוצות"</span>
   </div>
   <div class="fg" style="margin-top:14px;">
     <label class="fl">קבוצה שתמוזג לתוך הנוכחית:</label>
@@ -10624,7 +10624,6 @@ function openMergeModal(){
   const gid=CUR.gid;const g=S.groups[gid];if(!g)return;
   const others=Object.entries(S.groups).filter(([id])=>Number(id)!==Number(gid));
   if(!others.length){toast('אין קבוצות אחרות למיזוג');return;}
-  document.getElementById('mg-cur-name').textContent=g.name;
   const sel=document.getElementById('mg-select');
   sel.innerHTML='<option value="">— בחר קבוצה —</option>'+
     others.map(([id,gr])=>`<option value="${id}">${gr.name} (${gr.students.length} תלמידים)</option>`).join('');
@@ -10634,23 +10633,24 @@ function openMergeModal(){
 }
 
 function _mgRenderPreview(){
-  const srcGid=document.getElementById('mg-select').value;
+  const srcGid=Number(document.getElementById('mg-select').value);
   const prev=document.getElementById('mg-preview');
   const btn=document.getElementById('mg-confirm-btn');
   if(!srcGid){prev.style.display='none';btn.disabled=true;return;}
-  const gA=S.groups[CUR.gid];const gB=S.groups[srcGid];if(!gA||!gB)return;
-  const namesA=new Set(gA.students.map(s=>_mgNorm(s.name)));
-  const namesB=gB.students.map(s=>_mgNorm(s.name));
-  const overlap=namesB.filter(n=>namesA.has(n));
-  const onlyB=namesB.filter(n=>!namesA.has(n));
-  const onlyA=[...namesA].filter(n=>!namesB.includes(n));
+  const targetGid=Math.max(CUR.gid,srcGid);
+  const olderGid=Math.min(CUR.gid,srcGid);
+  const gTarget=S.groups[targetGid];const gOlder=S.groups[olderGid];if(!gTarget||!gOlder)return;
+  const namesTarget=new Set(gTarget.students.map(s=>_mgNorm(s.name)));
+  const namesOlder=gOlder.students.map(s=>_mgNorm(s.name));
+  const overlap=namesOlder.filter(n=>namesTarget.has(n));
+  const onlyOlder=namesOlder.filter(n=>!namesTarget.has(n));
   const previewNames=(arr,max=5)=>arr.length?`<span style="font-size:11px;color:var(--ink3)">${arr.slice(0,max).join(' · ')+(arr.length>max?` +${arr.length-max} נוספים`:'')}</span>`:'';
   prev.innerHTML=
-    `<div>תלמידים חופפים (בשתי הקבוצות): <b>${overlap.length}</b> ${previewNames(overlap)}</div>`+
-    `<div>רק ב"${gA.name}": <b>${onlyA.length}</b></div>`+
-    `<div>רק ב"${gB.name}" — יתווספו: <b style="color:var(--gn)">${onlyB.length}</b> ${previewNames(onlyB)}</div>`+
-    `<div style="margin-top:6px;padding-top:6px;border-top:1px solid var(--bd)">סה"כ לאחר מיזוג: <b style="color:var(--ac)">${gA.students.length+onlyB.length} תלמידים</b></div>`+
-    `<div style="font-size:11px;color:var(--ink3);margin-top:4px;">• לתלמידים חופפים — יישמר הציון הגבוה בכל מבחן<br>• ניתן לבטל את המיזוג בלחיצת "בטל מיזוג" בעריכת הקבוצה</div>`;
+    `<div style="margin-bottom:6px;padding:5px 8px;background:rgba(34,197,94,.08);border:1px solid rgba(34,197,94,.2);border-radius:6px;font-size:12px;">✓ תישאר: <b>${gTarget.name}</b> &nbsp;·&nbsp; תימחק: <b>${gOlder.name}</b></div>`+
+    `<div>תלמידים חופפים: <b>${overlap.length}</b> ${previewNames(overlap)}</div>`+
+    `<div>ייווספו מ"${gOlder.name}": <b style="color:var(--gn)">${onlyOlder.length}</b> ${previewNames(onlyOlder)}</div>`+
+    `<div style="margin-top:6px;padding-top:6px;border-top:1px solid var(--bd)">סה"כ לאחר מיזוג: <b style="color:var(--ac)">${gTarget.students.length+onlyOlder.length} תלמידים</b></div>`+
+    `<div style="font-size:11px;color:var(--ink3);margin-top:4px;">• לתלמידים חופפים — יישמר הציון הגבוה בכל מבחן<br>• ניתן לפצל בחזרה בכפתור "פצל קבוצות" בעריכת הקבוצה</div>`;
   prev.style.display='block';
   btn.disabled=false;
 }
@@ -10658,52 +10658,56 @@ function _mgRenderPreview(){
 function _confirmMerge(){
   const srcGid=Number(document.getElementById('mg-select').value);
   if(!srcGid)return;
-  const gA=S.groups[CUR.gid];const gB=S.groups[srcGid];
-  if(!gA||!gB)return;
-  // Save backup for split (includes full gB snapshot)
-  gA._mergeBackup={
-    sourceGid:srcGid,sourceName:gB.name,
-    originalStudents:JSON.parse(JSON.stringify(gA.students)),
-    originalResults:JSON.parse(JSON.stringify(gA.results||{})),
-    originalResultsB:JSON.parse(JSON.stringify(gA.results_b||{})),
-    sourceGroup:JSON.parse(JSON.stringify(gB)),
+  // Newer group (higher ID) = target/survivor; older = source/deleted
+  const targetGid=Math.max(CUR.gid,srcGid);
+  const olderGid=Math.min(CUR.gid,srcGid);
+  const gTarget=S.groups[targetGid];const gOlder=S.groups[olderGid];
+  if(!gTarget||!gOlder)return;
+  // Save backup on target for split recovery
+  gTarget._mergeBackup={
+    sourceGid:olderGid,sourceName:gOlder.name,
+    originalStudents:JSON.parse(JSON.stringify(gTarget.students)),
+    originalResults:JSON.parse(JSON.stringify(gTarget.results||{})),
+    originalResultsB:JSON.parse(JSON.stringify(gTarget.results_b||{})),
+    sourceGroup:JSON.parse(JSON.stringify(gOlder)),
     mergedAt:Date.now()
   };
-  const nameMapA=new Map();
-  gA.students.forEach((s,i)=>nameMapA.set(_mgNorm(s.name),i));
+  const nameMapTarget=new Map();
+  gTarget.students.forEach((s,i)=>nameMapTarget.set(_mgNorm(s.name),i));
   let overlap=0,added=0;
-  gB.students.forEach((bStu,bIdx)=>{
-    const norm=_mgNorm(bStu.name);
-    const aIdx=nameMapA.get(norm);
-    if(aIdx!==undefined){
+  gOlder.students.forEach((oldStu,oldIdx)=>{
+    const norm=_mgNorm(oldStu.name);
+    const tIdx=nameMapTarget.get(norm);
+    if(tIdx!==undefined){
       overlap++;
       ['results','results_b'].forEach(sem=>{
-        Object.entries(gB[sem]||{}).forEach(([testId,bTests])=>{
-          const bR=bTests[bIdx];if(!bR||!bR.a)return;
-          if(!gA[sem])gA[sem]={};if(!gA[sem][testId])gA[sem][testId]={};
-          const aR=gA[sem][testId][aIdx];
-          if(!aR||!aR.a){gA[sem][testId][aIdx]={...bR};return;}
-          const aStu=gA.students[aIdx];
-          const aScore=getScore(testId,aStu.grade,aStu.gender,aR.a);
-          const bScore=getScore(testId,bStu.grade,bStu.gender,bR.a);
-          if(bScore!==null&&(aScore===null||bScore>aScore)) gA[sem][testId][aIdx]={...bR};
+        Object.entries(gOlder[sem]||{}).forEach(([testId,oldTests])=>{
+          const oldR=oldTests[oldIdx];if(!oldR||!oldR.a)return;
+          if(!gTarget[sem])gTarget[sem]={};if(!gTarget[sem][testId])gTarget[sem][testId]={};
+          const tR=gTarget[sem][testId][tIdx];
+          if(!tR||!tR.a){gTarget[sem][testId][tIdx]={...oldR};return;}
+          const tStu=gTarget.students[tIdx];
+          const tScore=getScore(testId,tStu.grade,tStu.gender,tR.a);
+          const oldScore=getScore(testId,oldStu.grade,oldStu.gender,oldR.a);
+          if(oldScore!==null&&(tScore===null||oldScore>tScore)) gTarget[sem][testId][tIdx]={...oldR};
         });
       });
     } else {
-      const newIdx=gA.students.length;
-      gA.students.push({...bStu});nameMapA.set(norm,newIdx);added++;
-      if(bStu.idHash){const info=idMapLookup(srcGid,bStu.idHash);if(info)setIdMapEntry(CUR.gid,bStu.idHash,info);}
+      const newIdx=gTarget.students.length;
+      gTarget.students.push({...oldStu});nameMapTarget.set(norm,newIdx);added++;
+      if(oldStu.idHash){const info=idMapLookup(olderGid,oldStu.idHash);if(info)setIdMapEntry(targetGid,oldStu.idHash,info);}
       ['results','results_b'].forEach(sem=>{
-        Object.entries(gB[sem]||{}).forEach(([testId,bTests])=>{
-          const bR=bTests[bIdx];if(!bR)return;
-          if(!gA[sem])gA[sem]={};if(!gA[sem][testId])gA[sem][testId]={};
-          gA[sem][testId][newIdx]={...bR};
+        Object.entries(gOlder[sem]||{}).forEach(([testId,oldTests])=>{
+          const oldR=oldTests[oldIdx];if(!oldR)return;
+          if(!gTarget[sem])gTarget[sem]={};if(!gTarget[sem][testId])gTarget[sem][testId]={};
+          gTarget[sem][testId][newIdx]={...oldR};
         });
       });
     }
   });
-  gA.classes=[...new Set(gA.students.map(s=>`${s.grade}${s.cls}`))].sort((a,b)=>a.localeCompare(b,'he')).join(', ');
-  delete S.groups[srcGid];
+  gTarget.classes=[...new Set(gTarget.students.map(s=>`${s.grade}${s.cls}`))].sort((a,b)=>a.localeCompare(b,'he')).join(', ');
+  delete S.groups[olderGid];
+  CUR.gid=targetGid;
   closeModal('merge-group-modal');
   saveState();renderGroupEditView();
   toast(`✓ מוזג — ${overlap} חופפים, ${added} תלמידים חדשים נוספו`);
