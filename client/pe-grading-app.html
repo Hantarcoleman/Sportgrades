@@ -664,6 +664,19 @@ async function sbInit() {
   }
   
   SG_USER = session.user;
+
+  // בדיקה שהאימייל מאושר ברשימת allowed_emails
+  const { data: allowed } = await sbApp
+    .from('allowed_emails')
+    .select('email')
+    .eq('email', SG_USER.email)
+    .maybeSingle();
+  if (!allowed) {
+    await sbApp.auth.signOut();
+    window.location.href = 'login.html?err=unauthorized';
+    return;
+  }
+
   await ensureProfile(SG_USER);
 
   // Load user's data from Supabase
@@ -768,7 +781,6 @@ async function sbLoadUserData() {
   ensureDemoGroups && ensureDemoGroups();
   renderGroupGrid && renderGroupGrid();
   checkYearEndNotice();
-  _updateMashovBanner && _updateMashovBanner();
   toast('✓ נתונים נטענו בהצלחה');
   await restoreRoute();
 }
@@ -1009,19 +1021,6 @@ function hydrateGroupFromIdMap(gid, group){
   return needsBanner;
 }
 
-// Banner appears at the top when any group has unresolved hashes
-function _updateMashovBanner(){
-  let any=false;
-  for(const gid in (S.groups||{})){
-    const g=S.groups[gid];
-    if(!g||!Array.isArray(g.students)) continue;
-    if(g.students.some(s=>s.idHash && idMapLookup(gid, s.idHash)===null)){
-      any=true; break;
-    }
-  }
-  const b=document.getElementById('mashov-hydrate-banner');
-  if(b) b.style.display=any?'block':'none';
-}
 
 // ── Start ────────────────────────────────────────────────────
 async function loadStandards(){
@@ -1118,17 +1117,24 @@ history.pushState(null,'',location.href);
 <header>
   <button class="sb-toggle" onclick="openSidebar()" title="תפריט">☰</button>
 
-  <div class="logo" style="flex-shrink:0;">Sport<em>Grade</em></div>
+  <div class="logo" style="flex-shrink:0;">
+    <svg viewBox="0 0 36 36" width="32" height="32" xmlns="http://www.w3.org/2000/svg" style="flex-shrink:0;">
+      <rect width="36" height="36" rx="9" fill="#ea580c"/>
+      <circle cx="24" cy="8.5" r="3.2" fill="white"/>
+      <line x1="24" y1="11.7" x2="18.5" y2="20" stroke="white" stroke-width="2.4" stroke-linecap="round"/>
+      <line x1="18.5" y1="20" x2="23.5" y2="28.5" stroke="white" stroke-width="2.4" stroke-linecap="round"/>
+      <line x1="18.5" y1="20" x2="13" y2="27.5" stroke="white" stroke-width="2.4" stroke-linecap="round"/>
+      <line x1="21.5" y1="15.5" x2="27.5" y2="19" stroke="white" stroke-width="2" stroke-linecap="round"/>
+      <line x1="21.5" y1="15.5" x2="15" y2="12.5" stroke="white" stroke-width="2" stroke-linecap="round"/>
+      <path d="M7 29 L10 32 L16 25" stroke="rgba(255,255,255,0.8)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+    </svg>
+    Sport<em>Grade</em>
+  </div>
   <div class="hpill" id="hpill" style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">הערכה בחינוך גופני · תשפ"ו</div>
 </header>
 <div id="offline-banner" style="display:none;background:#dc2626;color:#fff;text-align:center;padding:8px 16px;font-size:13px;font-weight:700;font-family:'Heebo',sans-serif;z-index:500;position:sticky;top:58px;">
   📵 אין חיבור לאינטרנט — הנתונים נשמרים מקומית ויסונכרנו בחזרה כשהחיבור יחזור
   <span id="offline-queue-count" style="margin-right:12px;background:rgba(255,255,255,.2);padding:2px 8px;border-radius:10px;font-size:11px;"></span>
-</div>
-<div id="mashov-hydrate-banner" style="display:none;background:#1d4ed8;color:#fff;text-align:center;padding:8px 16px;font-size:13px;font-weight:600;font-family:'Heebo',sans-serif;z-index:498;position:sticky;top:58px;">
-  🔐 חלק מהתלמידים מוצגים בלי שם — תעודות הזהות שמורות במכשיר אחר.
-  <button onclick="document.getElementById('mashov-alphon-input').click()" style="margin-right:10px;background:rgba(255,255,255,.2);border:1px solid rgba(255,255,255,.4);color:#fff;padding:3px 12px;border-radius:14px;font-size:12px;font-weight:700;cursor:pointer;font-family:'Heebo',sans-serif;">העלה קובץ משו״ב</button>
-  <button onclick="document.getElementById('mashov-hydrate-banner').style.display='none'" style="margin-right:6px;background:none;border:none;color:rgba(255,255,255,.7);cursor:pointer;font-size:16px;">✕</button>
 </div>
 
 <!-- SIDEBAR BACKDROP -->
@@ -1245,8 +1251,6 @@ history.pushState(null,'',location.href);
       </div>
       <input type="file" id="fi" accept=".xlsx,.xls" onchange="handleFile(event)">
       <div style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;justify-content:center;">
-        <button class="btn bpu bsm" onclick="openNewGroupModal()">✦ צור כיתה חדשה ידנית</button>
-        <button class="btn bsm" style="background:#1d4ed8;color:#fff;" onclick="openMasterBuilderModal()" title="איחוד כל האלפונים לקובץ אחד שאפשר להעלות בכל קבוצה">📦 צור קובץ מאסטר</button>
         <button class="btn bsm" style="background:#0f766e;color:#fff;" onclick="openUpdateGroupModal()" title="הוסף תלמידים חדשים לקבוצה קיימת מאלפון מעודכן">📥 עדכן קבוצה קיימת</button>
       </div>
     </div>
@@ -4324,10 +4328,9 @@ async function addStudent(){
   // Reset id field for next add
   const idField=document.getElementById('an-id'); if(idField) idField.value='';
   saveState();closeModal('add-modal');renderTable();toast(`"${name}" נוסף ✓`);
-  // Warning popup: ensure teacher uses an updated master/alphon file when exporting to Mashov
   setTimeout(()=>{
-    alert('⚠ שים לב\n\n"'+name+'" נוסף ידנית לקבוצה. כדי שהציון שלו יוזן במשו"ב, וודא שהקובץ שאתה משתמש בו לייצוא (מאסטר או אלפון כיתתי) מכיל אותו עם תעודת זהות.\n\nאם אין לך קובץ מעודכן — צור קובץ מאסטר חדש מהתפריט הראשי, או עדכן את הקבוצה הזו דרך "עדכן קבוצה קיימת".');
-  }, 80);
+    toast('💡 נוסף ידנית — וודא שהאלפון מעודכן לפני ייצוא למשו"ב');
+  }, 2500);
 }
 
 // ── CUSTOM TEST ──────────────────────────────────────────────
@@ -4820,7 +4823,7 @@ async function exportMashov(arrBuf, originalFileName, gid, testId, semester){
       'התלמידים הבאים קיימים בקבוצה שלך אך לא נמצאים בקובץ שהעלית. '+
       'הציון שלהם לא יוזן במשו״ב כשתשתמש בקובץ הזה:\n\n'+
       list+more+'\n\n'+
-      'מומלץ לסגור, לייצר קובץ מאסטר מעודכן (או לעדכן את האלפון), ולחזור לפה.\n\n'+
+      'נראה שהאלפון שלך אינו מעודכן — יש לעדכן אותו דרך "עדכן קבוצה קיימת" ולחזור לכאן.\n\n'+
       'האם להמשיך בכל זאת ולהוריד קובץ ללא הציונים האלה?';
     if(!confirm(msg)){
       throw new Error('בוטל ע״י המשתמש — יש לעדכן את הקובץ');
@@ -4992,8 +4995,7 @@ async function runMashovExport(){
     if(r.unmatchedInGroup) toastMsg+=` · ⚠ ${r.unmatchedInGroup} חסרים בקובץ`;
     if(r.droppedFromMaster) toastMsg+=` · ${r.droppedFromMaster} סוננו`;
     toast(toastMsg);
-    _updateMashovBanner && _updateMashovBanner();
-    if(typeof renderTable==='function') renderTable();
+      if(typeof renderTable==='function') renderTable();
     setTimeout(()=>closeModal('mashov-export-modal'), 2500);
   }catch(err){
     const m=String(err.message||err);
@@ -5018,8 +5020,7 @@ async function importMashovAsAlphon(ev){
     saveState();
     if(typeof renderTable==='function') renderTable();
     if(typeof renderGroupGrid==='function') renderGroupGrid();
-    _updateMashovBanner && _updateMashovBanner();
-    const linked=r.matched+r.attached;
+      const linked=r.matched+r.attached;
     let msg=`✓ ${linked} תלמידים בקבוצה זוהו`;
     if(r.dropped) msg+=` · ${r.dropped} מהקובץ לא שייכים לקבוצה והושמטו`;
     toast(msg);

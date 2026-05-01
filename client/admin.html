@@ -1,0 +1,683 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SportGrade — ניהול גישה</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  font-family: 'Heebo', 'Segoe UI', sans-serif;
+  background: #0d0f14;
+  color: #f0f2ff;
+  min-height: 100vh;
+  padding: 0;
+}
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background: radial-gradient(ellipse 60% 40% at 50% 0%, rgba(234,88,12,.12) 0%, transparent 60%);
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* ── Header ── */
+.header {
+  background: #141720;
+  border-bottom: 1px solid rgba(255,255,255,.08);
+  padding: 0 24px;
+  height: 58px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}
+.header-logo {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 18px;
+  font-weight: 900;
+  color: #fff;
+}
+.header-logo em { color: #ea580c; font-style: normal; }
+.header-badge {
+  background: rgba(234,88,12,.2);
+  color: #ea580c;
+  border: 1px solid rgba(234,88,12,.3);
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 2px 8px;
+}
+.header-user {
+  font-size: 13px;
+  color: rgba(240,242,255,.4);
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.btn-logout {
+  background: rgba(255,255,255,.06);
+  border: 1px solid rgba(255,255,255,.1);
+  color: rgba(240,242,255,.6);
+  border-radius: 8px;
+  padding: 6px 12px;
+  font-size: 12px;
+  cursor: pointer;
+  font-family: inherit;
+}
+.btn-logout:hover { background: rgba(255,255,255,.1); }
+
+/* ── Layout ── */
+.page { max-width: 860px; margin: 0 auto; padding: 28px 20px; position: relative; z-index: 1; }
+
+/* ── Cards ── */
+.card {
+  background: #141720;
+  border: 1px solid rgba(255,255,255,.08);
+  border-radius: 14px;
+  margin-bottom: 20px;
+  overflow: hidden;
+}
+.card-header {
+  padding: 16px 20px;
+  border-bottom: 1px solid rgba(255,255,255,.06);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.card-title {
+  font-size: 15px;
+  font-weight: 700;
+  color: #f0f2ff;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.card-count {
+  font-size: 11px;
+  background: rgba(255,255,255,.08);
+  padding: 2px 8px;
+  border-radius: 10px;
+  color: rgba(240,242,255,.5);
+}
+.card-body { padding: 0; }
+
+/* ── Add email row ── */
+.add-row {
+  display: flex;
+  gap: 8px;
+  padding: 16px 20px;
+  border-bottom: 1px solid rgba(255,255,255,.05);
+}
+.add-row input {
+  flex: 1;
+  background: #1c2030;
+  border: 1px solid rgba(255,255,255,.1);
+  border-radius: 8px;
+  color: #f0f2ff;
+  font-family: inherit;
+  font-size: 14px;
+  padding: 9px 12px;
+  outline: none;
+}
+.add-row input:focus { border-color: #ea580c; }
+.add-row input::placeholder { color: rgba(240,242,255,.2); }
+
+/* ── Buttons ── */
+.btn {
+  border: none;
+  border-radius: 8px;
+  padding: 9px 16px;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all .15s;
+  white-space: nowrap;
+}
+.btn:disabled { opacity: .4; cursor: not-allowed; }
+.btn-approve { background: #16a34a; color: #fff; }
+.btn-approve:hover:not(:disabled) { background: #15803d; }
+.btn-deny    { background: rgba(239,68,68,.15); color: #f87171; border: 1px solid rgba(239,68,68,.25); }
+.btn-deny:hover:not(:disabled)    { background: rgba(239,68,68,.25); }
+.btn-add     { background: #ea580c; color: #fff; }
+.btn-add:hover:not(:disabled)     { background: #c2410c; }
+.btn-remove  { background: rgba(255,255,255,.06); color: rgba(240,242,255,.5); }
+.btn-remove:hover:not(:disabled)  { background: rgba(239,68,68,.15); color: #f87171; }
+
+/* ── List rows ── */
+.list-empty {
+  padding: 32px 20px;
+  text-align: center;
+  color: rgba(240,242,255,.25);
+  font-size: 13px;
+}
+.req-row, .email-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 13px 20px;
+  border-bottom: 1px solid rgba(255,255,255,.04);
+  transition: background .1s;
+}
+.req-row:last-child, .email-row:last-child { border-bottom: none; }
+.req-row:hover, .email-row:hover { background: rgba(255,255,255,.03); }
+.row-main { flex: 1; min-width: 0; }
+.row-name  { font-size: 14px; font-weight: 600; color: #f0f2ff; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.row-meta  { font-size: 12px; color: rgba(240,242,255,.35); margin-top: 2px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.row-email { font-size: 14px; color: #f0f2ff; flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.row-date  { font-size: 11px; color: rgba(240,242,255,.3); white-space: nowrap; }
+.row-actions { display: flex; gap: 6px; flex-shrink: 0; }
+
+.status-badge {
+  font-size: 11px;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 6px;
+  flex-shrink: 0;
+}
+.status-pending  { background: rgba(234,179,8,.15); color: #fbbf24; }
+.status-approved { background: rgba(22,163,74,.15);  color: #4ade80; }
+.status-denied   { background: rgba(239,68,68,.15);  color: #f87171; }
+
+/* ── Toast ── */
+.toast-wrap {
+  position: fixed;
+  bottom: 24px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 9999;
+  pointer-events: none;
+}
+.toast {
+  background: #1e2538;
+  border: 1px solid rgba(255,255,255,.12);
+  color: #f0f2ff;
+  padding: 10px 20px;
+  border-radius: 10px;
+  font-size: 13px;
+  font-weight: 600;
+  box-shadow: 0 8px 24px rgba(0,0,0,.4);
+  opacity: 0;
+  transition: opacity .2s;
+  white-space: nowrap;
+}
+.toast.show { opacity: 1; }
+
+/* ── Login screen ── */
+.login-wrap {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  padding: 20px;
+  position: relative;
+  z-index: 1;
+}
+.login-box {
+  background: #141720;
+  border: 1px solid rgba(255,255,255,.08);
+  border-radius: 20px;
+  padding: 40px 36px;
+  width: 100%;
+  max-width: 400px;
+  text-align: center;
+}
+.login-title { font-size: 20px; font-weight: 700; margin-bottom: 8px; }
+.login-sub { font-size: 13px; color: rgba(240,242,255,.4); margin-bottom: 24px; line-height: 1.5; }
+.login-input {
+  width: 100%;
+  background: #1c2030;
+  border: 1px solid rgba(255,255,255,.1);
+  border-radius: 10px;
+  color: #f0f2ff;
+  font-family: inherit;
+  font-size: 15px;
+  padding: 12px 14px;
+  outline: none;
+  margin-bottom: 12px;
+}
+.login-input:focus { border-color: #ea580c; }
+.login-input::placeholder { color: rgba(240,242,255,.2); }
+.btn-login-admin {
+  width: 100%;
+  background: #ea580c;
+  color: #fff;
+  border: none;
+  border-radius: 10px;
+  padding: 13px;
+  font-family: inherit;
+  font-size: 15px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.btn-login-admin:hover { background: #c2410c; }
+.btn-login-admin:disabled { background: rgba(234,88,12,.4); cursor: not-allowed; }
+.login-msg { font-size: 13px; margin-top: 12px; min-height: 18px; }
+.login-msg.error   { color: #f87171; }
+.login-msg.success { color: #34d399; }
+
+.spinner {
+  display: inline-block; width: 14px; height: 14px;
+  border: 2px solid rgba(255,255,255,.3); border-top-color: #fff;
+  border-radius: 50%; animation: spin .7s linear infinite; vertical-align: middle; margin-left: 6px;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* ── Setup instructions ── */
+.setup-box {
+  background: rgba(59,130,246,.08);
+  border: 1px solid rgba(59,130,246,.2);
+  border-radius: 10px;
+  padding: 16px 18px;
+  margin-bottom: 20px;
+  font-size: 13px;
+  line-height: 1.7;
+  color: rgba(240,242,255,.7);
+}
+.setup-box strong { color: #93c5fd; }
+.setup-box code {
+  background: rgba(255,255,255,.08);
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-family: monospace;
+  font-size: 12px;
+  color: #f0f2ff;
+}
+
+@media (max-width: 600px) {
+  .add-row { flex-wrap: wrap; }
+  .req-row, .email-row { flex-wrap: wrap; gap: 8px; }
+  .row-actions { width: 100%; }
+  .row-actions .btn { flex: 1; }
+}
+</style>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+</head>
+<body>
+
+<!-- ══ מסך כניסה לאדמין ══ -->
+<div id="admin-login-screen" class="login-wrap">
+  <div class="login-box">
+    <svg viewBox="0 0 56 56" width="56" height="56" xmlns="http://www.w3.org/2000/svg" style="margin:0 auto 16px;display:block;">
+      <rect width="56" height="56" rx="14" fill="#ea580c"/>
+      <circle cx="37" cy="13" r="5" fill="white"/>
+      <line x1="37" y1="18" x2="28.5" y2="31" stroke="white" stroke-width="3.5" stroke-linecap="round"/>
+      <line x1="28.5" y1="31" x2="36.5" y2="44" stroke="white" stroke-width="3.5" stroke-linecap="round"/>
+      <line x1="28.5" y1="31" x2="20" y2="42" stroke="white" stroke-width="3.5" stroke-linecap="round"/>
+      <line x1="33" y1="24" x2="43" y2="29" stroke="white" stroke-width="2.8" stroke-linecap="round"/>
+      <line x1="33" y1="24" x2="23" y2="19.5" stroke="white" stroke-width="2.8" stroke-linecap="round"/>
+      <path d="M10 44 L15 49 L24 38" stroke="rgba(255,255,255,0.85)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+    </svg>
+    <div class="login-title">ניהול גישה — SportGrade</div>
+    <div class="login-sub">כניסה לפאנל האדמין.<br>ישלח לך קישור כניסה לאימייל.</div>
+    <input type="email" class="login-input" id="admin-email-input" placeholder="admin@example.com"
+           onkeydown="if(event.key==='Enter')doAdminLogin()">
+    <button class="btn-login-admin" id="btn-admin-login" onclick="doAdminLogin()">שלח קישור כניסה</button>
+    <div class="login-msg" id="login-msg"></div>
+  </div>
+</div>
+
+<!-- ══ פאנל הניהול (מוצג אחרי כניסה) ══ -->
+<div id="admin-panel" style="display:none;">
+
+  <div class="header">
+    <div class="header-logo">
+      <svg viewBox="0 0 36 36" width="28" height="28" xmlns="http://www.w3.org/2000/svg">
+        <rect width="36" height="36" rx="9" fill="#ea580c"/>
+        <circle cx="24" cy="8.5" r="3.2" fill="white"/>
+        <line x1="24" y1="11.7" x2="18.5" y2="20" stroke="white" stroke-width="2.4" stroke-linecap="round"/>
+        <line x1="18.5" y1="20" x2="23.5" y2="28.5" stroke="white" stroke-width="2.4" stroke-linecap="round"/>
+        <line x1="18.5" y1="20" x2="13" y2="27.5" stroke="white" stroke-width="2.4" stroke-linecap="round"/>
+        <line x1="21.5" y1="15.5" x2="27.5" y2="19" stroke="white" stroke-width="2" stroke-linecap="round"/>
+        <line x1="21.5" y1="15.5" x2="15" y2="12.5" stroke="white" stroke-width="2" stroke-linecap="round"/>
+      </svg>
+      Sport<em>Grade</em>
+      <span class="header-badge">ניהול</span>
+    </div>
+    <div class="header-user">
+      <span id="header-user-email"></span>
+      <button class="btn-logout" onclick="doLogout()">יציאה</button>
+    </div>
+  </div>
+
+  <div class="page">
+
+    <!-- הוראות הקמה (מוצגות רק אם טבלאות חסרות) -->
+    <div id="setup-notice" style="display:none;" class="setup-box">
+      <strong>⚙️ הקמה ראשונה — יש ליצור טבלאות ב-Supabase</strong><br>
+      פתח את <strong>Supabase → SQL Editor</strong> והרץ את ה-SQL הבא:
+      <pre id="setup-sql" style="margin-top:8px;background:rgba(0,0,0,.3);padding:12px;border-radius:8px;font-size:11px;overflow-x:auto;white-space:pre;"></pre>
+    </div>
+
+    <!-- בקשות ממתינות -->
+    <div class="card">
+      <div class="card-header">
+        <div class="card-title">
+          🕐 בקשות ממתינות לאישור
+          <span class="card-count" id="pending-count">0</span>
+        </div>
+        <button class="btn btn-add" style="font-size:12px;padding:6px 12px;" onclick="loadAll()">↻ רענן</button>
+      </div>
+      <div class="card-body" id="pending-list">
+        <div class="list-empty">טוען...</div>
+      </div>
+    </div>
+
+    <!-- כל הבקשות -->
+    <div class="card">
+      <div class="card-header">
+        <div class="card-title">
+          📋 כל הבקשות
+          <span class="card-count" id="all-count">0</span>
+        </div>
+      </div>
+      <div class="card-body" id="all-requests-list">
+        <div class="list-empty">טוען...</div>
+      </div>
+    </div>
+
+    <!-- אימיילים מאושרים -->
+    <div class="card">
+      <div class="card-header">
+        <div class="card-title">
+          ✅ אימיילים מאושרים
+          <span class="card-count" id="approved-count">0</span>
+        </div>
+      </div>
+      <div class="card-body">
+        <div class="add-row">
+          <input type="email" id="add-email-input" placeholder="teacher@school.com"
+                 onkeydown="if(event.key==='Enter')addEmail()">
+          <button class="btn btn-add" onclick="addEmail()">+ הוסף</button>
+        </div>
+        <div id="approved-list">
+          <div class="list-empty">טוען...</div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- Toast -->
+<div class="toast-wrap"><div class="toast" id="toast"></div></div>
+
+<script>
+const SUPABASE_URL  = 'https://pqotkdtvccfwuephxjsk.supabase.co';
+const SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBxb3RrZHR2Y2Nmd3VlcGh4anNrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzcwNjYwNDYsImV4cCI6MjA5MjY0MjA0Nn0.mivFnmb4hqee4OvpAFZR7Yi3AKkcaQn5CNno2OtYGy8';
+
+// ← החלף כאן באימייל שלך
+const ADMIN_EMAIL = 'YOUR_ADMIN_EMAIL@example.com';
+
+const SETUP_SQL = `-- הרץ ב-Supabase SQL Editor:
+
+create table if not exists allowed_emails (
+  email text primary key,
+  added_at timestamptz default now(),
+  added_by text
+);
+alter table allowed_emails enable row level security;
+create policy "public_read"  on allowed_emails for select using (true);
+create policy "admin_write"  on allowed_emails for all
+  using (auth.email() = '${ADMIN_EMAIL}')
+  with check (auth.email() = '${ADMIN_EMAIL}');
+
+create table if not exists access_requests (
+  id uuid primary key default gen_random_uuid(),
+  email text not null,
+  name text,
+  school text,
+  status text default 'pending',
+  created_at timestamptz default now()
+);
+alter table access_requests enable row level security;
+create policy "public_insert" on access_requests for insert with check (true);
+create policy "admin_all"     on access_requests for all
+  using (auth.email() = '${ADMIN_EMAIL}');
+
+-- הוסף את האימייל שלך כמאושר ראשון:
+insert into allowed_emails (email, added_by)
+values ('${ADMIN_EMAIL}', 'setup')
+on conflict do nothing;`;
+
+let sbClient, currentUser;
+
+function initSupabase() {
+  const sb = window.supabase || window._supabase;
+  if (sb && sb.createClient) {
+    sbClient = sb.createClient(SUPABASE_URL, SUPABASE_ANON);
+    checkSession();
+  } else {
+    setTimeout(initSupabase, 100);
+  }
+}
+window.addEventListener('load', initSupabase);
+
+async function checkSession() {
+  const { data: { session } } = await sbClient.auth.getSession();
+  if (session) {
+    await enterPanel(session.user);
+  }
+  // האזן לשינויי auth (לאחר לחיצה על קישור)
+  sbClient.auth.onAuthStateChange(async (event, session) => {
+    if (event === 'SIGNED_IN' && session) {
+      await enterPanel(session.user);
+    } else if (event === 'SIGNED_OUT') {
+      showLoginScreen();
+    }
+  });
+}
+
+async function enterPanel(user) {
+  if (user.email !== ADMIN_EMAIL) {
+    await sbClient.auth.signOut();
+    setLoginMsg('כתובת זו אינה מורשית לפאנל הניהול.', 'error');
+    return;
+  }
+  currentUser = user;
+  document.getElementById('admin-login-screen').style.display = 'none';
+  document.getElementById('admin-panel').style.display = '';
+  document.getElementById('header-user-email').textContent = user.email;
+  await loadAll();
+}
+
+// ── כניסה לפאנל ─────────────────────────────────────────────
+async function doAdminLogin() {
+  const email = document.getElementById('admin-email-input').value.trim().toLowerCase();
+  if (!email) { setLoginMsg('נא להזין אימייל', 'error'); return; }
+
+  const btn = document.getElementById('btn-admin-login');
+  btn.disabled = true;
+  btn.innerHTML = 'שולח... <span class="spinner"></span>';
+
+  const redirectTo = window.location.href.split('?')[0].split('#')[0];
+  const { error } = await sbClient.auth.signInWithOtp({
+    email,
+    options: { emailRedirectTo: redirectTo }
+  });
+
+  btn.disabled = false;
+  btn.textContent = 'שלח קישור כניסה';
+
+  if (error) {
+    setLoginMsg('שגיאה: ' + error.message, 'error');
+  } else {
+    setLoginMsg('✓ בדוק את תיבת הדואר שלך', 'success');
+  }
+}
+
+async function doLogout() {
+  await sbClient.auth.signOut();
+}
+function showLoginScreen() {
+  document.getElementById('admin-panel').style.display = 'none';
+  document.getElementById('admin-login-screen').style.display = '';
+}
+function setLoginMsg(text, type) {
+  const el = document.getElementById('login-msg');
+  el.textContent = text;
+  el.className = 'login-msg ' + type;
+}
+
+// ── טעינת נתונים ─────────────────────────────────────────────
+async function loadAll() {
+  await Promise.all([loadRequests(), loadApproved()]);
+}
+
+async function loadRequests() {
+  const { data, error } = await sbClient
+    .from('access_requests')
+    .select('*')
+    .order('created_at', { ascending: false });
+
+  if (error) {
+    if (error.code === '42P01') { showSetupNotice(); }
+    document.getElementById('pending-list').innerHTML = '<div class="list-empty">שגיאה בטעינה</div>';
+    document.getElementById('all-requests-list').innerHTML = '<div class="list-empty">שגיאה בטעינה</div>';
+    return;
+  }
+
+  const pending = (data || []).filter(r => r.status === 'pending');
+  document.getElementById('pending-count').textContent = pending.length;
+  document.getElementById('all-count').textContent = (data || []).length;
+
+  renderRequests('pending-list', pending, true);
+  renderRequests('all-requests-list', data || [], false);
+}
+
+function renderRequests(containerId, rows, showActions) {
+  const el = document.getElementById(containerId);
+  if (!rows.length) {
+    el.innerHTML = '<div class="list-empty">אין רשומות</div>';
+    return;
+  }
+  el.innerHTML = rows.map(r => `
+    <div class="req-row">
+      <div class="row-main">
+        <div class="row-name">${esc(r.name || '—')}</div>
+        <div class="row-meta">${esc(r.school || '—')} · ${esc(r.email)}</div>
+      </div>
+      <div class="row-date">${fmtDate(r.created_at)}</div>
+      <span class="status-badge status-${r.status}">${statusLabel(r.status)}</span>
+      ${showActions && r.status === 'pending' ? `
+        <div class="row-actions">
+          <button class="btn btn-approve" onclick="approveRequest('${r.id}','${esc(r.email)}')">אשר</button>
+          <button class="btn btn-deny"    onclick="denyRequest('${r.id}')">דחה</button>
+        </div>` : ''}
+    </div>`).join('');
+}
+
+async function loadApproved() {
+  const { data, error } = await sbClient
+    .from('allowed_emails')
+    .select('*')
+    .order('added_at', { ascending: false });
+
+  if (error) {
+    document.getElementById('approved-list').innerHTML = '<div class="list-empty">שגיאה בטעינה</div>';
+    return;
+  }
+
+  document.getElementById('approved-count').textContent = (data || []).length;
+  const el = document.getElementById('approved-list');
+  if (!data || !data.length) {
+    el.innerHTML = '<div class="list-empty">אין אימיילים מאושרים</div>';
+    return;
+  }
+  el.innerHTML = data.map(r => `
+    <div class="email-row">
+      <div class="row-email">${esc(r.email)}</div>
+      <div class="row-date">${fmtDate(r.added_at)}</div>
+      <div class="row-actions">
+        <button class="btn btn-remove" onclick="removeEmail('${esc(r.email)}')">הסר</button>
+      </div>
+    </div>`).join('');
+}
+
+// ── פעולות ──────────────────────────────────────────────────
+async function approveRequest(id, email) {
+  const { error: addErr } = await sbClient
+    .from('allowed_emails')
+    .upsert({ email, added_by: currentUser.email });
+  if (addErr) { toast('שגיאה: ' + addErr.message); return; }
+
+  const { error: updErr } = await sbClient
+    .from('access_requests')
+    .update({ status: 'approved' })
+    .eq('id', id);
+  if (updErr) { toast('שגיאה: ' + updErr.message); return; }
+
+  toast('✓ ' + email + ' אושר');
+  await loadAll();
+}
+
+async function denyRequest(id) {
+  if (!confirm('לדחות את הבקשה?')) return;
+  const { error } = await sbClient
+    .from('access_requests')
+    .update({ status: 'denied' })
+    .eq('id', id);
+  if (error) { toast('שגיאה: ' + error.message); return; }
+  toast('בקשה נדחתה');
+  await loadAll();
+}
+
+async function addEmail() {
+  const email = document.getElementById('add-email-input').value.trim().toLowerCase();
+  if (!email || !email.includes('@')) { toast('נא להזין אימייל תקין'); return; }
+
+  const { error } = await sbClient
+    .from('allowed_emails')
+    .upsert({ email, added_by: currentUser.email });
+  if (error) { toast('שגיאה: ' + error.message); return; }
+
+  document.getElementById('add-email-input').value = '';
+  toast('✓ ' + email + ' נוסף');
+  await loadApproved();
+}
+
+async function removeEmail(email) {
+  if (!confirm('להסיר את ' + email + ' מרשימת המאושרים?\nהמשתמש לא יוכל להתחבר יותר.')) return;
+  const { error } = await sbClient.from('allowed_emails').delete().eq('email', email);
+  if (error) { toast('שגיאה: ' + error.message); return; }
+  toast('✓ ' + email + ' הוסר');
+  await loadApproved();
+}
+
+// ── עזרה ────────────────────────────────────────────────────
+function showSetupNotice() {
+  const box = document.getElementById('setup-notice');
+  document.getElementById('setup-sql').textContent = SETUP_SQL;
+  box.style.display = '';
+}
+
+function fmtDate(iso) {
+  if (!iso) return '';
+  const d = new Date(iso);
+  return d.toLocaleDateString('he-IL', { day:'2-digit', month:'2-digit', year:'2-digit' });
+}
+function statusLabel(s) {
+  return s === 'pending' ? 'ממתין' : s === 'approved' ? 'אושר' : 'נדחה';
+}
+function esc(str) {
+  return String(str || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+let _toastTimer;
+function toast(msg) {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.classList.add('show');
+  clearTimeout(_toastTimer);
+  _toastTimer = setTimeout(() => el.classList.remove('show'), 2800);
+}
+</script>
+</body>
+</html>
