@@ -4420,8 +4420,16 @@ function openCustomModal(editId){
   if(!editId){
     cloneWrap.style.display='block';
     cloneSrc.innerHTML='<option value="">— בחר מבחן לשכפול —</option>';
-    for(const[id,ct]of Object.entries(S.customTests||{})){
-      if(ct&&ct.name) cloneSrc.add(new Option(ct.name,id));
+    const grpBuiltin=document.createElement('optgroup');
+    grpBuiltin.label='מבחנים מובנים';
+    TEST_LIST.forEach(t=>{if(TABLES_INLINE[t.id])grpBuiltin.appendChild(new Option(t.label,'_bi_'+t.id));});
+    cloneSrc.appendChild(grpBuiltin);
+    const customEntries=Object.entries(S.customTests||{}).filter(([,ct])=>ct&&ct.name);
+    if(customEntries.length){
+      const grpCustom=document.createElement('optgroup');
+      grpCustom.label='מבחנים מותאמים אישית';
+      customEntries.forEach(([id,ct])=>grpCustom.appendChild(new Option(ct.name,id)));
+      cloneSrc.appendChild(grpCustom);
     }
   } else {
     cloneWrap.style.display='none';
@@ -4433,6 +4441,7 @@ function editCurrentCustom(){openCustomModal(CUR.test);}
 
 function cloneFromTest(id){
   if(!id) return;
+  if(id.startsWith('_bi_')){ _cloneFromBuiltIn(id.slice(4)); return; }
   const src=S.customTests[id];
   if(!src) return;
 
@@ -4486,6 +4495,60 @@ function cloneFromTest(id){
   _cmIsClone=true;
   document.getElementById('cm-preview').style.display='none';
   toast(`הועתק מ: ${src.name}`);
+}
+
+function _cloneFromBuiltIn(testId){
+  const t=TABLES_INLINE[testId];
+  if(!t)return;
+  const label=TEST_LIST.find(x=>x.id===testId)?.label||testId;
+  const group=TEST_LIST.find(x=>x.id===testId)?.group||'strength';
+
+  // מיפוי יחידת מדידה
+  let unit,customUnitName='';
+  if(t.isTime&&t.lb)          unit='דקות-';
+  else if(t.isSeconds&&t.lb)  unit='שניות-';
+  else if(t.unit==='שניות')   unit='שניות';
+  else if(t.unit==='חזרות')   unit='חזרות';
+  else if(t.unit==='מטרים'||t.unit==='מטרים ב-12 דקות') unit='מטרים';
+  else if(t.unit==='ס"מ'||t.unit==='ס״מ') unit='ס״מ';
+  else{unit='מדד אחר';customUnitName=t.unit;}
+
+  const isTimeUnit=unit==='דקות-';
+
+  document.getElementById('cm-name').value='';
+  document.getElementById('cm-group').value=group;
+  onCmGroupChange();
+  document.getElementById('cm-unit').value=unit;
+  toggleCustomUnit();
+  if(unit==='מדד אחר'){
+    document.getElementById('cm-custom-unit-wrap').style.display='block';
+    document.getElementById('cm-custom-unit').value=customUnitName;
+    const lbInput=document.querySelector(`input[name="cm-lb"][value="${t.lb?1:0}"]`);
+    if(lbInput)lbInput.checked=true;
+  }
+
+  _gradeAnchors={};_curGrade='ז';
+  document.getElementById('cm-grade-specific').checked=true;
+  document.getElementById('cm-grade-tabs').style.display='block';
+
+  for(const[grade,gd]of Object.entries(t.grades||{})){
+    const entry={};
+    for(const sc of[100,90,80,70,60,50,40,30,20,10,0]){
+      const mp=(gd.m||[]).find(([,s])=>Math.round(s)===sc);
+      const fp=(gd.f||[]).find(([,s])=>Math.round(s)===sc);
+      entry['m'+sc]=mp?(isTimeUnit?fmtTime(mp[0]):String(mp[0])):'';
+      entry['f'+sc]=fp?(isTimeUnit?fmtTime(fp[0]):String(fp[0])):'';
+    }
+    _gradeAnchors[grade]=entry;
+  }
+  const firstGrade=Object.keys(t.grades||{})[0]||'ז';
+  _curGrade=firstGrade;
+  _setActiveGradeTab(firstGrade);
+  _loadGradeInputs(firstGrade);
+
+  _cmIsClone=true;
+  document.getElementById('cm-preview').style.display='none';
+  toast(`הועתק מ: ${label}`);
 }
 
 // ── Grade-specific custom test helpers ───────────────────────
