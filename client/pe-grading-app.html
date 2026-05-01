@@ -3611,6 +3611,7 @@ function renderTable(){
   const T=getTbl(CUR.test);const ct=customTest(CUR.test);
   const isTime=T.isTime||(ct&&ct.unit==='דקות-');
   const isSeconds=T.isSeconds||(ct&&(ct.unit==='שניות-'||ct.unit==='שניות'));
+  const inputMode=(T.lb||isTime||isSeconds)?'decimal':'numeric';
   const ph=T.ph||(ct?'':' ');
   const sorted=sortedStudents();
   const totalStudents=S.groups[CUR.gid]?.students?.length||0;
