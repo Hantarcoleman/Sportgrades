@@ -414,7 +414,7 @@ const SUPABASE_URL  = 'https://pqotkdtvccfwuephxjsk.supabase.co';
 const SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBxb3RrZHR2Y2Nmd3VlcGh4anNrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzcwNjYwNDYsImV4cCI6MjA5MjY0MjA0Nn0.mivFnmb4hqee4OvpAFZR7Yi3AKkcaQn5CNno2OtYGy8';
 
 // ← החלף כאן באימייל שלך
-const ADMIN_EMAIL = 'Eitan.davidovich12@gmail.com';
+const ADMIN_EMAIL = 'eitan.davidovich12@gmail.com';
 
 const SETUP_SQL = `-- הרץ ב-Supabase SQL Editor:
 
@@ -476,7 +476,7 @@ async function checkSession() {
 }
 
 async function enterPanel(user) {
-  if (user.email !== ADMIN_EMAIL) {
+  if ((user.email || '').toLowerCase() !== ADMIN_EMAIL) {
     await sbClient.auth.signOut();
     setLoginMsg('כתובת זו אינה מורשית לפאנל הניהול.', 'error');
     return;
