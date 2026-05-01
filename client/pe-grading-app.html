@@ -3158,6 +3158,8 @@ async function parseXLSX(data,fileName){
     students.forEach(s=>{
       if(s.idHash) setIdMapEntry(gid, s.idHash, {name:s.name, id:s.id||''});
     });
+    // שמור את קובץ האלפון כתבנית ייצוא למשו"ב עבור הקבוצה החדשה
+    _mashovTmplSave(gid, fileName+'.xlsx', data);
     // Save to Supabase
     if(typeof sbSaveGroup === 'function' && SG_USER){
       sbSaveGroup(gid).then(()=>{ toast('✓ הקבוצה נשמרה'); renderGroupGrid(); }).catch(e=>console.error('Save failed:',e));
