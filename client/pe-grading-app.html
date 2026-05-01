@@ -3648,7 +3648,7 @@ function renderTable(){
       <div class="bonw"><span class="bonl">בונוס %:</span>
         <input type="number" class="boni" min="0" max="50" value="${d.bonusA||0}" data-idx="${idx}" data-f="bonusA" onchange="onFC(event)">
       </div>
-      <div style="display:flex;gap:3px;margin-top:3px;">
+      <div style="display:flex;gap:3px;margin-top:3px;justify-content:center;">
         <button class="bb${d.bonusA===5?' bb-on':''}" onclick="toggleBonus(${idx},'bonusA',5)">+5%</button>
         <button class="bb${d.bonusA===10?' bb-on':''}" onclick="toggleBonus(${idx},'bonusA',10)">+10%</button>
         <button class="bb${d.bonusA===15?' bb-on':''}" onclick="toggleBonus(${idx},'bonusA',15)">+15%</button>
@@ -3662,7 +3662,7 @@ function renderTable(){
       <td class="tn" style="cursor:pointer;" onclick="openStudentReport(${idx})" title="לחץ לדוח תלמיד">${s.name}${!hasResult?'<span style="font-size:10px;color:#fbbf24;margin-right:5px;"> ⚠</span>':d._ts?`<div style="font-size:9px;color:var(--ink3);font-weight:400;">${new Date(d._ts).toLocaleDateString('he-IL',{day:'2-digit',month:'2-digit',year:'2-digit'})}</div>`:''}
       </td>
       <td style="font-size:11px;color:var(--ink3);">${s.grade}${s.cls}</td>
-      <td>
+      <td style="text-align:center;">
         <input type="text" class="${rc}" value="${d.a}" ${dis?'disabled':''} placeholder="${ph}" inputmode="${inputMode}"
           data-idx="${idx}" data-f="a" onfocus="this.dataset.orig=this.value" oninput="onLive(event)" onchange="onFC(event)">
         ${bonA}
