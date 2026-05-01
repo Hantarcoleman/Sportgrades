@@ -3189,13 +3189,13 @@ function renameGroup(gid){
 function deleteGroup(gid){if(!confirm(`למחוק "${S.groups[gid]?.name}"?`))return;sbDeleteGroup&&sbDeleteGroup(gid);delete S.groups[gid];saveState();renderGroupGrid();}
 function ensureDemoGroups(){
   try{
-    // v3 — שם משפחה ראשון, מיון א-ב
-    if(localStorage.getItem('sg_demo_created_v3'))return;
+    // v4 — תיקון שמות: יוסיין, רונאלדו
+    if(localStorage.getItem('sg_demo_created_v4'))return;
     Object.keys(S.groups).forEach(gid=>{
       const n=S.groups[gid]?.name||'';
       if(n==='קבוצת למידה ותרגול — בנים'||n==='קבוצת למידה ותרגול — בנות')delete S.groups[gid];
     });
-    localStorage.setItem('sg_demo_created_v3','1');
+    localStorage.setItem('sg_demo_created_v4','1');
     createDemoGroups();
   }catch(e){}
 }
@@ -3203,7 +3203,7 @@ function ensureDemoGroups(){
 function createDemoGroups(){
   // בנים — שם משפחה שם פרטי, ממוין לפי א-ב
   const boys=[
-    {name:'בולט אוסיין',gender:'ז',grade:'יב',cls:''},
+    {name:'בולט יוסיין',gender:'ז',grade:'יב',cls:''},
     {name:"ג'ורדן מייקל",gender:'ז',grade:'יב',cls:''},
     {name:"ג'יימס לברון",gender:'ז',grade:'יב',cls:''},
     {name:'זאבי אריק',gender:'ז',grade:'יב',cls:''},
@@ -3215,7 +3215,7 @@ function createDemoGroups(){
     {name:'פלפס מייקל',gender:'ז',grade:'יב',cls:''},
     {name:'צוברי שחר',gender:'ז',grade:'יב',cls:''},
     {name:"קיפצ'וגה אליוד",gender:'ז',grade:'יב',cls:''},
-    {name:'רונלדו כריסטיאנו',gender:'ז',grade:'יב',cls:''},
+    {name:'רונאלדו כריסטיאנו',gender:'ז',grade:'יב',cls:''},
   ];
   // בנות — שם משפחה שם פרטי, ממוין לפי א-ב
   const girls=[
