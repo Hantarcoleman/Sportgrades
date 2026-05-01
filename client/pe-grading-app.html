@@ -857,17 +857,19 @@ const MASHOV_TMPL_LS = 'sg_mashov_tmpl_v1';
 function _mashovTmplSave(gid, fileName, arrBuf){
   try{
     const bytes=new Uint8Array(arrBuf);
-    let bin='';
-    for(let i=0;i<bytes.length;i++) bin+=String.fromCharCode(bytes[i]);
-    const all=JSON.parse(localStorage.getItem(MASHOV_TMPL_LS)||'{}');
-    all[String(gid)]={fileName,data:btoa(bin),savedAt:Date.now()};
-    localStorage.setItem(MASHOV_TMPL_LS,JSON.stringify(all));
-  }catch(e){}
+    const bin=Array.from(bytes,b=>String.fromCharCode(b)).join('');
+    const key=MASHOV_TMPL_LS+'_'+gid;
+    localStorage.setItem(key,JSON.stringify({fileName,data:btoa(bin),savedAt:Date.now()}));
+  }catch(e){
+    console.error('שגיאה בשמירת תבנית משו"ב:',e);
+    toast('⚠ לא הצלחנו לשמור את הקובץ בזיכרון. תצטרך להעלות מחדש בפעם הבאה.');
+  }
 }
 function _mashovTmplLoad(gid){
   try{
-    const all=JSON.parse(localStorage.getItem(MASHOV_TMPL_LS)||'{}');
-    const e=all[String(gid)];if(!e)return null;
+    const key=MASHOV_TMPL_LS+'_'+gid;
+    const raw=localStorage.getItem(key);if(!raw)return null;
+    const e=JSON.parse(raw);if(!e||!e.data)return null;
     const bin=atob(e.data);
     const bytes=new Uint8Array(bin.length);
     for(let i=0;i<bin.length;i++) bytes[i]=bin.charCodeAt(i);
@@ -875,11 +877,7 @@ function _mashovTmplLoad(gid){
   }catch(e){return null;}
 }
 function _mashovTmplClear(gid){
-  try{
-    const all=JSON.parse(localStorage.getItem(MASHOV_TMPL_LS)||'{}');
-    delete all[String(gid)];
-    localStorage.setItem(MASHOV_TMPL_LS,JSON.stringify(all));
-  }catch(e){}
+  try{ localStorage.removeItem(MASHOV_TMPL_LS+'_'+gid); }catch(e){}
 }
 
 function _bytesToHex(bytes){
@@ -4678,8 +4676,7 @@ async function readMashovWorkbook(arrBuf){
   const range=XLSX.utils.decode_range(ws['!ref']||'A1');
   const rows=XLSX.utils.sheet_to_json(ws,{header:1,defval:'',raw:false,blankrows:true});
   const struct=_mashovParseStructure(rows);
-  if(!struct) throw new Error('פורמט קובץ משו"ב לא זוהה — ודא שיש עמודות ת.ז ושם בקובץ');
-  if(struct.cScoreNum<0) throw new Error('קובץ זה הוא אלפון בלבד — אין עמודת ציון. הורד ממשו"ב את גיליון הציונים (לא האלפון)');
+  if(!struct) throw new Error('פורמט קובץ לא זוהה — ודא שיש עמודות ת.ז ושם בקובץ');
 
   // Build entries with idHash (this is the slow async part)
   const dataRows=[];
@@ -4829,6 +4826,17 @@ async function exportMashov(arrBuf, originalFileName, gid, testId, semester){
   });
 
   // 3) Build NEW workbook containing only matched rows
+  // If this is an alphon (no ציון column), add one to the right of the header
+  let scoreCol=struct.cScoreNum;
+  const isAlphon=scoreCol<0;
+  if(isAlphon){
+    const headerRow=(sourceRows[struct.headerRow]||[]).slice();
+    scoreCol=headerRow.length;
+    headerRow.push('ציון מספרי');
+    // Replace the header row in sourceRows (work on a copy)
+    const patchedRows=sourceRows.map((r,i)=>i===struct.headerRow?headerRow:r);
+    sourceRows.splice(0,sourceRows.length,...patchedRows);
+  }
   const newRows=[];
   // 3a) Pre-header rows (title, blank lines, etc.)
   for(let i=0; i<=struct.headerRow; i++){
@@ -4839,9 +4847,9 @@ async function exportMashov(arrBuf, originalFileName, gid, testId, semester){
     const sourceRow=(sourceRows[m.entry.rowIdx]||[]).slice();
     sourceRow[0] = i+1; // re-number "מס'" sequentially
     if(m.score!=null && !Number.isNaN(m.score)){
-      sourceRow[struct.cScoreNum] = m.score;
+      sourceRow[scoreCol] = m.score;
     }else{
-      sourceRow[struct.cScoreNum] = '';
+      sourceRow[scoreCol] = '';
     }
     newRows.push(sourceRow);
   });
@@ -4849,9 +4857,9 @@ async function exportMashov(arrBuf, originalFileName, gid, testId, semester){
   if(struct.avgRow>=0){
     const avgRow=(sourceRows[struct.avgRow]||[]).slice();
     if(filledScores.length){
-      avgRow[struct.cScoreNum] = Math.round((filledScores.reduce((a,b)=>a+b,0)/filledScores.length)*100)/100;
+      avgRow[scoreCol] = Math.round((filledScores.reduce((a,b)=>a+b,0)/filledScores.length)*100)/100;
     }else{
-      avgRow[struct.cScoreNum] = '';
+      avgRow[scoreCol] = '';
     }
     newRows.push(avgRow);
   }
@@ -10152,7 +10160,7 @@ function renderSidebarGroups(){
   if(!gids.length){cont.innerHTML='<div class="sb-item" style="opacity:.4;font-size:12px;">אין קבוצות עדיין</div>';return;}
   cont.innerHTML=gids.map(gid=>{
     const g=S.groups[gid];
-    const isActive=CUR.gid===gid;
+    const isActive=String(CUR.gid)===gid;
     return `<div class="sb-item${isActive?' active':''}" onclick="sbOpenGroup('${gid}')">
       <span class="sb-item-icon">👥</span>
       <span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${g.name}</span>
