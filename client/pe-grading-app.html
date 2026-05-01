@@ -1346,9 +1346,10 @@ history.pushState(null,'',location.href);
       </div>
       <div style="display:flex;gap:8px;flex-wrap:wrap;">
         <button class="btn bg2 bsm" onclick="openAddModal()">+ הוסף תלמיד</button>
+        <button class="btn bg2 bsm" onclick="openUpdateGroupForCurrent()" title="הוסף תלמידים חדשים מאלפון מעודכן">📥 עדכן מאלפון</button>
         <button class="btn bg2 bsm" onclick="geRenameGroup()">✏ שנה שם</button>
         <button class="btn bg2 bsm" onclick="openMergeModal()">🔗 מזג קבוצה</button>
-        <button class="btn bsm" id="ge-unmerge-btn" style="display:none;background:rgba(251,191,36,.08);border:1px solid rgba(251,191,36,.3);color:#fbbf24;" onclick="geUnmergeGroup()">↩ בטל מיזוג</button>
+        <button class="btn bsm" id="ge-unmerge-btn" style="display:none;background:rgba(251,191,36,.08);border:1px solid rgba(251,191,36,.3);color:#fbbf24;" onclick="geSplitGroup()">✂ פצל קבוצות</button>
         <button class="btn bsm" style="background:rgba(248,113,113,.1);border:1px solid rgba(248,113,113,.25);color:#f87171;" onclick="geDeleteGroup()">🗑 מחק קבוצה</button>
         <button class="btn bg2 bsm" onclick="showView('group')">← חזור לציונים</button>
       </div>
@@ -1376,7 +1377,7 @@ history.pushState(null,'',location.href);
 <div class="mbg" id="merge-group-modal"><div class="mod mod-wide" onclick="event.stopPropagation()">
   <div class="mt">🔗 מיזוג קבוצות</div>
   <div class="ms">כל תלמידי הקבוצה הנבחרת יתווספו לקבוצה: <b id="mg-cur-name"></b><br>
-    <span style="font-size:11px;color:var(--ink3);">עבור תלמידים חופפים — יישמר הציון הגבוה בכל מבחן · הפעולה הפיכה</span>
+    <span style="font-size:11px;color:var(--ink3);">עבור תלמידים חופפים — יישמר הציון הגבוה בכל מבחן · הקבוצה הנבחרת תימחק · ניתן לפצל בחזרה בכפתור "פצל קבוצות"</span>
   </div>
   <div class="fg" style="margin-top:14px;">
     <label class="fl">קבוצה שתמוזג לתוך הנוכחית:</label>
@@ -1608,11 +1609,6 @@ history.pushState(null,'',location.href);
       <button class="bl-btn bl-undo" id="lr-undo-btn" onclick="lrUndo()" disabled>↩ בטל</button>
       <button class="lr-reset-btn" id="lr-reset-btn" onclick="lrConfirmReset()">🔄 איפוס שעון</button>
       <button class="bl-btn" onclick="closeLongRunLive()" style="background:rgba(255,80,80,.15);border:1px solid rgba(255,80,80,.3);color:#ff8080;font-size:12px;margin-right:4px;">✕ יציאה</button>
-      <div style="display:flex;align-items:center;gap:6px;margin-right:auto;">
-        <span style="font-size:11px;color:rgba(255,255,255,.4);">הזנה ל:</span>
-        <button id="lr-round-a-btn" onclick="setLrRound('a')" style="padding:3px 10px;border-radius:20px;border:none;cursor:pointer;font-family:'Heebo',sans-serif;font-size:11px;font-weight:700;background:var(--ac);color:#fff;">מועד א׳</button>
-        <button id="lr-round-b-btn" onclick="setLrRound('b')" style="padding:3px 10px;border-radius:20px;border:none;cursor:pointer;font-family:'Heebo',sans-serif;font-size:11px;font-weight:700;background:rgba(255,255,255,.1);color:rgba(255,255,255,.5);">מועד ב׳</button>
-      </div>
 
     </div>
     <!-- Body -->
@@ -1709,12 +1705,6 @@ history.pushState(null,'',location.href);
       <button onclick="metroAdjust(-1)" style="background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.15);color:#fff;border-radius:8px;padding:6px 14px;cursor:pointer;font-family:'Heebo',sans-serif;font-size:13px;font-weight:700;">−½ חז׳</button>
       <span style="font-size:11px;color:rgba(255,255,255,.3);">תיקון ספירה</span>
       <button onclick="metroAdjust(1)" style="background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.15);color:#fff;border-radius:8px;padding:6px 14px;cursor:pointer;font-family:'Heebo',sans-serif;font-size:13px;font-weight:700;">+½ חז׳</button>
-    </div>
-    <!-- Round selector -->
-    <div style="display:flex;align-items:center;justify-content:center;gap:8px;margin-bottom:12px;">
-      <span style="color:rgba(255,255,255,.4);font-size:12px;">הזנה ל:</span>
-      <button id="metro-round-a" onclick="setMetroRound('a')" style="padding:3px 12px;border-radius:20px;border:none;cursor:pointer;font-family:'Heebo',sans-serif;font-size:12px;font-weight:700;background:var(--ac);color:#fff;">מועד א׳</button>
-      <button id="metro-round-b" onclick="setMetroRound('b')" style="padding:3px 12px;border-radius:20px;border:none;cursor:pointer;font-family:'Heebo',sans-serif;font-size:12px;font-weight:700;background:rgba(255,255,255,.1);color:rgba(255,255,255,.5);">מועד ב׳</button>
     </div>
 
     <!-- Splits -->
@@ -2064,15 +2054,6 @@ history.pushState(null,'',location.href);
       <button class="bl-btn" onclick="blAdjustTiming(500)" style="background:rgba(255,255,255,.07);color:rgba(255,255,255,.6);border:1px solid rgba(255,255,255,.1);font-size:11px;">תיקון דיליי +½ שנ׳</button>
       <button class="bl-btn" onclick="closeBeepLive()" style="background:rgba(255,80,80,.15);border:1px solid rgba(255,80,80,.3);color:#ff8080;font-size:12px;">✕ יציאה מהמבחן</button>
     </div>
-    <!-- Round B toggle for beep -->
-    <div style="display:flex;align-items:center;gap:8px;padding:6px 16px;background:rgba(91,33,182,.08);border-bottom:1px solid rgba(91,33,182,.12);flex-shrink:0;">
-      <span style="font-size:12px;color:rgba(255,255,255,.5);">הזנה ל:</span>
-      <button id="bl-round-a-btn" onclick="setBeepRound('a')"
-        style="padding:4px 14px;border-radius:20px;border:none;cursor:pointer;font-family:'Heebo',sans-serif;font-size:12px;font-weight:700;background:var(--ac);color:#fff;transition:all .15s;">מועד א׳</button>
-      <button id="bl-round-b-btn" onclick="setBeepRound('b')"
-        style="padding:4px 14px;border-radius:20px;border:none;cursor:pointer;font-family:'Heebo',sans-serif;font-size:12px;font-weight:700;background:rgba(255,255,255,.1);color:rgba(255,255,255,.5);transition:all .15s;">מועד ב׳</button>
-      <span style="font-size:11px;color:rgba(255,255,255,.3);margin-right:4px;">הציון הגבוה יישמר תמיד</span>
-    </div>
 
     <!-- Body: active grid + eliminated list -->
     <div class="bl-body">
@@ -2137,15 +2118,6 @@ history.pushState(null,'',location.href);
       <button class="tc-btn tc-stop" id="tc-stop" onclick="timerStop()" style="display:none;">■ עצור</button>
       <button class="tc-btn tc-reset" id="tc-reset" onclick="timerReset()" style="display:none;">🔄 איפוס שעון</button>
       <button class="tc-btn" onclick="closeTimer()" style="background:rgba(255,80,80,.15);border:1px solid rgba(255,80,80,.3);color:#ff8080;font-size:12px;">✕ סגור</button>
-    </div>
-    <!-- Round B toggle -->
-    <div style="display:flex;align-items:center;gap:8px;padding:6px 16px;background:rgba(91,33,182,.08);border-bottom:1px solid rgba(91,33,182,.12);">
-      <span style="font-size:12px;color:rgba(255,255,255,.5);">הזנה ל:</span>
-      <button id="tmr-round-a-btn" onclick="setTimerRound('a')"
-        style="padding:4px 14px;border-radius:20px;border:none;cursor:pointer;font-family:'Heebo',sans-serif;font-size:12px;font-weight:700;background:var(--ac);color:#fff;transition:all .15s;">מועד א׳</button>
-      <button id="tmr-round-b-btn" onclick="setTimerRound('b')"
-        style="padding:4px 14px;border-radius:20px;border:none;cursor:pointer;font-family:'Heebo',sans-serif;font-size:12px;font-weight:700;background:rgba(255,255,255,.1);color:rgba(255,255,255,.5);transition:all .15s;">מועד ב׳</button>
-      <span style="font-size:11px;color:rgba(255,255,255,.3);margin-right:4px;">הציון הגבוה יישמר תמיד</span>
     </div>
     <div id="timer-plank-note" style="display:none;font-size:12px;color:rgba(255,255,255,.4);padding:6px 16px;background:rgba(124,58,237,.08);border-bottom:1px solid rgba(124,58,237,.15);">
       💡 פלנק — בלחיצה על "עצור" ייפתחו 8 שורות עם הזמן הנוכחי, עבור תלמידים שהמשיכו עד סוף הזמן. מלא את שמותיהם ולחץ שמור.
@@ -2835,6 +2807,22 @@ function spCls(s){
   if(s===null)return 'spn';if(s>=100)return 'sp100';
   if(s>=80)return 'sph';if(s>=60)return 'spm';if(s>0)return 'spl';return 'sp0';
 }
+// מחזיר את הציון שהיה מקבל בשכבה הגבוהה הבאה שבה הציון < 100
+// (למבחנים מובנים בלבד; null אם לא רלוונטי)
+function _nextGradeScore(testId,grade,gender,rawVal){
+  const order=['ז','ח','ט','י','יא','יב'];
+  const T=getTbl(testId);
+  if(!T||!T.grades)return null;
+  const idx=order.indexOf(grade);
+  if(idx<0||idx>=order.length-1)return null;
+  for(let i=idx+1;i<order.length;i++){
+    if(!T.grades[order[i]])continue;
+    const s=getScore(testId,order[i],gender,rawVal);
+    if(s!==null&&s<100)return{grade:order[i],score:s};
+  }
+  return null;
+}
+
 // Bonus: % of score (50 + 10% = 55)
 function calcFinal(base,bonusPct,bonusPts){
   if(base===null)return null;
@@ -3643,7 +3631,6 @@ function renderTable(){
     const sBh=!hasResult?'<span class="spn" style="opacity:.25;">—</span>':(sB===null?'<span class="spn">—</span>':`<span class="sp ${spCls(sB)}">${sB}</span>`);
     const fh=!hasResult?'<span class="spn" style="opacity:.2;">—</span>':(gradeScore===null?'<span class="spn">—</span>':gradeScoreIsInherited?`<span class="sp spf spf-inh" title="ציון ממחצית א׳ — טרם הוזנה תוצאה במחצית ב׳">${gradeScore}</span>`:`<span class="sp spf">${gradeScore}</span>`);
     const rc=(isTime||isSeconds)?'ri ri-t':'ri';
-    const inputMode=(T.lb||isTime||isSeconds)?'decimal':'numeric';
     const bonA=`
       <div class="bonw"><span class="bonl">בונוס %:</span>
         <input type="number" class="boni" min="0" max="50" value="${d.bonusA||0}" data-idx="${idx}" data-f="bonusA" onchange="onFC(event)">
@@ -3663,7 +3650,7 @@ function renderTable(){
       </td>
       <td style="font-size:11px;color:var(--ink3);">${s.grade}${s.cls}</td>
       <td>
-        <input type="text" class="${rc}" value="${d.a}" ${dis?'disabled':''} placeholder="${ph}" inputmode="${inputMode}"
+        <input type="text" class="${rc}" value="${d.a}" ${dis?'disabled':''} placeholder="${ph}"
           data-idx="${idx}" data-f="a" onfocus="this.dataset.orig=this.value" oninput="onLive(event)" onchange="onFC(event)">
         ${bonA}
       </td>
@@ -5080,6 +5067,12 @@ function _buildMasterFile(){
 let _ugParsed=null;       // {students, hasIds}
 let _ugCandidate=null;    // {gid, name, overlap, total}
 let _ugFileName='';
+let _ugForcedGid=null;
+
+function openUpdateGroupForCurrent(){
+  _ugForcedGid=CUR.gid;
+  openUpdateGroupModal();
+}
 
 function openUpdateGroupModal(){
   _ugParsed=null; _ugCandidate=null; _ugFileName='';
@@ -5147,6 +5140,14 @@ async function _ugHandleFile(file){
     const arrBuf=await file.arrayBuffer();
     _ugParsed=await _parseStudentSheet(arrBuf);
     if(!_ugParsed.students.length) throw new Error('לא נמצאו תלמידים בקובץ');
+    // If called from group-edit, force this group without auto-detection
+    if(_ugForcedGid!=null){
+      const c=_scoreGroupOverlap(_ugForcedGid,_ugParsed.students)||{gid:Number(_ugForcedGid),name:S.groups[_ugForcedGid]?.name||'',total:S.groups[_ugForcedGid]?.students?.length||0,hashOverlap:0,nameOverlap:0,classOverlap:0,score:1};
+      _ugForcedGid=null;
+      _ugCandidate=c;
+      _renderUpdateGroupSummary([c]);
+      return;
+    }
     // Score all existing groups for overlap
     const candidates=Object.keys(S.groups)
       .map(gid=>_scoreGroupOverlap(gid, _ugParsed.students))
@@ -5241,7 +5242,7 @@ function exportExcel(){
   const label=ct?ct.name:(TEST_LIST.find(t=>t.id===CUR.test)?.label||CUR.test);
   const unit=(T.unit||(ct&&ct.unit)||'ערך').replace('-','');
   const fmtDate=ts=>ts?new Date(ts).toLocaleDateString('he-IL',{day:'2-digit',month:'2-digit',year:'2-digit'}):'';
-  const rows=[['#','שם','מין','כיתה',`מועד א (${unit})`,'ציון א','בונוס א%','ציון לתעודה','תאריך בדיקה']];
+  const rows=[['#','שם','מין','כיתה',`תוצאה (${unit})`,'ציון','בונוס %','ציון לתעודה','תאריך בדיקה']];
   g.students.forEach((s,idx)=>{
     const d=g[resKey()]?.[CUR.test]?.[idx]||{};
     const isFem=s.gender==='נ'||s.gender==='f';const dis=T.maleOnly&&isFem;
@@ -5252,7 +5253,9 @@ function exportExcel(){
   const ws=XLSX.utils.aoa_to_sheet(rows);
   ws['!cols']=[4,22,6,8,14,8,10,12,12].map(w=>({wch:w}));
   const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,label.slice(0,31));
-  XLSX.writeFile(wb,`${g.name}_${label}.xlsx`);toast('הקובץ יוצא ✓');
+  const _semLbl=CUR.semester==='b'?'מחצית ב':'מחצית א';
+  const _dateStr=new Date().toLocaleDateString('he-IL',{day:'numeric',month:'numeric',year:'2-digit'});
+  XLSX.writeFile(wb,`${label} ${_semLbl} ${g.classes||g.name} ${_dateStr}.xlsx`);toast('הקובץ יוצא ✓');
 }
 
 // ── FULL EXCEL EXPORT ────────────────────────────────────────
@@ -5315,8 +5318,9 @@ function exportFullExcel(){
     XLSX.utils.book_append_sheet(wb,ws,label.slice(0,31));
   });
 
-  const sem=CUR.semester==='b'?'_מחצית_ב':'_מחצית_א';
-  XLSX.writeFile(wb,`${g.name}${sem}_${new Date().toISOString().slice(0,10)}.xlsx`);
+  const _semLblF=CUR.semester==='b'?'מחצית ב':'מחצית א';
+  const _dateFStr=new Date().toLocaleDateString('he-IL',{day:'numeric',month:'numeric',year:'2-digit'});
+  XLSX.writeFile(wb,`כל המבחנים ${_semLblF} ${g.classes||g.name} ${_dateFStr}.xlsx`);
   toast('✓ קובץ אקסל יוצא — כל המבחנים');
 }
 
@@ -5552,10 +5556,8 @@ function renderArchiveTest(testId){
     const d=res[idx];if(!d||d.a==='')return;
     const isFem=s.gender==='נ'||s.gender==='f';
     const sA=getScore(testId,s.grade,s.gender,d.a);
-    const sB=d.b?getScore(testId,s.grade,s.gender,d.b):null;
-    const base=(sB!==null&&sB>=(sA||0))?sB:sA;
-    const fin=calcFinal(base,d.bonusA||0,0);
-    rows.push({s,d,sA,sB,fin});
+    const fin=calcFinal(sA,d.bonusA||0,0);
+    rows.push({s,d,sA,fin});
   });
   rows.sort((a,b)=>a.s.name.localeCompare(b.s.name,'he'));
 
@@ -5570,21 +5572,17 @@ function renderArchiveTest(testId){
         <thead><tr style="background:var(--bg2);border-bottom:2px solid var(--bd2);">
           <th style="padding:7px 10px;text-align:right;font-size:10px;color:var(--ink3);">שם</th>
           <th style="padding:7px 8px;text-align:center;font-size:10px;color:var(--ink3);">כיתה</th>
-          <th style="padding:7px 8px;text-align:center;font-size:10px;color:var(--ink3);">תוצאה א׳</th>
-          <th style="padding:7px 8px;text-align:center;font-size:10px;color:var(--ink3);">ציון א׳</th>
-          <th style="padding:7px 8px;text-align:center;font-size:10px;color:var(--ink3);">תוצאה ב׳</th>
-          <th style="padding:7px 8px;text-align:center;font-size:10px;color:var(--ink3);">ציון ב׳</th>
+          <th style="padding:7px 8px;text-align:center;font-size:10px;color:var(--ink3);">תוצאה</th>
+          <th style="padding:7px 8px;text-align:center;font-size:10px;color:var(--ink3);">ציון</th>
           <th style="padding:7px 8px;text-align:center;font-size:10px;color:var(--ink3);">סופי</th>
         </tr></thead>
         <tbody>
-          ${rows.map(({s,d,sA,sB,fin})=>`
+          ${rows.map(({s,d,sA,fin})=>`
             <tr style="border-bottom:1px solid var(--bd);">
               <td style="padding:6px 10px;font-weight:700;">${s.name}</td>
               <td style="padding:6px 8px;text-align:center;color:var(--ink3);">${s.grade}${s.cls}</td>
               <td style="padding:6px 8px;text-align:center;">${d.a||'—'}</td>
               <td style="padding:6px 8px;text-align:center;">${sA!==null?`<span class="sp ${spCls(sA)}">${sA}</span>`:'—'}</td>
-              <td style="padding:6px 8px;text-align:center;">${d.b||'—'}</td>
-              <td style="padding:6px 8px;text-align:center;">${sB!==null?`<span class="sp ${spCls(sB)}">${sB}</span>`:'—'}</td>
               <td style="padding:6px 8px;text-align:center;">${fin!==null?`<span class="sp spf">${fin}</span>`:'—'}</td>
             </tr>`).join('')}
         </tbody>
@@ -6344,9 +6342,12 @@ function srlUpdatePotential(){
   const el=document.getElementById('srl-potential-score');
   const lb=document.getElementById('srl-potential-label');
   if(!el)return;
-  if(SRL.count<=0){el.textContent='';if(lb)lb.style.display='none';return;}
-  const score=getScore(SRL.testId,SRL.refGrade||'ט',SRL.refGender||'ז',String(SRL.count));
-  el.textContent=score!==null?score:'—';
+  if(SRL.count<=0){el.innerHTML='';if(lb)lb.style.display='none';return;}
+  const grade=SRL.refGrade||'ט',gender=SRL.refGender||'ז',raw=String(SRL.count);
+  const score=getScore(SRL.testId,grade,gender,raw);
+  if(score===null){el.innerHTML='—';if(lb)lb.style.display='none';return;}
+  const nextG=(score===100)?_nextGradeScore(SRL.testId,grade,gender,raw):null;
+  el.innerHTML=score+(nextG?`<div style="font-size:11px;color:#f59e0b;line-height:1.2;margin-top:2px;">🔭 ב${nextG.grade}׳: ${nextG.score}</div>`:'');
   if(lb)lb.style.display='';
 }
 
@@ -6523,9 +6524,12 @@ function strUpdatePotential(){
   const el=document.getElementById('str-potential-score');
   const lb=document.getElementById('str-potential-label');
   if(!el)return;
-  if(STR.count<=0){el.textContent='';if(lb)lb.style.display='none';return;}
-  const score=getScore(STR.testId,STR.refGrade||'ט',STR.refGender||'ז',String(STR.count));
-  el.textContent=score!==null?score:'—';
+  if(STR.count<=0){el.innerHTML='';if(lb)lb.style.display='none';return;}
+  const grade=STR.refGrade||'ט',gender=STR.refGender||'ז',raw=String(STR.count);
+  const score=getScore(STR.testId,grade,gender,raw);
+  if(score===null){el.innerHTML='—';if(lb)lb.style.display='none';return;}
+  const nextG=(score===100)?_nextGradeScore(STR.testId,grade,gender,raw):null;
+  el.innerHTML=score+(nextG?`<div style="font-size:11px;color:#f59e0b;line-height:1.2;margin-top:2px;">🔭 ב${nextG.grade}׳: ${nextG.score}</div>`:'');
   if(lb)lb.style.display='';
 }
 
@@ -6644,8 +6648,11 @@ function spUpdatePotential(secs){
   const el=document.getElementById('sp-potential-score');
   const lb=document.getElementById('sp-potential-label');
   if(!el||secs<0.1)return;
-  const score=getScore(SR.testId,SR.refGrade||'ט',SR.refGender||'ז',secs.toFixed(2));
-  el.textContent=score!==null?score:'—';
+  const grade=SR.refGrade||'ט',gender=SR.refGender||'ז',raw=secs.toFixed(2);
+  const score=getScore(SR.testId,grade,gender,raw);
+  if(score===null){el.innerHTML='—';if(lb)lb.style.display='none';return;}
+  const nextG=(score===100)?_nextGradeScore(SR.testId,grade,gender,raw):null;
+  el.innerHTML=score+(nextG?`<div style="font-size:11px;color:#f59e0b;line-height:1.2;margin-top:2px;">🔭 ב${nextG.grade}׳: ${nextG.score}</div>`:'');
   if(lb)lb.style.display='';
 }
 
@@ -7355,7 +7362,7 @@ function timerSaveAll(){
   if(CUR.test===TMR.testId)renderTable();
   document.getElementById('timer-modal').classList.remove('open');
   timerReset();
-  toast(`✓ ${saved} תוצאות נשמרו ל${TMR.round==='b'?'מועד ב׳':'מועד א׳'}${missing?` · ${missing} ללא שם`:''}`);;
+  toast(`✓ ${saved} תוצאות נשמרו${missing?` · ${missing} ללא שם`:''}`);;
 }
 
 // ── TIMER HISTORY ─────────────────────────────────────────────
@@ -8052,7 +8059,7 @@ function blSaveAll(silent){
   });
   saveState();
   if(CUR.gid===gid&&CUR.test==='beep')renderTable();
-  if(!silent)toast(`✓ ${saved} תוצאות ביפ נשמרו ל${BL.round==='b'?'מועד ב׳':'מועד א׳'}`);
+  if(!silent)toast(`✓ ${saved} תוצאות ביפ נשמרו`);
 }
 
 function blRestartSession(){
@@ -8264,7 +8271,7 @@ function renderEntered(){
                 </td>
                 <td style="padding:6px 10px;font-weight:700;">${s.name}</td>
                 <td style="padding:6px 8px;text-align:center;color:var(--ink3);">${isFem?'נ':'ז'}</td>
-                <td style="padding:6px 8px;text-align:center;color:var(--ink2);">${d.a}${d.b?' / '+d.b:''}</td>
+                <td style="padding:6px 8px;text-align:center;color:var(--ink2);">${d.a}</td>
                 <td style="padding:6px 8px;text-align:center;">
                   ${finalSc>0?`<span class="sp ${spCls(finalSc)}">${finalSc}</span>`:'—'}
                 </td>
@@ -8741,7 +8748,7 @@ function srmExportPDF(){
       const dateStr=d._ts?new Date(d._ts).toLocaleDateString('he-IL',{day:'2-digit',month:'2-digit',year:'2-digit'}):'—';
       rows+=`<tr style="border-bottom:1px solid #e5e7eb;">
         <td style="padding:8px 12px;font-weight:600;color:#111;">${label}</td>
-        <td style="padding:8px 12px;color:#444;">${d.a}${d.b?` / ${d.b}`:''}${d.bonusA?` +${d.bonusA}%`:''}</td>
+        <td style="padding:8px 12px;color:#444;">${d.a}${d.bonusA?` +${d.bonusA}%`:''}</td>
         <td style="padding:8px 12px;text-align:center;"><span style="background:${bg};color:${col};font-weight:700;padding:3px 10px;border-radius:20px;font-size:13px;">${fin!==null?fin:'—'}</span></td>
         <td style="padding:8px 12px;font-size:11px;color:#888;">${dateStr}</td>
       </tr>`;
@@ -8832,13 +8839,14 @@ function _srmTab0(g,s,idx,isFem,allTests){
     }
     const T=getTbl(id);if(T.maleOnly&&isFem)return;
     const sA=getScore(id,s.grade,s.gender,d.a);
-    const sB=d.b?getScore(id,s.grade,s.gender,d.b):null;
-    const base=(sB!==null&&sB>=(sA||0))?sB:sA;
+    const base=sA;
     const fin=calcFinal(base,d.bonusA||0,0);
     if(fin!==null)scores.push(fin);
     const scCls=spCls(fin);
     const dateStr=d._ts?new Date(d._ts).toLocaleDateString('he-IL',{day:'2-digit',month:'2-digit',year:'2-digit'}):'—';
-    html+=`<tr style="border-bottom:1px solid var(--bg2);"><td style="padding:7px 12px;font-weight:600;">${label}</td><td style="padding:7px 12px;color:var(--ink2);">${d.a}${d.b?` / ${d.b}`:''}${d.bonusA?` +${d.bonusA}%`:''}</td><td style="padding:7px 12px;text-align:center;"><span class="sp ${scCls}">${fin!==null?fin:'—'}</span></td><td style="padding:7px 12px;font-size:11px;color:var(--ink3);">${dateStr}</td></tr>`;
+    const nextG=(base===100&&!customTest(id))?_nextGradeScore(id,s.grade,s.gender,d.a):null;
+    const nextGHtml=nextG?`<div style="font-size:9px;color:#f59e0b;margin-top:2px;line-height:1.2;">🔭 ב${nextG.grade}׳: ${nextG.score}</div>`:'';
+    html+=`<tr style="border-bottom:1px solid var(--bg2);"><td style="padding:7px 12px;font-weight:600;">${label}</td><td style="padding:7px 12px;color:var(--ink2);">${d.a}${d.bonusA?` +${d.bonusA}%`:''}</td><td style="padding:7px 12px;text-align:center;"><span class="sp ${scCls}">${fin!==null?fin:'—'}</span>${nextGHtml}</td><td style="padding:7px 12px;font-size:11px;color:var(--ink3);">${dateStr}</td></tr>`;
   });
   html+='</tbody></table>';
   if(scores.length){
@@ -8862,7 +8870,7 @@ function _srmTab0(g,s,idx,isFem,allTests){
     html+=`<div style="margin-top:16px;"><div style="font-size:11px;font-weight:800;color:var(--ink3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px;">📋 היסטוריית שינויים (${allHistEntries.length})</div><div style="background:var(--bg2);border-radius:var(--rs);overflow:hidden;">`;
     allHistEntries.slice(0,20).forEach(h=>{
       const dateStr=new Date(h.ts).toLocaleDateString('he-IL',{day:'2-digit',month:'2-digit',year:'2-digit',hour:'2-digit',minute:'2-digit'});
-      html+=`<div style="display:flex;align-items:center;gap:8px;padding:7px 12px;border-bottom:1px solid var(--bd);font-size:12px;"><span style="color:var(--ink3);flex:0 0 120px;">${dateStr}</span><span style="flex:1;color:var(--ink2);">${h.testLabel} · ${h.sem==='b'?'מח׳ ב׳':'מח׳ א׳'} · ${h.field==='b'?'מועד ב׳':'מועד א׳'}</span><span style="font-family:monospace;background:rgba(239,68,68,.1);color:#dc2626;padding:2px 8px;border-radius:4px;font-size:11px;">${h.val}</span></div>`;
+      html+=`<div style="display:flex;align-items:center;gap:8px;padding:7px 12px;border-bottom:1px solid var(--bd);font-size:12px;"><span style="color:var(--ink3);flex:0 0 120px;">${dateStr}</span><span style="flex:1;color:var(--ink2);">${h.testLabel} · ${h.sem==='b'?'מח׳ ב׳':'מח׳ א׳'}</span><span style="font-family:monospace;background:rgba(239,68,68,.1);color:#dc2626;padding:2px 8px;border-radius:4px;font-size:11px;">${h.val}</span></div>`;
     });
     html+='</div></div>';
   }
@@ -9061,22 +9069,12 @@ function blConfirmAddStudent(){
 // ── SAEIF 1+2: Timer round A/B ──────────────────────────────
 TMR.round='a';
 
-function setTimerRound(round){
-  TMR.round=round;
-  const isB=round==='b';
-  document.getElementById('tmr-round-a-btn').style.cssText=`padding:4px 14px;border-radius:20px;border:none;cursor:pointer;font-family:'Heebo',sans-serif;font-size:12px;font-weight:700;background:${isB?'rgba(255,255,255,.1)':'var(--ac)'};color:${isB?'rgba(255,255,255,.5)':'#fff'};transition:all .15s;`;
-  document.getElementById('tmr-round-b-btn').style.cssText=`padding:4px 14px;border-radius:20px;border:none;cursor:pointer;font-family:'Heebo',sans-serif;font-size:12px;font-weight:700;background:${isB?'var(--ac)':'rgba(255,255,255,.1)'};color:${isB?'#fff':'rgba(255,255,255,.5)'};transition:all .15s;`;
-}
+function setTimerRound(){}
 
 // ── SAEIF 5: Beep round A/B ──────────────────────────────────
 BL.round='a';
 
-function setBeepRound(round){
-  BL.round=round;
-  const isB=round==='b';
-  document.getElementById('bl-round-a-btn').style.cssText=`padding:4px 14px;border-radius:20px;border:none;cursor:pointer;font-family:'Heebo',sans-serif;font-size:12px;font-weight:700;background:${isB?'rgba(255,255,255,.1)':'var(--ac)'};color:${isB?'rgba(255,255,255,.5)':'#fff'};transition:all .15s;`;
-  document.getElementById('bl-round-b-btn').style.cssText=`padding:4px 14px;border-radius:20px;border:none;cursor:pointer;font-family:'Heebo',sans-serif;font-size:12px;font-weight:700;background:${isB?'var(--ac)':'rgba(255,255,255,.1)'};color:${isB?'#fff':'rgba(255,255,255,.5)'};transition:all .15s;`;
-}
+function setBeepRound(){}
 
 // Helper: write result respecting semester AND round A/B
 function writeResult(gid, testId, studentIdx, rawVal, round){
@@ -9164,8 +9162,11 @@ function lrUpdatePotential(secs){
   const lb=document.getElementById('lr-potential-label');
   if(!el||secs<1)return;
   const rawVal=fmtTime(secs);
-  const score=getScore(LR.testId,LR.refGrade||'ט',LR.refGender||'ז',rawVal);
-  el.textContent=score!==null?score:'—';
+  const grade=LR.refGrade||'ט',gender=LR.refGender||'ז';
+  const score=getScore(LR.testId,grade,gender,rawVal);
+  if(score===null){el.innerHTML='—';if(lb)lb.style.display='none';return;}
+  const nextG=(score===100)?_nextGradeScore(LR.testId,grade,gender,rawVal):null;
+  el.innerHTML=score+(nextG?`<div style="font-size:11px;color:#f59e0b;line-height:1.2;margin-top:2px;">\u{1F52D} ב${nextG.grade}׳: ${nextG.score}</div>`:'');
   if(lb)lb.style.display='';
 }
 
@@ -9285,14 +9286,7 @@ function lrFilterGrid(){
   });
 }
 
-function setLrRound(round){
-  LR.round=round;const isB=round==='b';
-  ['a','b'].forEach(r=>{
-    const btn=document.getElementById('lr-round-'+r+'-btn');if(!btn)return;
-    btn.style.background=r===round?'var(--ac)':'rgba(255,255,255,.1)';
-    btn.style.color=r===round?'#fff':'rgba(255,255,255,.5)';
-  });
-}
+function setLrRound(){}
 
 function lrSaveAll(silent){
   let saved=0;
@@ -9606,14 +9600,7 @@ function metroSaveAll(silent){
   document.getElementById('metro-save-row').style.display='none';
 }
 
-function setMetroRound(round){
-  MTR.round=round;
-  ['a','b'].forEach(r=>{
-    const btn=document.getElementById('metro-round-'+r);if(!btn)return;
-    btn.style.background=r===round?'var(--ac)':'rgba(255,255,255,.1)';
-    btn.style.color=r===round?'#fff':'rgba(255,255,255,.5)';
-  });
-}
+function setMetroRound(){}
 
 function openMetronome(){
   const students=S.groups[CUR.gid]?.students||[];
@@ -9924,7 +9911,7 @@ function blSaveAllFull(){
   });
   saveState();
   if(CUR.gid===gid&&CUR.test==='beep')renderTable();
-  toast(`✓ ${saved} תוצאות ביפ נשמרו ל${BL.round==='b'?'מועד ב׳':'מועד א׳'}`);
+  toast(`✓ ${saved} תוצאות ביפ נשמרו`);
 }
 
 function writeResultToGroup(gid,studentIdx,testId,rawVal,round){
@@ -10233,14 +10220,7 @@ function rgAddResult(name,testId,result,gender,grade){
 }
 
 // ── Beep live for random group ─────────────────────────────────
-function rgUpdateInputMode(){
-  const testId=document.getElementById('rg-test-sel')?.value||'beep';
-  const T=getTbl(testId);
-  const isTime=T.isTime;const isSeconds=T.isSeconds;
-  const mode=(T.lb||isTime||isSeconds)?'decimal':'numeric';
-  const el=document.getElementById('rg-result');
-  if(el)el.inputMode=mode;
-}
+function rgUpdateInputMode(){}
 function rgStartTest(testId){
   // Store context so we know this is random mode
   RG.testId=testId;
@@ -10680,12 +10660,13 @@ function _confirmMerge(){
   if(!srcGid)return;
   const gA=S.groups[CUR.gid];const gB=S.groups[srcGid];
   if(!gA||!gB)return;
-  // Save backup for reversibility
+  // Save backup for split (includes full gB snapshot)
   gA._mergeBackup={
     sourceGid:srcGid,sourceName:gB.name,
     originalStudents:JSON.parse(JSON.stringify(gA.students)),
     originalResults:JSON.parse(JSON.stringify(gA.results||{})),
     originalResultsB:JSON.parse(JSON.stringify(gA.results_b||{})),
+    sourceGroup:JSON.parse(JSON.stringify(gB)),
     mergedAt:Date.now()
   };
   const nameMapA=new Map();
@@ -10722,23 +10703,27 @@ function _confirmMerge(){
     }
   });
   gA.classes=[...new Set(gA.students.map(s=>`${s.grade}${s.cls}`))].sort((a,b)=>a.localeCompare(b,'he')).join(', ');
+  delete S.groups[srcGid];
   closeModal('merge-group-modal');
   saveState();renderGroupEditView();
   toast(`✓ מוזג — ${overlap} חופפים, ${added} תלמידים חדשים נוספו`);
 }
 
-function geUnmergeGroup(){
+function geSplitGroup(){
   const gid=CUR.gid;const g=S.groups[gid];
   if(!g?._mergeBackup)return;
   const b=g._mergeBackup;
-  if(!confirm(`לבטל את המיזוג עם "${b.sourceName}" ולשחזר את הקבוצה?`))return;
+  if(!confirm(`לפצל את הקבוצות? הקבוצה תחזור למצבה לפני המיזוג, וקבוצת "${b.sourceName}" תשוחזר.`))return;
   g.students=b.originalStudents;
   g.results=b.originalResults;
   g.results_b=b.originalResultsB;
   delete g._mergeBackup;
   g.classes=[...new Set(g.students.map(s=>`${s.grade}${s.cls}`))].sort((a,b)=>a.localeCompare(b,'he')).join(', ');
+  if(b.sourceGroup){
+    S.groups[b.sourceGid]=b.sourceGroup;
+  }
   saveState();renderGroupEditView();
-  toast('↩ מיזוג בוטל — הקבוצה שוחזרה');
+  toast(`✂ פוצל — קבוצת "${b.sourceName}" שוחזרה`);
 }
 
 // ── MASTER DRAG & DROP ──────────────────────────────────────────
@@ -13215,7 +13200,7 @@ function openTournamentManager(){
           <div style="display:flex;gap:10px;align-items:flex-start;"><span style="background:rgba(249,115,22,.2);color:#fb923c;border-radius:50%;width:22px;height:22px;display:flex;align-items:center;justify-content:center;font-weight:800;flex-shrink:0;font-size:12px;">1</span><span><b style="color:#fff;">צור קבוצה</b> — לחץ "+ קבוצה חדשה" בדף הבית. העלה קובץ Excel (עמודות: שם, מין, כיתה) או הוסף תלמידים ידנית.</span></div>
           <div style="display:flex;gap:10px;align-items:flex-start;"><span style="background:rgba(249,115,22,.2);color:#fb923c;border-radius:50%;width:22px;height:22px;display:flex;align-items:center;justify-content:center;font-weight:800;flex-shrink:0;font-size:12px;">2</span><span><b style="color:#fff;">בחר מחצית</b> — א׳ או ב׳. כל מחצית שמורה בנפרד; ניתן לעבור ביניהן בכל עת.</span></div>
           <div style="display:flex;gap:10px;align-items:flex-start;"><span style="background:rgba(249,115,22,.2);color:#fb923c;border-radius:50%;width:22px;height:22px;display:flex;align-items:center;justify-content:center;font-weight:800;flex-shrink:0;font-size:12px;">3</span><span><b style="color:#fff;">בחר מבחן</b> — לחץ על לשונית המבחן הרצוי (מקבצים ניתן לפתוח/לסגור).</span></div>
-          <div style="display:flex;gap:10px;align-items:flex-start;"><span style="background:rgba(249,115,22,.2);color:#fb923c;border-radius:50%;width:22px;height:22px;display:flex;align-items:center;justify-content:center;font-weight:800;flex-shrink:0;font-size:12px;">4</span><span><b style="color:#fff;">הזן תוצאות</b> — בשדה מועד א׳ לכל תלמיד. הזן ביצוע גולמי (שניות, כמות חזרות, מ׳) — הציון מחושב אוטומטית.</span></div>
+          <div style="display:flex;gap:10px;align-items:flex-start;"><span style="background:rgba(249,115,22,.2);color:#fb923c;border-radius:50%;width:22px;height:22px;display:flex;align-items:center;justify-content:center;font-weight:800;flex-shrink:0;font-size:12px;">4</span><span><b style="color:#fff;">הזן תוצאות</b> — בשדה ההזנה לכל תלמיד. הזן ביצוע גולמי (שניות, כמות חזרות, מ׳) — הציון מחושב אוטומטית.</span></div>
           <div style="display:flex;gap:10px;align-items:flex-start;"><span style="background:rgba(249,115,22,.2);color:#fb923c;border-radius:50%;width:22px;height:22px;display:flex;align-items:center;justify-content:center;font-weight:800;flex-shrink:0;font-size:12px;">5</span><span><b style="color:#fff;">ייצא ל-Excel</b> — גלול לתחתית הטבלה ולחץ "ייצא כל המבחנים" לקבלת גיליון מלא.</span></div>
         </div>
       </div>
@@ -13227,10 +13212,9 @@ function openTournamentManager(){
         <span>📋</span> הזנת תוצאות
       </summary>
       <div style="margin-top:10px;font-size:13px;color:rgba(255,255,255,.65);line-height:2;">
-        <b style="color:#fff;">הזנה ידנית:</b> לחץ על שדה מועד א׳ לתלמיד → הזן ערך גולמי → Enter. הציון מחושב ומוצג מיד.<br>
+        <b style="color:#fff;">הזנה ידנית:</b> לחץ על שדה ההזנה לתלמיד → הזן ערך גולמי → Enter. הציון מחושב ומוצג מיד.<br>
         <b style="color:#fff;">הזנה מהירה (⚡):</b> כתוב "שם תוצאה" בשורת הטקסט הצהובה — לדוגמה <b style="color:#fb923c;">כהן 28</b> — ולחץ Enter. המערכת מאתרת את התלמיד לפי שם ושומרת. מספר תלמידים בשורה אחת: <b style="color:#fb923c;">כהן 28, לוי 31</b>.<br>
         <b style="color:#fff;">בונוס:</b> ניתן להוסיף % בונוס לכל תלמיד (לדוגמה: ניסיון ראשון, מאמץ יוצא דופן). הציון הסופי לא יעלה על 100.<br>
-        <b style="color:#fff;">מועד ב׳:</b> הציון לתעודה = max(מועד א׳, מועד ב׳). שיפור מוצג בירוק, ירידה באדום.<br>
         <b style="color:#fff;">השלמות:</b> לשונית "השלמת מבחנים" מציגה רשימת תלמידים ללא ציון לפי מבחן — נוח לאחר שיעורים.
       </div>
     </details>
