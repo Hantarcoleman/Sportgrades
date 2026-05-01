@@ -1957,6 +1957,13 @@ history.pushState(null,'',location.href);
       <div class="slbl">80</div><input class="sgi" type="number" id="cm-v80m" placeholder=""><input class="sgi" type="number" id="cm-v80f" placeholder="">
       <div class="slbl">70</div><input class="sgi" type="number" id="cm-v70m" placeholder=""><input class="sgi" type="number" id="cm-v70f" placeholder="">
       <div class="slbl">60</div><input class="sgi" type="number" id="cm-v60m" placeholder="חובה"><input class="sgi" type="number" id="cm-v60f" placeholder="">
+      <div style="grid-column:1/-1;font-size:10px;color:var(--ink3);padding:2px 0 2px 2px;border-top:1px dashed var(--bd);margin-top:2px;">ציונים נמוכים — ריק = חישוב אוטומטי לפי המגמה</div>
+      <div class="slbl" style="opacity:.6;">50</div><input class="sgi" type="number" id="cm-v50m" placeholder=""><input class="sgi" type="number" id="cm-v50f" placeholder="">
+      <div class="slbl" style="opacity:.6;">40</div><input class="sgi" type="number" id="cm-v40m" placeholder=""><input class="sgi" type="number" id="cm-v40f" placeholder="">
+      <div class="slbl" style="opacity:.6;">30</div><input class="sgi" type="number" id="cm-v30m" placeholder=""><input class="sgi" type="number" id="cm-v30f" placeholder="">
+      <div class="slbl" style="opacity:.6;">20</div><input class="sgi" type="number" id="cm-v20m" placeholder=""><input class="sgi" type="number" id="cm-v20f" placeholder="">
+      <div class="slbl" style="opacity:.6;">10</div><input class="sgi" type="number" id="cm-v10m" placeholder=""><input class="sgi" type="number" id="cm-v10f" placeholder="">
+      <div class="slbl" style="opacity:.6;">0</div><input class="sgi" type="number" id="cm-v0m" placeholder=""><input class="sgi" type="number" id="cm-v0f" placeholder="">
     </div>
   </div>
   <div id="cm-preview" style="display:none;margin-top:12px;">
@@ -4318,7 +4325,7 @@ function openCustomModal(editId){
     // Restore per-grade anchor inputs from saved tables
     for(const[grade,gd]of Object.entries(ct.tablesByGrade)){
       const entry={};
-      for(const sc of[100,90,80,70,60]){
+      for(const sc of[100,90,80,70,60,50,40,30,20,10,0]){
         const mp=gd.table?.find(([,s])=>Math.round(s)===sc);
         const fp=gd.tablef?.find(([,s])=>Math.round(s)===sc);
         entry['m'+sc]=mp?(isTimeEdit?fmtTime(mp[0]):String(mp[0])):'';
@@ -4338,7 +4345,7 @@ function openCustomModal(editId){
     _loadGradeInputs(firstGrade);
   } else {
     // Load flat table values
-    for(const sc of[100,90,80,70,60]){
+    for(const sc of[100,90,80,70,60,50,40,30,20,10,0]){
       const mp=ct?.table?.find(([,s])=>Math.round(s)===sc);
       const fp=ct?.tablef?.find(([,s])=>Math.round(s)===sc);
       document.getElementById('cm-v'+sc+'m').value=mp?(isTimeEdit?fmtTime(mp[0]):mp[0]):'';
@@ -4404,7 +4411,7 @@ function _setActiveGradeTab(grade){
 function _saveGradeInputs(grade){
   if(!grade)return;
   const entry={};
-  for(const sc of[100,90,80,70,60]){
+  for(const sc of[100,90,80,70,60,50,40,30,20,10,0]){
     entry['m'+sc]=document.getElementById('cm-v'+sc+'m')?.value||'';
     entry['f'+sc]=document.getElementById('cm-v'+sc+'f')?.value||'';
   }
@@ -4413,7 +4420,7 @@ function _saveGradeInputs(grade){
 
 function _loadGradeInputs(grade){
   const entry=grade?(_gradeAnchors[grade]||{}):{};
-  for(const sc of[100,90,80,70,60]){
+  for(const sc of[100,90,80,70,60,50,40,30,20,10,0]){
     const m=document.getElementById('cm-v'+sc+'m');const f=document.getElementById('cm-v'+sc+'f');
     if(m)m.value=entry['m'+sc]||'';if(f)f.value=entry['f'+sc]||'';
   }
@@ -4425,7 +4432,7 @@ function _getGradeSpecificTables(lb){
   for(const grade of _GRADES){
     const entry=_gradeAnchors[grade]||{};
     const mA=[],fA=[];
-    for(const sc of[100,90,80,70,60]){
+    for(const sc of[100,90,80,70,60,50,40,30,20,10,0]){
       const mv=entry['m'+sc];const fv=entry['f'+sc];
       if(mv!==undefined&&mv!==''){const v=isTime?parseTime(mv):parseFloat(mv);if(v!==null&&!isNaN(v))mA.push([sc,v]);}
       if(fv!==undefined&&fv!==''){const v=isTime?parseTime(fv):parseFloat(fv);if(v!==null&&!isNaN(v))fA.push([sc,v]);}
@@ -4439,7 +4446,7 @@ function toggleCustomUnit(){
   const v=document.getElementById('cm-unit').value;
   document.getElementById('cm-custom-unit-wrap').style.display=v==='מדד אחר'?'block':'none';
   const isTime=v==='דקות-';
-  for(const sc of[100,90,80,70,60]){
+  for(const sc of[100,90,80,70,60,50,40,30,20,10,0]){
     for(const sfx of['m','f']){
       const el=document.getElementById(`cm-v${sc}${sfx}`);if(!el)continue;
       el.type=isTime?'text':'number';
@@ -4452,7 +4459,7 @@ function toggleCustomUnit(){
 function getCustomAnchors(sfx){
   const isTime=document.getElementById('cm-unit').value==='דקות-';
   const res=[];
-  for(const sc of[100,90,80,70,60]){
+  for(const sc of[100,90,80,70,60,50,40,30,20,10,0]){
     const raw=document.getElementById(`cm-v${sc}${sfx}`).value.trim();
     if(raw==='')continue;
     const v=isTime?parseTime(raw):parseFloat(raw);
@@ -4478,10 +4485,12 @@ function buildCustomTable(anchors,lb){
     if(hi&&lo){const r=(sc-lo[0])/(hi[0]-lo[0]);known[sc]=lo[1]+r*(hi[1]-lo[1]);}
   }
 
-  // Extrapolate below 60 with same step as 70→60
+  // Fill missing below 60 by extrapolating step from 70→60
   if(known[60]!==undefined&&known[70]!==undefined){
-    const step=known[60]-known[70]; // per 10 score points
-    for(const sc of[50,40,30,20,10,0]){known[sc]=known[sc+10]+step;}
+    const step=known[60]-known[70];
+    for(const sc of[50,40,30,20,10,0]){
+      if(known[sc]===undefined)known[sc]=known[sc+10]+step;
+    }
   }
 
   // Convert to [[value, score]] format, clamping negatives for lb=false
