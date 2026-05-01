@@ -4654,7 +4654,7 @@ function _mashovParseStructure(rows){
   const cId=find('ת.ז');
   const cName=find('שם התלמיד','שם');
   const cGrade=find('שכבה');
-  const cCls=find('כיתה');
+  const cCls=find('כיתה','מקבילה');
   const cScoreNum=find('ציון מספרי','ציון');
   const cScoreText=find('ציון מילולי');
   const cNote=find('הערה');
@@ -4835,55 +4835,36 @@ async function exportMashov(arrBuf, originalFileName, gid, testId, semester){
     return { ...m, score };
   });
 
-  // 3) Build NEW workbook containing only matched rows
-  // If this is an alphon (no ציון column), add one to the right of the header
-  let scoreCol=struct.cScoreNum;
-  const isAlphon=scoreCol<0;
-  if(isAlphon){
-    const headerRow=(sourceRows[struct.headerRow]||[]).slice();
-    scoreCol=headerRow.length;
-    headerRow.push('ציון מספרי');
-    // Replace the header row in sourceRows (work on a copy)
-    const patchedRows=sourceRows.map((r,i)=>i===struct.headerRow?headerRow:r);
-    sourceRows.splice(0,sourceRows.length,...patchedRows);
-  }
-  const newRows=[];
-  // 3a) Pre-header rows (title, blank lines, etc.)
-  for(let i=0; i<=struct.headerRow; i++){
-    newRows.push((sourceRows[i]||[]).slice());
-  }
-  // 3b) Filtered + renumbered data rows
-  enrichedMatches.forEach((m, i)=>{
-    const sourceRow=(sourceRows[m.entry.rowIdx]||[]).slice();
-    sourceRow[0] = i+1; // re-number "מס'" sequentially
-    if(m.score!=null && !Number.isNaN(m.score)){
-      sourceRow[scoreCol] = m.score;
-    }else{
-      sourceRow[scoreCol] = '';
-    }
-    newRows.push(sourceRow);
+  // 3) Build standard-format output workbook (always 8 columns, regardless of input file type)
+  const titleVal=String((sourceRows[0]||[])[0]||'').trim()||`ייצוא ציונים — ${g.name||'קבוצה'}`;
+  const newRows=[
+    [titleVal,'','','','','','',''],
+    ['','','','','','','',''],
+    ["מס'",'ת.ז התלמיד','שם התלמיד','שכבה','כיתה','ציון מספרי','ציון מילולי','הערה חופשית'],
+  ];
+  enrichedMatches.forEach((m,i)=>{
+    const s=g.students[m.studentIdx];
+    newRows.push([
+      i+1,
+      m.entry.id||'',
+      m.entry.name||s.name||'',
+      s.grade||m.entry.grade||'',
+      s.cls||m.entry.cls||'',
+      (m.score!=null&&!Number.isNaN(m.score))?m.score:'',
+      '',
+      '',
+    ]);
   });
-  // 3c) Average row (if present in source)
-  if(struct.avgRow>=0){
-    const avgRow=(sourceRows[struct.avgRow]||[]).slice();
-    if(filledScores.length){
-      avgRow[scoreCol] = Math.round((filledScores.reduce((a,b)=>a+b,0)/filledScores.length)*100)/100;
-    }else{
-      avgRow[scoreCol] = '';
-    }
-    newRows.push(avgRow);
+  if(filledScores.length){
+    const avg=Math.round((filledScores.reduce((a,b)=>a+b,0)/filledScores.length)*100)/100;
+    newRows.push(['ממוצע','','','','',avg,'','']);
   }
 
   const newWs=XLSX.utils.aoa_to_sheet(newRows);
-  // Try to preserve column widths from source
-  if(data.ws['!cols']) newWs['!cols']=data.ws['!cols'];
-  // Preserve merges that fall in pre-header range (title spans, etc.)
-  if(Array.isArray(data.ws['!merges'])){
-    const validMerges=data.ws['!merges'].filter(m=>m.s.r<=struct.headerRow && m.e.r<=struct.headerRow);
-    if(validMerges.length) newWs['!merges']=validMerges;
-  }
+  // Fixed column widths matching Mashov format
+  newWs['!cols']=[{wch:5},{wch:14},{wch:22},{wch:7},{wch:7},{wch:12},{wch:14},{wch:20}];
   const newWb=XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(newWb, newWs, data.sheetName||'ציונים');
+  XLSX.utils.book_append_sheet(newWb, newWs, 'ציונים');
 
   // 4) Persist any newly-attached hashes to Supabase (and to localStorage)
   saveState();
