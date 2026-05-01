@@ -852,6 +852,33 @@ async function sbSignOut() {
 // המפה idHash → {name, id} חיה רק ב-localStorage המקומי.
 
 const ID_MAP_LS = 'sg_id_map_v1';
+const MASHOV_TMPL_LS = 'sg_mashov_tmpl_v1';
+
+function _mashovTmplSave(gid, fileName, arrBuf){
+  try{
+    const bytes=new Uint8Array(arrBuf);
+    const bin=Array.from(bytes,b=>String.fromCharCode(b)).join('');
+    const key=MASHOV_TMPL_LS+'_'+gid;
+    localStorage.setItem(key,JSON.stringify({fileName,data:btoa(bin),savedAt:Date.now()}));
+  }catch(e){
+    console.error('שגיאה בשמירת תבנית משו"ב:',e);
+    toast('⚠ לא הצלחנו לשמור את הקובץ בזיכרון. תצטרך להעלות מחדש בפעם הבאה.');
+  }
+}
+function _mashovTmplLoad(gid){
+  try{
+    const key=MASHOV_TMPL_LS+'_'+gid;
+    const raw=localStorage.getItem(key);if(!raw)return null;
+    const e=JSON.parse(raw);if(!e||!e.data)return null;
+    const bin=atob(e.data);
+    const bytes=new Uint8Array(bin.length);
+    for(let i=0;i<bin.length;i++) bytes[i]=bin.charCodeAt(i);
+    return{fileName:e.fileName,arrBuf:bytes.buffer,savedAt:e.savedAt};
+  }catch(e){return null;}
+}
+function _mashovTmplClear(gid){
+  try{ localStorage.removeItem(MASHOV_TMPL_LS+'_'+gid); }catch(e){}
+}
 
 function _bytesToHex(bytes){
   let s=''; for(let i=0;i<bytes.length;i++) s+=bytes[i].toString(16).padStart(2,'0');
@@ -1346,9 +1373,10 @@ history.pushState(null,'',location.href);
       </div>
       <div style="display:flex;gap:8px;flex-wrap:wrap;">
         <button class="btn bg2 bsm" onclick="openAddModal()">+ הוסף תלמיד</button>
+        <button class="btn bg2 bsm" onclick="openUpdateGroupForCurrent()" title="הוסף תלמידים חדשים מאלפון מעודכן">📥 עדכן מאלפון</button>
         <button class="btn bg2 bsm" onclick="geRenameGroup()">✏ שנה שם</button>
         <button class="btn bg2 bsm" onclick="openMergeModal()">🔗 מזג קבוצה</button>
-        <button class="btn bsm" id="ge-unmerge-btn" style="display:none;background:rgba(251,191,36,.08);border:1px solid rgba(251,191,36,.3);color:#fbbf24;" onclick="geUnmergeGroup()">↩ בטל מיזוג</button>
+        <button class="btn bsm" id="ge-unmerge-btn" style="display:none;background:rgba(251,191,36,.08);border:1px solid rgba(251,191,36,.3);color:#fbbf24;" onclick="geSplitGroup()">✂ פצל קבוצות</button>
         <button class="btn bsm" style="background:rgba(248,113,113,.1);border:1px solid rgba(248,113,113,.25);color:#f87171;" onclick="geDeleteGroup()">🗑 מחק קבוצה</button>
         <button class="btn bg2 bsm" onclick="showView('group')">← חזור לציונים</button>
       </div>
@@ -1375,8 +1403,8 @@ history.pushState(null,'',location.href);
 <!-- MERGE GROUPS MODAL -->
 <div class="mbg" id="merge-group-modal"><div class="mod mod-wide" onclick="event.stopPropagation()">
   <div class="mt">🔗 מיזוג קבוצות</div>
-  <div class="ms">כל תלמידי הקבוצה הנבחרת יתווספו לקבוצה: <b id="mg-cur-name"></b><br>
-    <span style="font-size:11px;color:var(--ink3);">עבור תלמידים חופפים — יישמר הציון הגבוה בכל מבחן · הפעולה הפיכה</span>
+  <div class="ms">הציונים ישוזרו לקבוצה החדשה יותר; הישנה תימחק.<br>
+    <span style="font-size:11px;color:var(--ink3);">עבור תלמידים חופפים — יישמר הציון הגבוה בכל מבחן · ניתן לפצל בחזרה בכפתור "פצל קבוצות"</span>
   </div>
   <div class="fg" style="margin-top:14px;">
     <label class="fl">קבוצה שתמוזג לתוך הנוכחית:</label>
@@ -1608,11 +1636,6 @@ history.pushState(null,'',location.href);
       <button class="bl-btn bl-undo" id="lr-undo-btn" onclick="lrUndo()" disabled>↩ בטל</button>
       <button class="lr-reset-btn" id="lr-reset-btn" onclick="lrConfirmReset()">🔄 איפוס שעון</button>
       <button class="bl-btn" onclick="closeLongRunLive()" style="background:rgba(255,80,80,.15);border:1px solid rgba(255,80,80,.3);color:#ff8080;font-size:12px;margin-right:4px;">✕ יציאה</button>
-      <div style="display:flex;align-items:center;gap:6px;margin-right:auto;">
-        <span style="font-size:11px;color:rgba(255,255,255,.4);">הזנה ל:</span>
-        <button id="lr-round-a-btn" onclick="setLrRound('a')" style="padding:3px 10px;border-radius:20px;border:none;cursor:pointer;font-family:'Heebo',sans-serif;font-size:11px;font-weight:700;background:var(--ac);color:#fff;">מועד א׳</button>
-        <button id="lr-round-b-btn" onclick="setLrRound('b')" style="padding:3px 10px;border-radius:20px;border:none;cursor:pointer;font-family:'Heebo',sans-serif;font-size:11px;font-weight:700;background:rgba(255,255,255,.1);color:rgba(255,255,255,.5);">מועד ב׳</button>
-      </div>
 
     </div>
     <!-- Body -->
@@ -1709,12 +1732,6 @@ history.pushState(null,'',location.href);
       <button onclick="metroAdjust(-1)" style="background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.15);color:#fff;border-radius:8px;padding:6px 14px;cursor:pointer;font-family:'Heebo',sans-serif;font-size:13px;font-weight:700;">−½ חז׳</button>
       <span style="font-size:11px;color:rgba(255,255,255,.3);">תיקון ספירה</span>
       <button onclick="metroAdjust(1)" style="background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.15);color:#fff;border-radius:8px;padding:6px 14px;cursor:pointer;font-family:'Heebo',sans-serif;font-size:13px;font-weight:700;">+½ חז׳</button>
-    </div>
-    <!-- Round selector -->
-    <div style="display:flex;align-items:center;justify-content:center;gap:8px;margin-bottom:12px;">
-      <span style="color:rgba(255,255,255,.4);font-size:12px;">הזנה ל:</span>
-      <button id="metro-round-a" onclick="setMetroRound('a')" style="padding:3px 12px;border-radius:20px;border:none;cursor:pointer;font-family:'Heebo',sans-serif;font-size:12px;font-weight:700;background:var(--ac);color:#fff;">מועד א׳</button>
-      <button id="metro-round-b" onclick="setMetroRound('b')" style="padding:3px 12px;border-radius:20px;border:none;cursor:pointer;font-family:'Heebo',sans-serif;font-size:12px;font-weight:700;background:rgba(255,255,255,.1);color:rgba(255,255,255,.5);">מועד ב׳</button>
     </div>
 
     <!-- Splits -->
@@ -1836,7 +1853,13 @@ history.pushState(null,'',location.href);
   </div>
   <div class="fg" style="margin-top:8px;">
     <label class="fl">קובץ משו״ב (.xlsx)</label>
-    <div style="display:flex;gap:8px;align-items:center;">
+    <div id="mashov-cached-row" style="display:none;margin-bottom:4px;">
+      <div style="display:flex;align-items:center;gap:8px;padding:7px 10px;background:rgba(34,197,94,.08);border:1px solid rgba(34,197,94,.2);border-radius:8px;font-size:13px;">
+        <span style="color:#16a34a;flex:1;">📋 <b id="mashov-cached-name"></b> <span id="mashov-cached-date" style="color:var(--ink3);font-size:11px;margin-right:4px;"></span></span>
+        <button type="button" class="btn bg2 bsm" onclick="_mashovReplaceTemplate()">🔄 החלף</button>
+      </div>
+    </div>
+    <div id="mashov-file-row" style="display:flex;gap:8px;align-items:center;">
       <button type="button" class="btn bs bsm" onclick="document.getElementById('mashov-file-input').click()">📁 בחר קובץ</button>
       <span id="mashov-fname" style="font-size:13px;color:var(--ink2);">לא נבחר קובץ</span>
     </div>
@@ -1967,6 +1990,13 @@ history.pushState(null,'',location.href);
       <div class="slbl">80</div><input class="sgi" type="number" id="cm-v80m" placeholder=""><input class="sgi" type="number" id="cm-v80f" placeholder="">
       <div class="slbl">70</div><input class="sgi" type="number" id="cm-v70m" placeholder=""><input class="sgi" type="number" id="cm-v70f" placeholder="">
       <div class="slbl">60</div><input class="sgi" type="number" id="cm-v60m" placeholder="חובה"><input class="sgi" type="number" id="cm-v60f" placeholder="">
+      <div style="grid-column:1/-1;font-size:10px;color:var(--ink3);padding:2px 0 2px 2px;border-top:1px dashed var(--bd);margin-top:2px;">ציונים נמוכים — ריק = חישוב אוטומטי לפי המגמה</div>
+      <div class="slbl" style="opacity:.6;">50</div><input class="sgi" type="number" id="cm-v50m" placeholder=""><input class="sgi" type="number" id="cm-v50f" placeholder="">
+      <div class="slbl" style="opacity:.6;">40</div><input class="sgi" type="number" id="cm-v40m" placeholder=""><input class="sgi" type="number" id="cm-v40f" placeholder="">
+      <div class="slbl" style="opacity:.6;">30</div><input class="sgi" type="number" id="cm-v30m" placeholder=""><input class="sgi" type="number" id="cm-v30f" placeholder="">
+      <div class="slbl" style="opacity:.6;">20</div><input class="sgi" type="number" id="cm-v20m" placeholder=""><input class="sgi" type="number" id="cm-v20f" placeholder="">
+      <div class="slbl" style="opacity:.6;">10</div><input class="sgi" type="number" id="cm-v10m" placeholder=""><input class="sgi" type="number" id="cm-v10f" placeholder="">
+      <div class="slbl" style="opacity:.6;">0</div><input class="sgi" type="number" id="cm-v0m" placeholder=""><input class="sgi" type="number" id="cm-v0f" placeholder="">
     </div>
   </div>
   <div id="cm-preview" style="display:none;margin-top:12px;">
@@ -2064,15 +2094,6 @@ history.pushState(null,'',location.href);
       <button class="bl-btn" onclick="blAdjustTiming(500)" style="background:rgba(255,255,255,.07);color:rgba(255,255,255,.6);border:1px solid rgba(255,255,255,.1);font-size:11px;">תיקון דיליי +½ שנ׳</button>
       <button class="bl-btn" onclick="closeBeepLive()" style="background:rgba(255,80,80,.15);border:1px solid rgba(255,80,80,.3);color:#ff8080;font-size:12px;">✕ יציאה מהמבחן</button>
     </div>
-    <!-- Round B toggle for beep -->
-    <div style="display:flex;align-items:center;gap:8px;padding:6px 16px;background:rgba(91,33,182,.08);border-bottom:1px solid rgba(91,33,182,.12);flex-shrink:0;">
-      <span style="font-size:12px;color:rgba(255,255,255,.5);">הזנה ל:</span>
-      <button id="bl-round-a-btn" onclick="setBeepRound('a')"
-        style="padding:4px 14px;border-radius:20px;border:none;cursor:pointer;font-family:'Heebo',sans-serif;font-size:12px;font-weight:700;background:var(--ac);color:#fff;transition:all .15s;">מועד א׳</button>
-      <button id="bl-round-b-btn" onclick="setBeepRound('b')"
-        style="padding:4px 14px;border-radius:20px;border:none;cursor:pointer;font-family:'Heebo',sans-serif;font-size:12px;font-weight:700;background:rgba(255,255,255,.1);color:rgba(255,255,255,.5);transition:all .15s;">מועד ב׳</button>
-      <span style="font-size:11px;color:rgba(255,255,255,.3);margin-right:4px;">הציון הגבוה יישמר תמיד</span>
-    </div>
 
     <!-- Body: active grid + eliminated list -->
     <div class="bl-body">
@@ -2137,15 +2158,6 @@ history.pushState(null,'',location.href);
       <button class="tc-btn tc-stop" id="tc-stop" onclick="timerStop()" style="display:none;">■ עצור</button>
       <button class="tc-btn tc-reset" id="tc-reset" onclick="timerReset()" style="display:none;">🔄 איפוס שעון</button>
       <button class="tc-btn" onclick="closeTimer()" style="background:rgba(255,80,80,.15);border:1px solid rgba(255,80,80,.3);color:#ff8080;font-size:12px;">✕ סגור</button>
-    </div>
-    <!-- Round B toggle -->
-    <div style="display:flex;align-items:center;gap:8px;padding:6px 16px;background:rgba(91,33,182,.08);border-bottom:1px solid rgba(91,33,182,.12);">
-      <span style="font-size:12px;color:rgba(255,255,255,.5);">הזנה ל:</span>
-      <button id="tmr-round-a-btn" onclick="setTimerRound('a')"
-        style="padding:4px 14px;border-radius:20px;border:none;cursor:pointer;font-family:'Heebo',sans-serif;font-size:12px;font-weight:700;background:var(--ac);color:#fff;transition:all .15s;">מועד א׳</button>
-      <button id="tmr-round-b-btn" onclick="setTimerRound('b')"
-        style="padding:4px 14px;border-radius:20px;border:none;cursor:pointer;font-family:'Heebo',sans-serif;font-size:12px;font-weight:700;background:rgba(255,255,255,.1);color:rgba(255,255,255,.5);transition:all .15s;">מועד ב׳</button>
-      <span style="font-size:11px;color:rgba(255,255,255,.3);margin-right:4px;">הציון הגבוה יישמר תמיד</span>
     </div>
     <div id="timer-plank-note" style="display:none;font-size:12px;color:rgba(255,255,255,.4);padding:6px 16px;background:rgba(124,58,237,.08);border-bottom:1px solid rgba(124,58,237,.15);">
       💡 פלנק — בלחיצה על "עצור" ייפתחו 8 שורות עם הזמן הנוכחי, עבור תלמידים שהמשיכו עד סוף הזמן. מלא את שמותיהם ולחץ שמור.
@@ -2835,6 +2847,22 @@ function spCls(s){
   if(s===null)return 'spn';if(s>=100)return 'sp100';
   if(s>=80)return 'sph';if(s>=60)return 'spm';if(s>0)return 'spl';return 'sp0';
 }
+// מחזיר את הציון שהיה מקבל בשכבה הגבוהה הבאה שבה הציון < 100
+// (למבחנים מובנים בלבד; null אם לא רלוונטי)
+function _nextGradeScore(testId,grade,gender,rawVal){
+  const order=['ז','ח','ט','י','יא','יב'];
+  const T=getTbl(testId);
+  if(!T||!T.grades)return null;
+  const idx=order.indexOf(grade);
+  if(idx<0||idx>=order.length-1)return null;
+  for(let i=idx+1;i<order.length;i++){
+    if(!T.grades[order[i]])continue;
+    const s=getScore(testId,order[i],gender,rawVal);
+    if(s!==null&&s<100)return{grade:order[i],score:s};
+  }
+  return null;
+}
+
 // Bonus: % of score (50 + 10% = 55)
 function calcFinal(base,bonusPct,bonusPts){
   if(base===null)return null;
@@ -3643,7 +3671,6 @@ function renderTable(){
     const sBh=!hasResult?'<span class="spn" style="opacity:.25;">—</span>':(sB===null?'<span class="spn">—</span>':`<span class="sp ${spCls(sB)}">${sB}</span>`);
     const fh=!hasResult?'<span class="spn" style="opacity:.2;">—</span>':(gradeScore===null?'<span class="spn">—</span>':gradeScoreIsInherited?`<span class="sp spf spf-inh" title="ציון ממחצית א׳ — טרם הוזנה תוצאה במחצית ב׳">${gradeScore}</span>`:`<span class="sp spf">${gradeScore}</span>`);
     const rc=(isTime||isSeconds)?'ri ri-t':'ri';
-    const inputMode=(T.lb||isTime||isSeconds)?'decimal':'numeric';
     const bonA=`
       <div class="bonw"><span class="bonl">בונוס %:</span>
         <input type="number" class="boni" min="0" max="50" value="${d.bonusA||0}" data-idx="${idx}" data-f="bonusA" onchange="onFC(event)">
@@ -4331,7 +4358,7 @@ function openCustomModal(editId){
     // Restore per-grade anchor inputs from saved tables
     for(const[grade,gd]of Object.entries(ct.tablesByGrade)){
       const entry={};
-      for(const sc of[100,90,80,70,60]){
+      for(const sc of[100,90,80,70,60,50,40,30,20,10,0]){
         const mp=gd.table?.find(([,s])=>Math.round(s)===sc);
         const fp=gd.tablef?.find(([,s])=>Math.round(s)===sc);
         entry['m'+sc]=mp?(isTimeEdit?fmtTime(mp[0]):String(mp[0])):'';
@@ -4351,7 +4378,7 @@ function openCustomModal(editId){
     _loadGradeInputs(firstGrade);
   } else {
     // Load flat table values
-    for(const sc of[100,90,80,70,60]){
+    for(const sc of[100,90,80,70,60,50,40,30,20,10,0]){
       const mp=ct?.table?.find(([,s])=>Math.round(s)===sc);
       const fp=ct?.tablef?.find(([,s])=>Math.round(s)===sc);
       document.getElementById('cm-v'+sc+'m').value=mp?(isTimeEdit?fmtTime(mp[0]):mp[0]):'';
@@ -4417,7 +4444,7 @@ function _setActiveGradeTab(grade){
 function _saveGradeInputs(grade){
   if(!grade)return;
   const entry={};
-  for(const sc of[100,90,80,70,60]){
+  for(const sc of[100,90,80,70,60,50,40,30,20,10,0]){
     entry['m'+sc]=document.getElementById('cm-v'+sc+'m')?.value||'';
     entry['f'+sc]=document.getElementById('cm-v'+sc+'f')?.value||'';
   }
@@ -4426,7 +4453,7 @@ function _saveGradeInputs(grade){
 
 function _loadGradeInputs(grade){
   const entry=grade?(_gradeAnchors[grade]||{}):{};
-  for(const sc of[100,90,80,70,60]){
+  for(const sc of[100,90,80,70,60,50,40,30,20,10,0]){
     const m=document.getElementById('cm-v'+sc+'m');const f=document.getElementById('cm-v'+sc+'f');
     if(m)m.value=entry['m'+sc]||'';if(f)f.value=entry['f'+sc]||'';
   }
@@ -4438,7 +4465,7 @@ function _getGradeSpecificTables(lb){
   for(const grade of _GRADES){
     const entry=_gradeAnchors[grade]||{};
     const mA=[],fA=[];
-    for(const sc of[100,90,80,70,60]){
+    for(const sc of[100,90,80,70,60,50,40,30,20,10,0]){
       const mv=entry['m'+sc];const fv=entry['f'+sc];
       if(mv!==undefined&&mv!==''){const v=isTime?parseTime(mv):parseFloat(mv);if(v!==null&&!isNaN(v))mA.push([sc,v]);}
       if(fv!==undefined&&fv!==''){const v=isTime?parseTime(fv):parseFloat(fv);if(v!==null&&!isNaN(v))fA.push([sc,v]);}
@@ -4452,7 +4479,7 @@ function toggleCustomUnit(){
   const v=document.getElementById('cm-unit').value;
   document.getElementById('cm-custom-unit-wrap').style.display=v==='מדד אחר'?'block':'none';
   const isTime=v==='דקות-';
-  for(const sc of[100,90,80,70,60]){
+  for(const sc of[100,90,80,70,60,50,40,30,20,10,0]){
     for(const sfx of['m','f']){
       const el=document.getElementById(`cm-v${sc}${sfx}`);if(!el)continue;
       el.type=isTime?'text':'number';
@@ -4465,7 +4492,7 @@ function toggleCustomUnit(){
 function getCustomAnchors(sfx){
   const isTime=document.getElementById('cm-unit').value==='דקות-';
   const res=[];
-  for(const sc of[100,90,80,70,60]){
+  for(const sc of[100,90,80,70,60,50,40,30,20,10,0]){
     const raw=document.getElementById(`cm-v${sc}${sfx}`).value.trim();
     if(raw==='')continue;
     const v=isTime?parseTime(raw):parseFloat(raw);
@@ -4491,10 +4518,12 @@ function buildCustomTable(anchors,lb){
     if(hi&&lo){const r=(sc-lo[0])/(hi[0]-lo[0]);known[sc]=lo[1]+r*(hi[1]-lo[1]);}
   }
 
-  // Extrapolate below 60 with same step as 70→60
+  // Fill missing below 60 by extrapolating step from 70→60
   if(known[60]!==undefined&&known[70]!==undefined){
-    const step=known[60]-known[70]; // per 10 score points
-    for(const sc of[50,40,30,20,10,0]){known[sc]=known[sc+10]+step;}
+    const step=known[60]-known[70];
+    for(const sc of[50,40,30,20,10,0]){
+      if(known[sc]===undefined)known[sc]=known[sc+10]+step;
+    }
   }
 
   // Convert to [[value, score]] format, clamping negatives for lb=false
@@ -4610,7 +4639,7 @@ function _mashovParseStructure(rows){
   for(let i=0;i<Math.min(rows.length,20);i++){
     const r=(rows[i]||[]).map(v=>String(v||''));
     const joined=r.join(' ');
-    if(joined.includes('ת.ז')&&joined.includes('שם')&&joined.includes('ציון')){ headerRow=i; break; }
+    if(joined.includes('ת.ז')&&joined.includes('שם')){ headerRow=i; break; }
   }
   if(headerRow<0) return null;
   const headers=(rows[headerRow]||[]).map(v=>String(v||'').trim());
@@ -4628,7 +4657,7 @@ function _mashovParseStructure(rows){
   const cScoreNum=find('ציון מספרי','ציון');
   const cScoreText=find('ציון מילולי');
   const cNote=find('הערה');
-  if(cId<0||cName<0||cScoreNum<0) return null;
+  if(cId<0||cName<0) return null;
   // Find "ממוצע" row at the bottom
   let avgRow=-1;
   for(let i=rows.length-1;i>headerRow;i--){
@@ -4645,9 +4674,18 @@ async function readMashovWorkbook(arrBuf){
   const sheetName=wb.SheetNames[0];
   const ws=wb.Sheets[sheetName];
   const range=XLSX.utils.decode_range(ws['!ref']||'A1');
-  const rows=XLSX.utils.sheet_to_json(ws,{header:1,defval:'',raw:false,blankrows:true});
-  const struct=_mashovParseStructure(rows);
-  if(!struct) throw new Error('פורמט קובץ משו"ב לא זוהה (עמודות "ת.ז התלמיד" / "שם התלמיד" / "ציון מספרי")');
+  let rows=XLSX.utils.sheet_to_json(ws,{header:1,defval:'',raw:false,blankrows:true});
+  let struct=_mashovParseStructure(rows);
+  if(!struct){
+    // Fallback: try without blankrows in case XLSX.js version skips blank rows differently
+    rows=XLSX.utils.sheet_to_json(ws,{header:1,defval:'',raw:false});
+    struct=_mashovParseStructure(rows);
+  }
+  if(!struct){
+    const sample=rows.slice(0,5).map((r,i)=>`שורה ${i}: ${(r||[]).slice(0,5).join(' | ')}`).join('\n');
+    console.error('_mashovParseStructure נכשל. שורות ראשונות:\n'+sample);
+    throw new Error('פורמט קובץ לא זוהה — ודא שיש עמודות ת.ז ושם בקובץ');
+  }
 
   // Build entries with idHash (this is the slow async part)
   const dataRows=[];
@@ -4797,6 +4835,17 @@ async function exportMashov(arrBuf, originalFileName, gid, testId, semester){
   });
 
   // 3) Build NEW workbook containing only matched rows
+  // If this is an alphon (no ציון column), add one to the right of the header
+  let scoreCol=struct.cScoreNum;
+  const isAlphon=scoreCol<0;
+  if(isAlphon){
+    const headerRow=(sourceRows[struct.headerRow]||[]).slice();
+    scoreCol=headerRow.length;
+    headerRow.push('ציון מספרי');
+    // Replace the header row in sourceRows (work on a copy)
+    const patchedRows=sourceRows.map((r,i)=>i===struct.headerRow?headerRow:r);
+    sourceRows.splice(0,sourceRows.length,...patchedRows);
+  }
   const newRows=[];
   // 3a) Pre-header rows (title, blank lines, etc.)
   for(let i=0; i<=struct.headerRow; i++){
@@ -4807,9 +4856,9 @@ async function exportMashov(arrBuf, originalFileName, gid, testId, semester){
     const sourceRow=(sourceRows[m.entry.rowIdx]||[]).slice();
     sourceRow[0] = i+1; // re-number "מס'" sequentially
     if(m.score!=null && !Number.isNaN(m.score)){
-      sourceRow[struct.cScoreNum] = m.score;
+      sourceRow[scoreCol] = m.score;
     }else{
-      sourceRow[struct.cScoreNum] = '';
+      sourceRow[scoreCol] = '';
     }
     newRows.push(sourceRow);
   });
@@ -4817,9 +4866,9 @@ async function exportMashov(arrBuf, originalFileName, gid, testId, semester){
   if(struct.avgRow>=0){
     const avgRow=(sourceRows[struct.avgRow]||[]).slice();
     if(filledScores.length){
-      avgRow[struct.cScoreNum] = Math.round((filledScores.reduce((a,b)=>a+b,0)/filledScores.length)*100)/100;
+      avgRow[scoreCol] = Math.round((filledScores.reduce((a,b)=>a+b,0)/filledScores.length)*100)/100;
     }else{
-      avgRow[struct.cScoreNum] = '';
+      avgRow[scoreCol] = '';
     }
     newRows.push(avgRow);
   }
@@ -4882,13 +4931,44 @@ function openMashovExportModal(){
   }
   const semSel=document.getElementById('mashov-sem-select');
   if(semSel) semSel.value=CUR.semester||'a';
-  const fname=document.getElementById('mashov-fname');
-  if(fname) fname.textContent='לא נבחר קובץ';
   const goBtn=document.getElementById('mashov-go-btn');
-  if(goBtn) goBtn.disabled=true;
   const fi=document.getElementById('mashov-file-input');
   if(fi) fi.value='';
+  // Try to restore cached template for this group
+  const cached=_mashovTmplLoad(gid);
+  const cachedRow=document.getElementById('mashov-cached-row');
+  const fileRow=document.getElementById('mashov-file-row');
+  if(cached){
+    _mashovExportArrBuf=cached.arrBuf;
+    _mashovExportFileName=cached.fileName;
+    const dateStr=new Date(cached.savedAt).toLocaleDateString('he-IL',{day:'numeric',month:'numeric',year:'2-digit'});
+    const el=document.getElementById('mashov-cached-name');if(el)el.textContent=cached.fileName;
+    const dt=document.getElementById('mashov-cached-date');if(dt)dt.textContent='('+dateStr+')';
+    if(cachedRow)cachedRow.style.display='';
+    if(fileRow)fileRow.style.display='none';
+    if(goBtn)goBtn.disabled=false;
+  }else{
+    if(cachedRow)cachedRow.style.display='none';
+    if(fileRow)fileRow.style.display='';
+    const fname=document.getElementById('mashov-fname');
+    if(fname)fname.textContent='לא נבחר קובץ';
+    if(goBtn)goBtn.disabled=true;
+  }
+  const status=document.getElementById('mashov-status');
+  if(status)status.textContent='';
   openModal('mashov-export-modal');
+}
+
+function _mashovReplaceTemplate(){
+  _mashovExportArrBuf=null;
+  _mashovExportFileName='';
+  _mashovTmplClear(CUR.gid);
+  const cachedRow=document.getElementById('mashov-cached-row');
+  const fileRow=document.getElementById('mashov-file-row');
+  if(cachedRow)cachedRow.style.display='none';
+  if(fileRow)fileRow.style.display='';
+  const fname=document.getElementById('mashov-fname');if(fname)fname.textContent='לא נבחר קובץ';
+  const goBtn=document.getElementById('mashov-go-btn');if(goBtn)goBtn.disabled=true;
 }
 
 function _onMashovFilePicked(ev){
@@ -4900,6 +4980,7 @@ function _onMashovFilePicked(ev){
   const reader=new FileReader();
   reader.onload=e=>{
     _mashovExportArrBuf=e.target.result;
+    _mashovTmplSave(CUR.gid, file.name, e.target.result);
     const goBtn=document.getElementById('mashov-go-btn');
     if(goBtn) goBtn.disabled=false;
   };
@@ -5080,6 +5161,12 @@ function _buildMasterFile(){
 let _ugParsed=null;       // {students, hasIds}
 let _ugCandidate=null;    // {gid, name, overlap, total}
 let _ugFileName='';
+let _ugForcedGid=null;
+
+function openUpdateGroupForCurrent(){
+  _ugForcedGid=CUR.gid;
+  openUpdateGroupModal();
+}
 
 function openUpdateGroupModal(){
   _ugParsed=null; _ugCandidate=null; _ugFileName='';
@@ -5147,6 +5234,14 @@ async function _ugHandleFile(file){
     const arrBuf=await file.arrayBuffer();
     _ugParsed=await _parseStudentSheet(arrBuf);
     if(!_ugParsed.students.length) throw new Error('לא נמצאו תלמידים בקובץ');
+    // If called from group-edit, force this group without auto-detection
+    if(_ugForcedGid!=null){
+      const c=_scoreGroupOverlap(_ugForcedGid,_ugParsed.students)||{gid:Number(_ugForcedGid),name:S.groups[_ugForcedGid]?.name||'',total:S.groups[_ugForcedGid]?.students?.length||0,hashOverlap:0,nameOverlap:0,classOverlap:0,score:1};
+      _ugForcedGid=null;
+      _ugCandidate=c;
+      _renderUpdateGroupSummary([c]);
+      return;
+    }
     // Score all existing groups for overlap
     const candidates=Object.keys(S.groups)
       .map(gid=>_scoreGroupOverlap(gid, _ugParsed.students))
@@ -5165,7 +5260,6 @@ async function _ugHandleFile(file){
     if(summary) summary.innerHTML=`<div style="color:#dc2626;font-size:13px;font-weight:700;">שגיאה: ${err.message||err}</div>`;
     const goBtn=document.getElementById('update-group-go-btn'); if(goBtn) goBtn.disabled=true;
   }
-  ev.target.value='';
 }
 
 function _renderUpdateGroupSummary(candidates){
@@ -5241,7 +5335,7 @@ function exportExcel(){
   const label=ct?ct.name:(TEST_LIST.find(t=>t.id===CUR.test)?.label||CUR.test);
   const unit=(T.unit||(ct&&ct.unit)||'ערך').replace('-','');
   const fmtDate=ts=>ts?new Date(ts).toLocaleDateString('he-IL',{day:'2-digit',month:'2-digit',year:'2-digit'}):'';
-  const rows=[['#','שם','מין','כיתה',`מועד א (${unit})`,'ציון א','בונוס א%','ציון לתעודה','תאריך בדיקה']];
+  const rows=[['#','שם','מין','כיתה',`תוצאה (${unit})`,'ציון','בונוס %','ציון לתעודה','תאריך בדיקה']];
   g.students.forEach((s,idx)=>{
     const d=g[resKey()]?.[CUR.test]?.[idx]||{};
     const isFem=s.gender==='נ'||s.gender==='f';const dis=T.maleOnly&&isFem;
@@ -5252,7 +5346,9 @@ function exportExcel(){
   const ws=XLSX.utils.aoa_to_sheet(rows);
   ws['!cols']=[4,22,6,8,14,8,10,12,12].map(w=>({wch:w}));
   const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,label.slice(0,31));
-  XLSX.writeFile(wb,`${g.name}_${label}.xlsx`);toast('הקובץ יוצא ✓');
+  const _semLbl=CUR.semester==='b'?'מחצית ב':'מחצית א';
+  const _dateStr=new Date().toLocaleDateString('he-IL',{day:'numeric',month:'numeric',year:'2-digit'});
+  XLSX.writeFile(wb,`${label} ${_semLbl} ${g.classes||g.name} ${_dateStr}.xlsx`);toast('הקובץ יוצא ✓');
 }
 
 // ── FULL EXCEL EXPORT ────────────────────────────────────────
@@ -5315,8 +5411,9 @@ function exportFullExcel(){
     XLSX.utils.book_append_sheet(wb,ws,label.slice(0,31));
   });
 
-  const sem=CUR.semester==='b'?'_מחצית_ב':'_מחצית_א';
-  XLSX.writeFile(wb,`${g.name}${sem}_${new Date().toISOString().slice(0,10)}.xlsx`);
+  const _semLblF=CUR.semester==='b'?'מחצית ב':'מחצית א';
+  const _dateFStr=new Date().toLocaleDateString('he-IL',{day:'numeric',month:'numeric',year:'2-digit'});
+  XLSX.writeFile(wb,`כל המבחנים ${_semLblF} ${g.classes||g.name} ${_dateFStr}.xlsx`);
   toast('✓ קובץ אקסל יוצא — כל המבחנים');
 }
 
@@ -5552,10 +5649,8 @@ function renderArchiveTest(testId){
     const d=res[idx];if(!d||d.a==='')return;
     const isFem=s.gender==='נ'||s.gender==='f';
     const sA=getScore(testId,s.grade,s.gender,d.a);
-    const sB=d.b?getScore(testId,s.grade,s.gender,d.b):null;
-    const base=(sB!==null&&sB>=(sA||0))?sB:sA;
-    const fin=calcFinal(base,d.bonusA||0,0);
-    rows.push({s,d,sA,sB,fin});
+    const fin=calcFinal(sA,d.bonusA||0,0);
+    rows.push({s,d,sA,fin});
   });
   rows.sort((a,b)=>a.s.name.localeCompare(b.s.name,'he'));
 
@@ -5570,21 +5665,17 @@ function renderArchiveTest(testId){
         <thead><tr style="background:var(--bg2);border-bottom:2px solid var(--bd2);">
           <th style="padding:7px 10px;text-align:right;font-size:10px;color:var(--ink3);">שם</th>
           <th style="padding:7px 8px;text-align:center;font-size:10px;color:var(--ink3);">כיתה</th>
-          <th style="padding:7px 8px;text-align:center;font-size:10px;color:var(--ink3);">תוצאה א׳</th>
-          <th style="padding:7px 8px;text-align:center;font-size:10px;color:var(--ink3);">ציון א׳</th>
-          <th style="padding:7px 8px;text-align:center;font-size:10px;color:var(--ink3);">תוצאה ב׳</th>
-          <th style="padding:7px 8px;text-align:center;font-size:10px;color:var(--ink3);">ציון ב׳</th>
+          <th style="padding:7px 8px;text-align:center;font-size:10px;color:var(--ink3);">תוצאה</th>
+          <th style="padding:7px 8px;text-align:center;font-size:10px;color:var(--ink3);">ציון</th>
           <th style="padding:7px 8px;text-align:center;font-size:10px;color:var(--ink3);">סופי</th>
         </tr></thead>
         <tbody>
-          ${rows.map(({s,d,sA,sB,fin})=>`
+          ${rows.map(({s,d,sA,fin})=>`
             <tr style="border-bottom:1px solid var(--bd);">
               <td style="padding:6px 10px;font-weight:700;">${s.name}</td>
               <td style="padding:6px 8px;text-align:center;color:var(--ink3);">${s.grade}${s.cls}</td>
               <td style="padding:6px 8px;text-align:center;">${d.a||'—'}</td>
               <td style="padding:6px 8px;text-align:center;">${sA!==null?`<span class="sp ${spCls(sA)}">${sA}</span>`:'—'}</td>
-              <td style="padding:6px 8px;text-align:center;">${d.b||'—'}</td>
-              <td style="padding:6px 8px;text-align:center;">${sB!==null?`<span class="sp ${spCls(sB)}">${sB}</span>`:'—'}</td>
               <td style="padding:6px 8px;text-align:center;">${fin!==null?`<span class="sp spf">${fin}</span>`:'—'}</td>
             </tr>`).join('')}
         </tbody>
@@ -6344,9 +6435,12 @@ function srlUpdatePotential(){
   const el=document.getElementById('srl-potential-score');
   const lb=document.getElementById('srl-potential-label');
   if(!el)return;
-  if(SRL.count<=0){el.textContent='';if(lb)lb.style.display='none';return;}
-  const score=getScore(SRL.testId,SRL.refGrade||'ט',SRL.refGender||'ז',String(SRL.count));
-  el.textContent=score!==null?score:'—';
+  if(SRL.count<=0){el.innerHTML='';if(lb)lb.style.display='none';return;}
+  const grade=SRL.refGrade||'ט',gender=SRL.refGender||'ז',raw=String(SRL.count);
+  const score=getScore(SRL.testId,grade,gender,raw);
+  if(score===null){el.innerHTML='—';if(lb)lb.style.display='none';return;}
+  const nextG=(score===100)?_nextGradeScore(SRL.testId,grade,gender,raw):null;
+  el.innerHTML=score+(nextG?`<div style="font-size:11px;color:#f59e0b;line-height:1.2;margin-top:2px;">🔭 ב${nextG.grade}׳: ${nextG.score}</div>`:'');
   if(lb)lb.style.display='';
 }
 
@@ -6523,9 +6617,12 @@ function strUpdatePotential(){
   const el=document.getElementById('str-potential-score');
   const lb=document.getElementById('str-potential-label');
   if(!el)return;
-  if(STR.count<=0){el.textContent='';if(lb)lb.style.display='none';return;}
-  const score=getScore(STR.testId,STR.refGrade||'ט',STR.refGender||'ז',String(STR.count));
-  el.textContent=score!==null?score:'—';
+  if(STR.count<=0){el.innerHTML='';if(lb)lb.style.display='none';return;}
+  const grade=STR.refGrade||'ט',gender=STR.refGender||'ז',raw=String(STR.count);
+  const score=getScore(STR.testId,grade,gender,raw);
+  if(score===null){el.innerHTML='—';if(lb)lb.style.display='none';return;}
+  const nextG=(score===100)?_nextGradeScore(STR.testId,grade,gender,raw):null;
+  el.innerHTML=score+(nextG?`<div style="font-size:11px;color:#f59e0b;line-height:1.2;margin-top:2px;">🔭 ב${nextG.grade}׳: ${nextG.score}</div>`:'');
   if(lb)lb.style.display='';
 }
 
@@ -6644,8 +6741,11 @@ function spUpdatePotential(secs){
   const el=document.getElementById('sp-potential-score');
   const lb=document.getElementById('sp-potential-label');
   if(!el||secs<0.1)return;
-  const score=getScore(SR.testId,SR.refGrade||'ט',SR.refGender||'ז',secs.toFixed(2));
-  el.textContent=score!==null?score:'—';
+  const grade=SR.refGrade||'ט',gender=SR.refGender||'ז',raw=secs.toFixed(2);
+  const score=getScore(SR.testId,grade,gender,raw);
+  if(score===null){el.innerHTML='—';if(lb)lb.style.display='none';return;}
+  const nextG=(score===100)?_nextGradeScore(SR.testId,grade,gender,raw):null;
+  el.innerHTML=score+(nextG?`<div style="font-size:11px;color:#f59e0b;line-height:1.2;margin-top:2px;">🔭 ב${nextG.grade}׳: ${nextG.score}</div>`:'');
   if(lb)lb.style.display='';
 }
 
@@ -7355,7 +7455,7 @@ function timerSaveAll(){
   if(CUR.test===TMR.testId)renderTable();
   document.getElementById('timer-modal').classList.remove('open');
   timerReset();
-  toast(`✓ ${saved} תוצאות נשמרו ל${TMR.round==='b'?'מועד ב׳':'מועד א׳'}${missing?` · ${missing} ללא שם`:''}`);;
+  toast(`✓ ${saved} תוצאות נשמרו${missing?` · ${missing} ללא שם`:''}`);;
 }
 
 // ── TIMER HISTORY ─────────────────────────────────────────────
@@ -8052,7 +8152,7 @@ function blSaveAll(silent){
   });
   saveState();
   if(CUR.gid===gid&&CUR.test==='beep')renderTable();
-  if(!silent)toast(`✓ ${saved} תוצאות ביפ נשמרו ל${BL.round==='b'?'מועד ב׳':'מועד א׳'}`);
+  if(!silent)toast(`✓ ${saved} תוצאות ביפ נשמרו`);
 }
 
 function blRestartSession(){
@@ -8264,7 +8364,7 @@ function renderEntered(){
                 </td>
                 <td style="padding:6px 10px;font-weight:700;">${s.name}</td>
                 <td style="padding:6px 8px;text-align:center;color:var(--ink3);">${isFem?'נ':'ז'}</td>
-                <td style="padding:6px 8px;text-align:center;color:var(--ink2);">${d.a}${d.b?' / '+d.b:''}</td>
+                <td style="padding:6px 8px;text-align:center;color:var(--ink2);">${d.a}</td>
                 <td style="padding:6px 8px;text-align:center;">
                   ${finalSc>0?`<span class="sp ${spCls(finalSc)}">${finalSc}</span>`:'—'}
                 </td>
@@ -8741,7 +8841,7 @@ function srmExportPDF(){
       const dateStr=d._ts?new Date(d._ts).toLocaleDateString('he-IL',{day:'2-digit',month:'2-digit',year:'2-digit'}):'—';
       rows+=`<tr style="border-bottom:1px solid #e5e7eb;">
         <td style="padding:8px 12px;font-weight:600;color:#111;">${label}</td>
-        <td style="padding:8px 12px;color:#444;">${d.a}${d.b?` / ${d.b}`:''}${d.bonusA?` +${d.bonusA}%`:''}</td>
+        <td style="padding:8px 12px;color:#444;">${d.a}${d.bonusA?` +${d.bonusA}%`:''}</td>
         <td style="padding:8px 12px;text-align:center;"><span style="background:${bg};color:${col};font-weight:700;padding:3px 10px;border-radius:20px;font-size:13px;">${fin!==null?fin:'—'}</span></td>
         <td style="padding:8px 12px;font-size:11px;color:#888;">${dateStr}</td>
       </tr>`;
@@ -8832,13 +8932,14 @@ function _srmTab0(g,s,idx,isFem,allTests){
     }
     const T=getTbl(id);if(T.maleOnly&&isFem)return;
     const sA=getScore(id,s.grade,s.gender,d.a);
-    const sB=d.b?getScore(id,s.grade,s.gender,d.b):null;
-    const base=(sB!==null&&sB>=(sA||0))?sB:sA;
+    const base=sA;
     const fin=calcFinal(base,d.bonusA||0,0);
     if(fin!==null)scores.push(fin);
     const scCls=spCls(fin);
     const dateStr=d._ts?new Date(d._ts).toLocaleDateString('he-IL',{day:'2-digit',month:'2-digit',year:'2-digit'}):'—';
-    html+=`<tr style="border-bottom:1px solid var(--bg2);"><td style="padding:7px 12px;font-weight:600;">${label}</td><td style="padding:7px 12px;color:var(--ink2);">${d.a}${d.b?` / ${d.b}`:''}${d.bonusA?` +${d.bonusA}%`:''}</td><td style="padding:7px 12px;text-align:center;"><span class="sp ${scCls}">${fin!==null?fin:'—'}</span></td><td style="padding:7px 12px;font-size:11px;color:var(--ink3);">${dateStr}</td></tr>`;
+    const nextG=(base===100&&!customTest(id))?_nextGradeScore(id,s.grade,s.gender,d.a):null;
+    const nextGHtml=nextG?`<div style="font-size:9px;color:#f59e0b;margin-top:2px;line-height:1.2;">🔭 ב${nextG.grade}׳: ${nextG.score}</div>`:'';
+    html+=`<tr style="border-bottom:1px solid var(--bg2);"><td style="padding:7px 12px;font-weight:600;">${label}</td><td style="padding:7px 12px;color:var(--ink2);">${d.a}${d.bonusA?` +${d.bonusA}%`:''}</td><td style="padding:7px 12px;text-align:center;"><span class="sp ${scCls}">${fin!==null?fin:'—'}</span>${nextGHtml}</td><td style="padding:7px 12px;font-size:11px;color:var(--ink3);">${dateStr}</td></tr>`;
   });
   html+='</tbody></table>';
   if(scores.length){
@@ -8862,7 +8963,7 @@ function _srmTab0(g,s,idx,isFem,allTests){
     html+=`<div style="margin-top:16px;"><div style="font-size:11px;font-weight:800;color:var(--ink3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px;">📋 היסטוריית שינויים (${allHistEntries.length})</div><div style="background:var(--bg2);border-radius:var(--rs);overflow:hidden;">`;
     allHistEntries.slice(0,20).forEach(h=>{
       const dateStr=new Date(h.ts).toLocaleDateString('he-IL',{day:'2-digit',month:'2-digit',year:'2-digit',hour:'2-digit',minute:'2-digit'});
-      html+=`<div style="display:flex;align-items:center;gap:8px;padding:7px 12px;border-bottom:1px solid var(--bd);font-size:12px;"><span style="color:var(--ink3);flex:0 0 120px;">${dateStr}</span><span style="flex:1;color:var(--ink2);">${h.testLabel} · ${h.sem==='b'?'מח׳ ב׳':'מח׳ א׳'} · ${h.field==='b'?'מועד ב׳':'מועד א׳'}</span><span style="font-family:monospace;background:rgba(239,68,68,.1);color:#dc2626;padding:2px 8px;border-radius:4px;font-size:11px;">${h.val}</span></div>`;
+      html+=`<div style="display:flex;align-items:center;gap:8px;padding:7px 12px;border-bottom:1px solid var(--bd);font-size:12px;"><span style="color:var(--ink3);flex:0 0 120px;">${dateStr}</span><span style="flex:1;color:var(--ink2);">${h.testLabel} · ${h.sem==='b'?'מח׳ ב׳':'מח׳ א׳'}</span><span style="font-family:monospace;background:rgba(239,68,68,.1);color:#dc2626;padding:2px 8px;border-radius:4px;font-size:11px;">${h.val}</span></div>`;
     });
     html+='</div></div>';
   }
@@ -9061,22 +9162,12 @@ function blConfirmAddStudent(){
 // ── SAEIF 1+2: Timer round A/B ──────────────────────────────
 TMR.round='a';
 
-function setTimerRound(round){
-  TMR.round=round;
-  const isB=round==='b';
-  document.getElementById('tmr-round-a-btn').style.cssText=`padding:4px 14px;border-radius:20px;border:none;cursor:pointer;font-family:'Heebo',sans-serif;font-size:12px;font-weight:700;background:${isB?'rgba(255,255,255,.1)':'var(--ac)'};color:${isB?'rgba(255,255,255,.5)':'#fff'};transition:all .15s;`;
-  document.getElementById('tmr-round-b-btn').style.cssText=`padding:4px 14px;border-radius:20px;border:none;cursor:pointer;font-family:'Heebo',sans-serif;font-size:12px;font-weight:700;background:${isB?'var(--ac)':'rgba(255,255,255,.1)'};color:${isB?'#fff':'rgba(255,255,255,.5)'};transition:all .15s;`;
-}
+function setTimerRound(){}
 
 // ── SAEIF 5: Beep round A/B ──────────────────────────────────
 BL.round='a';
 
-function setBeepRound(round){
-  BL.round=round;
-  const isB=round==='b';
-  document.getElementById('bl-round-a-btn').style.cssText=`padding:4px 14px;border-radius:20px;border:none;cursor:pointer;font-family:'Heebo',sans-serif;font-size:12px;font-weight:700;background:${isB?'rgba(255,255,255,.1)':'var(--ac)'};color:${isB?'rgba(255,255,255,.5)':'#fff'};transition:all .15s;`;
-  document.getElementById('bl-round-b-btn').style.cssText=`padding:4px 14px;border-radius:20px;border:none;cursor:pointer;font-family:'Heebo',sans-serif;font-size:12px;font-weight:700;background:${isB?'var(--ac)':'rgba(255,255,255,.1)'};color:${isB?'#fff':'rgba(255,255,255,.5)'};transition:all .15s;`;
-}
+function setBeepRound(){}
 
 // Helper: write result respecting semester AND round A/B
 function writeResult(gid, testId, studentIdx, rawVal, round){
@@ -9164,8 +9255,11 @@ function lrUpdatePotential(secs){
   const lb=document.getElementById('lr-potential-label');
   if(!el||secs<1)return;
   const rawVal=fmtTime(secs);
-  const score=getScore(LR.testId,LR.refGrade||'ט',LR.refGender||'ז',rawVal);
-  el.textContent=score!==null?score:'—';
+  const grade=LR.refGrade||'ט',gender=LR.refGender||'ז';
+  const score=getScore(LR.testId,grade,gender,rawVal);
+  if(score===null){el.innerHTML='—';if(lb)lb.style.display='none';return;}
+  const nextG=(score===100)?_nextGradeScore(LR.testId,grade,gender,rawVal):null;
+  el.innerHTML=score+(nextG?`<div style="font-size:11px;color:#f59e0b;line-height:1.2;margin-top:2px;">\u{1F52D} ב${nextG.grade}׳: ${nextG.score}</div>`:'');
   if(lb)lb.style.display='';
 }
 
@@ -9285,14 +9379,7 @@ function lrFilterGrid(){
   });
 }
 
-function setLrRound(round){
-  LR.round=round;const isB=round==='b';
-  ['a','b'].forEach(r=>{
-    const btn=document.getElementById('lr-round-'+r+'-btn');if(!btn)return;
-    btn.style.background=r===round?'var(--ac)':'rgba(255,255,255,.1)';
-    btn.style.color=r===round?'#fff':'rgba(255,255,255,.5)';
-  });
-}
+function setLrRound(){}
 
 function lrSaveAll(silent){
   let saved=0;
@@ -9606,14 +9693,7 @@ function metroSaveAll(silent){
   document.getElementById('metro-save-row').style.display='none';
 }
 
-function setMetroRound(round){
-  MTR.round=round;
-  ['a','b'].forEach(r=>{
-    const btn=document.getElementById('metro-round-'+r);if(!btn)return;
-    btn.style.background=r===round?'var(--ac)':'rgba(255,255,255,.1)';
-    btn.style.color=r===round?'#fff':'rgba(255,255,255,.5)';
-  });
-}
+function setMetroRound(){}
 
 function openMetronome(){
   const students=S.groups[CUR.gid]?.students||[];
@@ -9924,7 +10004,7 @@ function blSaveAllFull(){
   });
   saveState();
   if(CUR.gid===gid&&CUR.test==='beep')renderTable();
-  toast(`✓ ${saved} תוצאות ביפ נשמרו ל${BL.round==='b'?'מועד ב׳':'מועד א׳'}`);
+  toast(`✓ ${saved} תוצאות ביפ נשמרו`);
 }
 
 function writeResultToGroup(gid,studentIdx,testId,rawVal,round){
@@ -10089,7 +10169,7 @@ function renderSidebarGroups(){
   if(!gids.length){cont.innerHTML='<div class="sb-item" style="opacity:.4;font-size:12px;">אין קבוצות עדיין</div>';return;}
   cont.innerHTML=gids.map(gid=>{
     const g=S.groups[gid];
-    const isActive=CUR.gid===gid;
+    const isActive=String(CUR.gid)===gid;
     return `<div class="sb-item${isActive?' active':''}" onclick="sbOpenGroup('${gid}')">
       <span class="sb-item-icon">👥</span>
       <span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${g.name}</span>
@@ -10233,14 +10313,7 @@ function rgAddResult(name,testId,result,gender,grade){
 }
 
 // ── Beep live for random group ─────────────────────────────────
-function rgUpdateInputMode(){
-  const testId=document.getElementById('rg-test-sel')?.value||'beep';
-  const T=getTbl(testId);
-  const isTime=T.isTime;const isSeconds=T.isSeconds;
-  const mode=(T.lb||isTime||isSeconds)?'decimal':'numeric';
-  const el=document.getElementById('rg-result');
-  if(el)el.inputMode=mode;
-}
+function rgUpdateInputMode(){}
 function rgStartTest(testId){
   // Store context so we know this is random mode
   RG.testId=testId;
@@ -10644,7 +10717,6 @@ function openMergeModal(){
   const gid=CUR.gid;const g=S.groups[gid];if(!g)return;
   const others=Object.entries(S.groups).filter(([id])=>Number(id)!==Number(gid));
   if(!others.length){toast('אין קבוצות אחרות למיזוג');return;}
-  document.getElementById('mg-cur-name').textContent=g.name;
   const sel=document.getElementById('mg-select');
   sel.innerHTML='<option value="">— בחר קבוצה —</option>'+
     others.map(([id,gr])=>`<option value="${id}">${gr.name} (${gr.students.length} תלמידים)</option>`).join('');
@@ -10654,23 +10726,24 @@ function openMergeModal(){
 }
 
 function _mgRenderPreview(){
-  const srcGid=document.getElementById('mg-select').value;
+  const srcGid=Number(document.getElementById('mg-select').value);
   const prev=document.getElementById('mg-preview');
   const btn=document.getElementById('mg-confirm-btn');
   if(!srcGid){prev.style.display='none';btn.disabled=true;return;}
-  const gA=S.groups[CUR.gid];const gB=S.groups[srcGid];if(!gA||!gB)return;
-  const namesA=new Set(gA.students.map(s=>_mgNorm(s.name)));
-  const namesB=gB.students.map(s=>_mgNorm(s.name));
-  const overlap=namesB.filter(n=>namesA.has(n));
-  const onlyB=namesB.filter(n=>!namesA.has(n));
-  const onlyA=[...namesA].filter(n=>!namesB.includes(n));
+  const targetGid=Math.max(CUR.gid,srcGid);
+  const olderGid=Math.min(CUR.gid,srcGid);
+  const gTarget=S.groups[targetGid];const gOlder=S.groups[olderGid];if(!gTarget||!gOlder)return;
+  const namesTarget=new Set(gTarget.students.map(s=>_mgNorm(s.name)));
+  const namesOlder=gOlder.students.map(s=>_mgNorm(s.name));
+  const overlap=namesOlder.filter(n=>namesTarget.has(n));
+  const onlyOlder=namesOlder.filter(n=>!namesTarget.has(n));
   const previewNames=(arr,max=5)=>arr.length?`<span style="font-size:11px;color:var(--ink3)">${arr.slice(0,max).join(' · ')+(arr.length>max?` +${arr.length-max} נוספים`:'')}</span>`:'';
   prev.innerHTML=
-    `<div>תלמידים חופפים (בשתי הקבוצות): <b>${overlap.length}</b> ${previewNames(overlap)}</div>`+
-    `<div>רק ב"${gA.name}": <b>${onlyA.length}</b></div>`+
-    `<div>רק ב"${gB.name}" — יתווספו: <b style="color:var(--gn)">${onlyB.length}</b> ${previewNames(onlyB)}</div>`+
-    `<div style="margin-top:6px;padding-top:6px;border-top:1px solid var(--bd)">סה"כ לאחר מיזוג: <b style="color:var(--ac)">${gA.students.length+onlyB.length} תלמידים</b></div>`+
-    `<div style="font-size:11px;color:var(--ink3);margin-top:4px;">• לתלמידים חופפים — יישמר הציון הגבוה בכל מבחן<br>• ניתן לבטל את המיזוג בלחיצת "בטל מיזוג" בעריכת הקבוצה</div>`;
+    `<div style="margin-bottom:6px;padding:5px 8px;background:rgba(34,197,94,.08);border:1px solid rgba(34,197,94,.2);border-radius:6px;font-size:12px;">✓ תישאר: <b>${gTarget.name}</b> &nbsp;·&nbsp; תימחק: <b>${gOlder.name}</b></div>`+
+    `<div>תלמידים חופפים: <b>${overlap.length}</b> ${previewNames(overlap)}</div>`+
+    `<div>ייווספו מ"${gOlder.name}": <b style="color:var(--gn)">${onlyOlder.length}</b> ${previewNames(onlyOlder)}</div>`+
+    `<div style="margin-top:6px;padding-top:6px;border-top:1px solid var(--bd)">סה"כ לאחר מיזוג: <b style="color:var(--ac)">${gTarget.students.length+onlyOlder.length} תלמידים</b></div>`+
+    `<div style="font-size:11px;color:var(--ink3);margin-top:4px;">• לתלמידים חופפים — יישמר הציון הגבוה בכל מבחן<br>• ניתן לפצל בחזרה בכפתור "פצל קבוצות" בעריכת הקבוצה</div>`;
   prev.style.display='block';
   btn.disabled=false;
 }
@@ -10678,67 +10751,76 @@ function _mgRenderPreview(){
 function _confirmMerge(){
   const srcGid=Number(document.getElementById('mg-select').value);
   if(!srcGid)return;
-  const gA=S.groups[CUR.gid];const gB=S.groups[srcGid];
-  if(!gA||!gB)return;
-  // Save backup for reversibility
-  gA._mergeBackup={
-    sourceGid:srcGid,sourceName:gB.name,
-    originalStudents:JSON.parse(JSON.stringify(gA.students)),
-    originalResults:JSON.parse(JSON.stringify(gA.results||{})),
-    originalResultsB:JSON.parse(JSON.stringify(gA.results_b||{})),
+  // Newer group (higher ID) = target/survivor; older = source/deleted
+  const targetGid=Math.max(CUR.gid,srcGid);
+  const olderGid=Math.min(CUR.gid,srcGid);
+  const gTarget=S.groups[targetGid];const gOlder=S.groups[olderGid];
+  if(!gTarget||!gOlder)return;
+  // Save backup on target for split recovery
+  gTarget._mergeBackup={
+    sourceGid:olderGid,sourceName:gOlder.name,
+    originalStudents:JSON.parse(JSON.stringify(gTarget.students)),
+    originalResults:JSON.parse(JSON.stringify(gTarget.results||{})),
+    originalResultsB:JSON.parse(JSON.stringify(gTarget.results_b||{})),
+    sourceGroup:JSON.parse(JSON.stringify(gOlder)),
     mergedAt:Date.now()
   };
-  const nameMapA=new Map();
-  gA.students.forEach((s,i)=>nameMapA.set(_mgNorm(s.name),i));
+  const nameMapTarget=new Map();
+  gTarget.students.forEach((s,i)=>nameMapTarget.set(_mgNorm(s.name),i));
   let overlap=0,added=0;
-  gB.students.forEach((bStu,bIdx)=>{
-    const norm=_mgNorm(bStu.name);
-    const aIdx=nameMapA.get(norm);
-    if(aIdx!==undefined){
+  gOlder.students.forEach((oldStu,oldIdx)=>{
+    const norm=_mgNorm(oldStu.name);
+    const tIdx=nameMapTarget.get(norm);
+    if(tIdx!==undefined){
       overlap++;
       ['results','results_b'].forEach(sem=>{
-        Object.entries(gB[sem]||{}).forEach(([testId,bTests])=>{
-          const bR=bTests[bIdx];if(!bR||!bR.a)return;
-          if(!gA[sem])gA[sem]={};if(!gA[sem][testId])gA[sem][testId]={};
-          const aR=gA[sem][testId][aIdx];
-          if(!aR||!aR.a){gA[sem][testId][aIdx]={...bR};return;}
-          const aStu=gA.students[aIdx];
-          const aScore=getScore(testId,aStu.grade,aStu.gender,aR.a);
-          const bScore=getScore(testId,bStu.grade,bStu.gender,bR.a);
-          if(bScore!==null&&(aScore===null||bScore>aScore)) gA[sem][testId][aIdx]={...bR};
+        Object.entries(gOlder[sem]||{}).forEach(([testId,oldTests])=>{
+          const oldR=oldTests[oldIdx];if(!oldR||!oldR.a)return;
+          if(!gTarget[sem])gTarget[sem]={};if(!gTarget[sem][testId])gTarget[sem][testId]={};
+          const tR=gTarget[sem][testId][tIdx];
+          if(!tR||!tR.a){gTarget[sem][testId][tIdx]={...oldR};return;}
+          const tStu=gTarget.students[tIdx];
+          const tScore=getScore(testId,tStu.grade,tStu.gender,tR.a);
+          const oldScore=getScore(testId,oldStu.grade,oldStu.gender,oldR.a);
+          if(oldScore!==null&&(tScore===null||oldScore>tScore)) gTarget[sem][testId][tIdx]={...oldR};
         });
       });
     } else {
-      const newIdx=gA.students.length;
-      gA.students.push({...bStu});nameMapA.set(norm,newIdx);added++;
-      if(bStu.idHash){const info=idMapLookup(srcGid,bStu.idHash);if(info)setIdMapEntry(CUR.gid,bStu.idHash,info);}
+      const newIdx=gTarget.students.length;
+      gTarget.students.push({...oldStu});nameMapTarget.set(norm,newIdx);added++;
+      if(oldStu.idHash){const info=idMapLookup(olderGid,oldStu.idHash);if(info)setIdMapEntry(targetGid,oldStu.idHash,info);}
       ['results','results_b'].forEach(sem=>{
-        Object.entries(gB[sem]||{}).forEach(([testId,bTests])=>{
-          const bR=bTests[bIdx];if(!bR)return;
-          if(!gA[sem])gA[sem]={};if(!gA[sem][testId])gA[sem][testId]={};
-          gA[sem][testId][newIdx]={...bR};
+        Object.entries(gOlder[sem]||{}).forEach(([testId,oldTests])=>{
+          const oldR=oldTests[oldIdx];if(!oldR)return;
+          if(!gTarget[sem])gTarget[sem]={};if(!gTarget[sem][testId])gTarget[sem][testId]={};
+          gTarget[sem][testId][newIdx]={...oldR};
         });
       });
     }
   });
-  gA.classes=[...new Set(gA.students.map(s=>`${s.grade}${s.cls}`))].sort((a,b)=>a.localeCompare(b,'he')).join(', ');
+  gTarget.classes=[...new Set(gTarget.students.map(s=>`${s.grade}${s.cls}`))].sort((a,b)=>a.localeCompare(b,'he')).join(', ');
+  delete S.groups[olderGid];
+  CUR.gid=targetGid;
   closeModal('merge-group-modal');
   saveState();renderGroupEditView();
   toast(`✓ מוזג — ${overlap} חופפים, ${added} תלמידים חדשים נוספו`);
 }
 
-function geUnmergeGroup(){
+function geSplitGroup(){
   const gid=CUR.gid;const g=S.groups[gid];
   if(!g?._mergeBackup)return;
   const b=g._mergeBackup;
-  if(!confirm(`לבטל את המיזוג עם "${b.sourceName}" ולשחזר את הקבוצה?`))return;
+  if(!confirm(`לפצל את הקבוצות? הקבוצה תחזור למצבה לפני המיזוג, וקבוצת "${b.sourceName}" תשוחזר.`))return;
   g.students=b.originalStudents;
   g.results=b.originalResults;
   g.results_b=b.originalResultsB;
   delete g._mergeBackup;
   g.classes=[...new Set(g.students.map(s=>`${s.grade}${s.cls}`))].sort((a,b)=>a.localeCompare(b,'he')).join(', ');
+  if(b.sourceGroup){
+    S.groups[b.sourceGid]=b.sourceGroup;
+  }
   saveState();renderGroupEditView();
-  toast('↩ מיזוג בוטל — הקבוצה שוחזרה');
+  toast(`✂ פוצל — קבוצת "${b.sourceName}" שוחזרה`);
 }
 
 // ── MASTER DRAG & DROP ──────────────────────────────────────────
@@ -13215,7 +13297,7 @@ function openTournamentManager(){
           <div style="display:flex;gap:10px;align-items:flex-start;"><span style="background:rgba(249,115,22,.2);color:#fb923c;border-radius:50%;width:22px;height:22px;display:flex;align-items:center;justify-content:center;font-weight:800;flex-shrink:0;font-size:12px;">1</span><span><b style="color:#fff;">צור קבוצה</b> — לחץ "+ קבוצה חדשה" בדף הבית. העלה קובץ Excel (עמודות: שם, מין, כיתה) או הוסף תלמידים ידנית.</span></div>
           <div style="display:flex;gap:10px;align-items:flex-start;"><span style="background:rgba(249,115,22,.2);color:#fb923c;border-radius:50%;width:22px;height:22px;display:flex;align-items:center;justify-content:center;font-weight:800;flex-shrink:0;font-size:12px;">2</span><span><b style="color:#fff;">בחר מחצית</b> — א׳ או ב׳. כל מחצית שמורה בנפרד; ניתן לעבור ביניהן בכל עת.</span></div>
           <div style="display:flex;gap:10px;align-items:flex-start;"><span style="background:rgba(249,115,22,.2);color:#fb923c;border-radius:50%;width:22px;height:22px;display:flex;align-items:center;justify-content:center;font-weight:800;flex-shrink:0;font-size:12px;">3</span><span><b style="color:#fff;">בחר מבחן</b> — לחץ על לשונית המבחן הרצוי (מקבצים ניתן לפתוח/לסגור).</span></div>
-          <div style="display:flex;gap:10px;align-items:flex-start;"><span style="background:rgba(249,115,22,.2);color:#fb923c;border-radius:50%;width:22px;height:22px;display:flex;align-items:center;justify-content:center;font-weight:800;flex-shrink:0;font-size:12px;">4</span><span><b style="color:#fff;">הזן תוצאות</b> — בשדה מועד א׳ לכל תלמיד. הזן ביצוע גולמי (שניות, כמות חזרות, מ׳) — הציון מחושב אוטומטית.</span></div>
+          <div style="display:flex;gap:10px;align-items:flex-start;"><span style="background:rgba(249,115,22,.2);color:#fb923c;border-radius:50%;width:22px;height:22px;display:flex;align-items:center;justify-content:center;font-weight:800;flex-shrink:0;font-size:12px;">4</span><span><b style="color:#fff;">הזן תוצאות</b> — בשדה ההזנה לכל תלמיד. הזן ביצוע גולמי (שניות, כמות חזרות, מ׳) — הציון מחושב אוטומטית.</span></div>
           <div style="display:flex;gap:10px;align-items:flex-start;"><span style="background:rgba(249,115,22,.2);color:#fb923c;border-radius:50%;width:22px;height:22px;display:flex;align-items:center;justify-content:center;font-weight:800;flex-shrink:0;font-size:12px;">5</span><span><b style="color:#fff;">ייצא ל-Excel</b> — גלול לתחתית הטבלה ולחץ "ייצא כל המבחנים" לקבלת גיליון מלא.</span></div>
         </div>
       </div>
@@ -13227,10 +13309,9 @@ function openTournamentManager(){
         <span>📋</span> הזנת תוצאות
       </summary>
       <div style="margin-top:10px;font-size:13px;color:rgba(255,255,255,.65);line-height:2;">
-        <b style="color:#fff;">הזנה ידנית:</b> לחץ על שדה מועד א׳ לתלמיד → הזן ערך גולמי → Enter. הציון מחושב ומוצג מיד.<br>
+        <b style="color:#fff;">הזנה ידנית:</b> לחץ על שדה ההזנה לתלמיד → הזן ערך גולמי → Enter. הציון מחושב ומוצג מיד.<br>
         <b style="color:#fff;">הזנה מהירה (⚡):</b> כתוב "שם תוצאה" בשורת הטקסט הצהובה — לדוגמה <b style="color:#fb923c;">כהן 28</b> — ולחץ Enter. המערכת מאתרת את התלמיד לפי שם ושומרת. מספר תלמידים בשורה אחת: <b style="color:#fb923c;">כהן 28, לוי 31</b>.<br>
         <b style="color:#fff;">בונוס:</b> ניתן להוסיף % בונוס לכל תלמיד (לדוגמה: ניסיון ראשון, מאמץ יוצא דופן). הציון הסופי לא יעלה על 100.<br>
-        <b style="color:#fff;">מועד ב׳:</b> הציון לתעודה = max(מועד א׳, מועד ב׳). שיפור מוצג בירוק, ירידה באדום.<br>
         <b style="color:#fff;">השלמות:</b> לשונית "השלמת מבחנים" מציגה רשימת תלמידים ללא ציון לפי מבחן — נוח לאחר שיעורים.
       </div>
     </details>
