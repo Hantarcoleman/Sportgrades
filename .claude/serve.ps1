@@ -27,6 +27,10 @@ $mime = @{
     '.woff2'= 'font/woff2'
     '.ttf'  = 'font/ttf'
     '.txt'  = 'text/plain; charset=utf-8'
+    '.mp3'  = 'audio/mpeg'
+    '.mp4'  = 'video/mp4'
+    '.wav'  = 'audio/wav'
+    '.ogg'  = 'audio/ogg'
 }
 
 $listener = [System.Net.HttpListener]::new()

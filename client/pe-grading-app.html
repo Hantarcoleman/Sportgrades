@@ -1915,6 +1915,12 @@ history.pushState(null,'',location.href);
 <div class="mbg" id="custom-modal"><div class="mod mod-wide" onclick="event.stopPropagation()">
   <div class="mt" id="cm-title">יצירת מבחן חדש</div>
   <div class="ms">הגדר 2 ערכי עוגן לפחות — האפליקציה תחשב את שאר הטבלה, כולל ציונים מתחת ל-60 באותו קצב</div>
+  <div id="cm-clone-wrap" style="display:none;padding:10px 12px;background:var(--bg2);border-radius:var(--rs);margin-bottom:10px;border:1px solid var(--bd);">
+    <label class="fl" style="margin-bottom:6px;">שכפל ממבחן קיים <span style="font-weight:400;color:var(--ink2);font-size:12px;">(אופציונלי — הערכים יועתקו לטופס)</span></label>
+    <select class="fsel" id="cm-clone-src" onchange="cloneFromTest(this.value)">
+      <option value="">— בחר מבחן לשכפול —</option>
+    </select>
+  </div>
   <div class="fr">
     <div class="fg"><label class="fl">שם המבחן</label><input type="text" class="fi2" id="cm-name" placeholder="לדוגמה: קפיצה למרחק"></div>
     <div class="fg"><label class="fl">קטגוריה</label>
@@ -3305,13 +3311,27 @@ function confirmSemester(sem){
   _checkReminder();
 }
 
+function _ctTabHtml(id,ct,tabClass){
+  const isLocked=ct._locked!==false;
+  const canEdit=!isLocked||_adminUnlocked;
+  const btns=canEdit
+    ?`<span onclick="openCustomModal('${id}')" style="cursor:pointer;opacity:.5;font-size:12px;padding:0 2px;" title="ערוך">✏</span><span onclick="deleteCustomTest('${id}')" style="cursor:pointer;opacity:.5;font-size:12px;padding:0 2px;" title="מחק">✕</span>`
+    :`<span onclick="cloneTestFromTab('${id}')" style="cursor:pointer;opacity:.5;font-size:12px;padding:0 2px;" title="שכפל מבחן">📋</span>`;
+  return `<div class="tab ${tabClass}${id===CUR.test?' sel':''}" style="display:flex;align-items:center;gap:4px;" id="tab-${id}"><span onclick="selectTest('${id}')" style="cursor:pointer;">${ct.name}</span>${btns}</div>`;
+}
+
+function cloneTestFromTab(id){
+  openCustomModal();
+  cloneFromTest(id);
+}
+
 function buildTabs(){
   const CAT_CONFIG=[
     {key:'strength',label:'מבחני כוח וסבולת שרירים',icon:'💪'},
     {key:'speed',   label:'מבחנים טכניקה, מהירות וזריזות',    icon:'⚡'},
     {key:'cardio',  label:'מבחנים אירוביים',         icon:'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="16" height="16" fill="#dc2626" stroke="#7f1d1d" stroke-width="1" stroke-linejoin="round" style="vertical-align:-3px;display:inline-block;"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.29 1.51 4.04 3 5.5l7 7Z"/><path d="M3.22 12H9.5l.88-1.76 2.62 5.26 1.76-5.26 1.76 1.76h4.26" fill="none" stroke="#fff" stroke-width="1.6" stroke-linecap="round"/></svg>'},
   ];
-  const _renderCustomTestTabs=(catKey)=>Object.entries(S.customTests||{}).filter(([,ct])=>ct.group===catKey).map(([id,ct])=>`<div class="tab tab-${catKey} tab-custom${id===CUR.test?' sel':''}" style="display:flex;align-items:center;gap:4px;" id="tab-${id}"><span onclick="selectTest('${id}')" style="cursor:pointer;">${ct.name}</span><span onclick="openCustomModal('${id}')" style="cursor:pointer;opacity:.5;font-size:12px;padding:0 2px;" title="ערוך מבחן">✏</span><span onclick="deleteCustomTest('${id}')" style="cursor:pointer;opacity:.5;font-size:12px;padding:0 2px;" title="מחק מבחן">✕</span></div>`).join('');
+  const _renderCustomTestTabs=(catKey)=>Object.entries(S.customTests||{}).filter(([,ct])=>ct.group===catKey).map(([id,ct])=>_ctTabHtml(id,ct,`tab-${catKey} tab-custom`)).join('');
   let html='';
   for(const cat of CAT_CONFIG){
     const tests=TEST_LIST.filter(t=>t.group===cat.key);
@@ -3340,7 +3360,7 @@ function buildTabs(){
         <span class="tab-cat-arrow${isOpen?' open':''}">‹</span>
       </div>
       <div class="tab-cat-body"${isOpen?'':' style="display:none"'}>
-        ${customEntries.map(([id,ct])=>`<div class="tab tab-custom${id===CUR.test?' sel':''}" style="display:flex;align-items:center;gap:4px;" id="tab-${id}"><span onclick="selectTest('${id}')" style="cursor:pointer;">${ct.name}</span><span onclick="openCustomModal('${id}')" style="cursor:pointer;opacity:.5;font-size:12px;padding:0 2px;" title="ערוך מבחן">✏</span><span onclick="deleteCustomTest('${id}')" style="cursor:pointer;opacity:.5;font-size:12px;padding:0 2px;" title="מחק מבחן">✕</span></div>`).join('')}
+        ${customEntries.map(([id,ct])=>_ctTabHtml(id,ct,'tab-custom')).join('')}
       </div>
     </div>`;
   }
@@ -3351,12 +3371,7 @@ function buildTabs(){
   const toolsOpen=tabGroupState.tools;
   let toolsHtml='';
   ungroupedCustomIds.forEach(id=>{
-    const ct=S.customTests[id];
-    toolsHtml+=`<div class="tab tab-tools${id===CUR.test?' sel':''}" style="display:flex;align-items:center;gap:4px;" id="tab-${id}">
-      <span onclick="selectTest('${id}')" style="cursor:pointer;">${ct.name}</span>
-      <span onclick="openCustomModal('${id}')" style="cursor:pointer;opacity:.5;font-size:12px;padding:0 2px;" title="ערוך מבחן">✏</span>
-      <span onclick="deleteCustomTest('${id}')" style="cursor:pointer;opacity:.5;font-size:12px;padding:0 2px;" title="מחק מבחן">✕</span>
-    </div>`;
+    toolsHtml+=_ctTabHtml(id,S.customTests[id],'tab-tools');
   });
   toolsHtml+=`<div class="tab tab-tools${CUR.test==='__completion__'?' sel':''}" onclick="selectCompletion()" id="tab-__completion__">⚠ השלמת מבחנים</div>`;
   toolsHtml+=`<div class="tab tab-tools${CUR.test==='__entered__'?' sel':''}" onclick="selectEntered()" id="tab-__entered__">✓ תיעוד הזנות למערכת ביה"ס</div>`;
@@ -3395,7 +3410,8 @@ function selectTest(testId){
   document.getElementById('ahd').textContent=`תוצאה (${(T.unit||(ct&&ct.unit)||'ערך').replace('-','')})`;
   document.getElementById('pbtn').style.display=T.isPaste?'':'none';
   if(!T.isPaste)document.getElementById('ppc').style.display='none';
-  document.getElementById('edit-custom-btn').style.display=ct?'':'none';
+  const _ctLocked=ct&&ct._locked!==false;
+  document.getElementById('edit-custom-btn').style.display=(ct&&(!_ctLocked||_adminUnlocked))?'':'none';
   const noLive=testId==='cooper'||testId==='xtest';
   const liveBtn=document.getElementById('live-test-btn');
   if(liveBtn) liveBtn.style.display=noLive?'none':'';
@@ -4323,8 +4339,10 @@ async function addStudent(){
 
 // ── CUSTOM TEST ──────────────────────────────────────────────
 let _editCT=null;
+let _cmIsClone=false;
 function openCustomModal(editId){
   _editCT=editId||null;
+  _cmIsClone=false;
   const ct=editId?S.customTests[editId]:null;
   document.getElementById('cm-title').textContent=ct?'ערוך מבחן':'יצירת מבחן חדש';
   document.getElementById('cm-name').value=ct?.name||'';
@@ -4395,9 +4413,80 @@ function openCustomModal(editId){
     document.getElementById('cm-custom-unit-wrap').style.display='none';
   }
   document.getElementById('cm-preview').style.display='none';
+
+  // Clone section — מופיע רק ביצירה, לא בעריכה
+  const cloneWrap=document.getElementById('cm-clone-wrap');
+  const cloneSrc=document.getElementById('cm-clone-src');
+  if(!editId){
+    cloneWrap.style.display='block';
+    cloneSrc.innerHTML='<option value="">— בחר מבחן לשכפול —</option>';
+    for(const[id,ct]of Object.entries(S.customTests||{})){
+      if(ct&&ct.name) cloneSrc.add(new Option(ct.name,id));
+    }
+  } else {
+    cloneWrap.style.display='none';
+  }
+
   openModal('custom-modal');
 }
 function editCurrentCustom(){openCustomModal(CUR.test);}
+
+function cloneFromTest(id){
+  if(!id) return;
+  const src=S.customTests[id];
+  if(!src) return;
+
+  document.getElementById('cm-name').value=`עותק של ${src.name}`;
+
+  const groupSel=document.getElementById('cm-group');
+  const hasGroup=Array.from(groupSel.options).some(o=>o.value===src.group);
+  groupSel.value=(hasGroup&&src.group)?src.group:'strength';
+  onCmGroupChange();
+
+  document.getElementById('cm-unit').value=src.unit||'חזרות';
+  toggleCustomUnit();
+  if(src.unit==='מדד אחר'){
+    document.getElementById('cm-custom-unit-wrap').style.display='block';
+    document.getElementById('cm-custom-unit').value=src.customUnitName||'';
+    const lbInput=document.querySelector(`input[name="cm-lb"][value="${src.lowerBetter?1:0}"]`);
+    if(lbInput) lbInput.checked=true;
+  }
+
+  const isTimeEdit=src.unit==='דקות-';
+  _gradeAnchors={};_curGrade='ז';
+  const gradeSpecific=!!(src.tablesByGrade);
+  document.getElementById('cm-grade-specific').checked=gradeSpecific;
+  document.getElementById('cm-grade-tabs').style.display=gradeSpecific?'block':'none';
+
+  if(gradeSpecific){
+    for(const[grade,gd]of Object.entries(src.tablesByGrade)){
+      const entry={};
+      for(const sc of[100,90,80,70,60,50,40,30,20,10,0]){
+        const mp=gd.table?.find(([,s])=>Math.round(s)===sc);
+        const fp=gd.tablef?.find(([,s])=>Math.round(s)===sc);
+        entry['m'+sc]=mp?(isTimeEdit?fmtTime(mp[0]):String(mp[0])):'';
+        entry['f'+sc]=fp?(isTimeEdit?fmtTime(fp[0]):String(fp[0])):'';
+      }
+      _gradeAnchors[grade]=entry;
+    }
+    const firstGrade=Object.keys(src.tablesByGrade)[0]||'ז';
+    _curGrade=firstGrade;
+    _setActiveGradeTab(firstGrade);
+    _loadGradeInputs(firstGrade);
+  } else {
+    for(const sc of[100,90,80,70,60,50,40,30,20,10,0]){
+      const mp=src.table?.find(([,s])=>Math.round(s)===sc);
+      const fp=src.tablef?.find(([,s])=>Math.round(s)===sc);
+      document.getElementById('cm-v'+sc+'m').value=mp?(isTimeEdit?fmtTime(mp[0]):mp[0]):'';
+      document.getElementById('cm-v'+sc+'f').value=fp?(isTimeEdit?fmtTime(fp[0]):fp[0]):'';
+    }
+    _setActiveGradeTab('ז');
+  }
+
+  _cmIsClone=true;
+  document.getElementById('cm-preview').style.display='none';
+  toast(`הועתק מ: ${src.name}`);
+}
 
 // ── Grade-specific custom test helpers ───────────────────────
 let _gradeAnchors={};let _curGrade='ז';
@@ -4613,7 +4702,8 @@ function saveCustomTest(){
 
   if(!S.customTests)S.customTests={};
   const id=_editCT||('ct_'+Date.now());
-  const ctObj={name,unit,customUnitName,lowerBetter:lb,table:mTbl,tablef:fTbl,group,tablesByGrade};
+  const _locked=_editCT?S.customTests[_editCT]?._locked!==false:!_cmIsClone;
+  const ctObj={name,unit,customUnitName,lowerBetter:lb,table:mTbl,tablef:fTbl,group,tablesByGrade,_locked};
   S.customTests[id]=ctObj;
   if(CUR.gid!=null&&S.groups[CUR.gid]){
     if(!S.groups[CUR.gid].customTests)S.groups[CUR.gid].customTests={};
@@ -7649,40 +7739,77 @@ function closeBeepLive(){
   if(BL.gid==='__random__'){ sbGoRandom_impl(); }
 }
 
+// ── BEEP AUDIO ──────────────────────────────────────────────
+const BL_AUDIO=(()=>{const a=new Audio('beep-test.mp3');a.preload='auto';return a;})();
+const BL_INTRO_MS=12000; // הביפ הראשון בהקלטה המקורית מגיע 12 שניות אחרי תחילתה
+
 // ── TIMING ENGINE ──────────────────────────────────────────
 function blStart(){
-  BL.running=true;BL.paused=false;
-  BL.startTime=performance.now()-BL.elapsed;
   document.getElementById('bl-start-btn').style.display='none';
-  document.getElementById('bl-pause-btn').style.display='';
-  blScheduleNextBeep();
-  blTick();
+  const pb=document.getElementById('bl-pause-btn');
+  pb.style.display='';pb.disabled=true;pb.textContent='⏸ מחכה לביפ הראשון...';
+  BL_AUDIO.currentTime=0;
+  BL_AUDIO.play().catch(()=>{});
+  BL._introTimer=setTimeout(()=>{
+    BL._introTimer=null;
+    BL.running=true;BL.paused=false;
+    BL.startTime=performance.now()-BL.elapsed;
+    pb.disabled=false;pb.textContent='⏸ השהה';
+    blScheduleNextBeep();
+    blTick();
+  },BL_INTRO_MS);
 }
 
 function blPause(){
+  if(BL._introTimer){
+    clearTimeout(BL._introTimer);BL._introTimer=null;
+    BL._introRemainingMs=Math.max(0,BL_INTRO_MS-BL_AUDIO.currentTime*1000);
+    BL_AUDIO.pause();
+    const pb=document.getElementById('bl-pause-btn');
+    pb.disabled=false;pb.textContent='▶ המשך';pb.onclick=blResume;
+    return;
+  }
   if(!BL.running)return;
   BL.paused=true;BL.running=false;
   BL.pausedAt=BL.elapsed;
   clearTimeout(BL.beepTimeout);
   cancelAnimationFrame(BL.raf);
+  BL_AUDIO.pause();
   document.getElementById('bl-pause-btn').textContent='▶ המשך';
   document.getElementById('bl-pause-btn').onclick=blResume;
   saveLiveState();
 }
 
 function blResume(){
+  if(BL._introRemainingMs!==undefined){
+    BL_AUDIO.play().catch(()=>{});
+    const rem=BL._introRemainingMs;BL._introRemainingMs=undefined;
+    const pb=document.getElementById('bl-pause-btn');
+    pb.textContent='⏸ השהה';pb.onclick=blPause;pb.disabled=true;
+    BL._introTimer=setTimeout(()=>{
+      BL._introTimer=null;
+      BL.running=true;BL.paused=false;
+      BL.startTime=performance.now()-BL.elapsed;
+      pb.disabled=false;
+      blScheduleNextBeep();blTick();
+    },rem);
+    return;
+  }
   BL.running=true;BL.paused=false;
   BL.startTime=performance.now()-BL.elapsed;
+  BL_AUDIO.play().catch(()=>{});
   document.getElementById('bl-pause-btn').textContent='⏸ השהה';
   document.getElementById('bl-pause-btn').onclick=blPause;
-  blScheduleNextBeep();
-  blTick();
+  blScheduleNextBeep();blTick();
 }
 
 function blStop(){
   BL.running=false;
   clearTimeout(BL.beepTimeout);
   cancelAnimationFrame(BL.raf);
+  clearTimeout(BL._introTimer);
+  BL._introTimer=null;BL._introRemainingMs=undefined;
+  BL_AUDIO.pause();BL_AUDIO.currentTime=0;
 }
 
 function blTick(){
@@ -7701,7 +7828,6 @@ function blScheduleNextBeep(){
   BL.beepTimeout=setTimeout(()=>{
     if(!BL.running)return;
     BL.beepIdx++;
-    // Stage change flash
     const cur=BEEP_TIMELINE[BL.beepIdx];
     const prev=BEEP_TIMELINE[BL.beepIdx-1];
     if(cur&&cur.level!==prev.level){
