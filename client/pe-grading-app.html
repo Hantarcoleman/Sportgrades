@@ -1233,9 +1233,13 @@ history.pushState(null,'',location.href);
     <div class="cb">
       <div class="upz" id="upz" onclick="document.getElementById('fi').click()">
         <span class="upi">📋</span>
-        <div class="upt">גרור קובץ Excel לכאן</div>
-        <div class="ups">כל קובץ = קבוצה אחת · ניתן לטעון מספר קבצים</div>
-        <div class="upn">✔ שם תלמיד · מין · שכבה · מקבילה · ת״ז (אופציונלי, נשמר מקומית בלבד)</div>
+        <div class="upt">הנחיות להקמת קבוצה חדשה</div>
+        <div class="ups" style="text-align:right;line-height:2;margin-top:6px;">
+          מומלץ לבצע את התהליך מהמכשיר (טלפון/טאבלט) איתו תעבדו בשיעורים.<br>
+          <b>הורדת קובץ:</b> היכנסו למשו"ב דרך הדפדפן (ולא דרך האפליקציה) והורידו את קובץ האלפון של הכיתה הרצויה.<br>
+          <b>העלאת קובץ:</b> לחצו על התיבה לבחירת הקובץ מהמכשיר.<br>
+          <span style="color:rgba(255,255,255,.45);font-size:11px;">למשתמשי מחשב: ניתן פשוט לגרור את הקובץ ישירות לתוך התיבה.</span>
+        </div>
       </div>
       <input type="file" id="fi" accept=".xlsx,.xls" onchange="handleFile(event)">
       <div style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;justify-content:center;">
