@@ -2639,10 +2639,10 @@ const TABLES_INLINE = {
     יב:{m:[[439,100],[484,90],[530,80],[575,70],[621,60]],f:[[590,100],[690,90],[790,80],[890,70],[990,60]]},
   }},
   run3000:{ lb:true, ph:'MM:SS', unit:'זמן (MM:SS)', isTime:true, maleOnly:true, grades:{
-    ז:{m:[[820,100],[870,90],[919,80],[977,70],[1035,60]]},
-    ח:{m:[[820,100],[870,90],[919,80],[977,70],[1035,60]]},
-    ט:{m:[[787,100],[835,90],[880,80],[939,70],[1002,60]]},
-    י:{m:[[738,100],[759,90],[779,80],[817,70],[863,60]]},
+    ז:{m:[[870,100],[925,90],[975,80],[1030,70],[1080,60]]},
+    ח:{m:[[870,100],[925,90],[975,80],[1030,70],[1080,60]]},
+    ט:{m:[[787,100],[835,90],[879,80],[942,70],[1003,60]]},
+    י:{m:[[738,100],[791,90],[842,80],[895,70],[947,60]]},
     יא:{m:[[720,100],[773,90],[825,80],[878,70],[930,60]]},
     יב:{m:[[720,100],[773,90],[825,80],[878,70],[930,60]]},
   }},
@@ -2893,7 +2893,7 @@ function _projHtml(testId,grade,gender,rawVal,fontSize){
   if(pi.topGrade)parts.push(`ב${pi.topGrade}׳: 100`);
   if(pi.nextGrade)parts.push(`ב${pi.nextGrade}׳: ${pi.nextScore}`);
   if(!parts.length)return'';
-  return`<div style="font-size:${fontSize||'11px'};color:#f59e0b;line-height:1.3;margin-top:2px;font-weight:600;">🔭 ${parts.join(' · ')}</div>`;
+  return`<div style="font-size:${fontSize||'11px'};color:#f59e0b;line-height:1.3;margin-top:2px;font-weight:600;">${parts.join(' · ')}</div>`;
 }
 
 // Bonus: % of score (50 + 10% = 55)
@@ -9924,9 +9924,16 @@ function openMetronome(){
 }
 
 function closeMetronome(){
+  if(MTR.testing){
+    toast('יש לעצור את המבחן לפני הסגירה');
+    return;
+  }
+  if(MTR.splits && MTR.splits.length){
+    const unnamed=MTR.splits.filter(s=>!s.name).length;
+    if(unnamed>0&&!confirm(`${unnamed} תלמידים עדיין ללא שם — לסגור בלי לשמור?`))return;
+  }
   metroStop();
   document.getElementById('metro-modal').classList.remove('open');
-
   if(MTR.gid==='__random__'||CUR.gid==='__random__'){ sbGoRandom_impl(); }
 }
 
