@@ -2121,7 +2121,8 @@ history.pushState(null,'',location.href);
       <button id="bl-res-save-all-btn" class="bl-save-all" onclick="blSaveAll()">✓ שמור תוצאות לאפליקציה (ציון גבוה נשמר)</button>
       <button id="bl-res-back-random" class="bl-save-all" onclick="document.getElementById('bl-modal').classList.remove('open');sbGoRandom_impl();" style="display:none;background:#5b21b6;margin-top:8px;">🎲 חזור לקבוצה האקראית</button>
 
-      <button class="bl-save-all" onclick="document.getElementById('bl-modal').classList.remove('open');if(BL.gid==='__random__')sbGoRandom_impl();" style="background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.1);margin-top:8px;">סגור</button>
+      <button class="bl-save-all" onclick="blBackToLive()" style="background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.15);margin-top:8px;">← חזור למבחן</button>
+      <button class="bl-save-all" onclick="blCloseFromResults()" style="background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.1);margin-top:8px;">סגור</button>
     </div>
   </div>
 </div>
@@ -8247,14 +8248,27 @@ function blAdjustTiming(deltaMs){
 }
 
 function blEnd(){
-  blStop();
-  // Only students who were TAPPED (eliminated) get a score.
-  // Students still 'active' at end get NO score — like long runs.
-  // (They can be entered manually in the table if needed.)
+  // המבחן ממשיך לרוץ — רק מחליף מסך לתוצאות
   document.getElementById('bl-screen-live').style.display='none';
   document.getElementById('bl-screen-results').style.display='block';
   blRenderResults();
   blSaveAll(true);
+}
+
+function blBackToLive(){
+  document.getElementById('bl-screen-results').style.display='none';
+  document.getElementById('bl-screen-live').style.display='flex';
+}
+
+function blCloseFromResults(){
+  if(BL.running||BL.paused){
+    if(!confirm('המבחן עדיין רץ — האם אתה בטוח שהמבחן הסתיים?'))return;
+  }
+  blStop();
+  BL.paused=false;
+  try{localStorage.removeItem(LIVE_LS_KEY);}catch(e){}
+  document.getElementById('bl-modal').classList.remove('open');
+  if(BL.gid==='__random__')sbGoRandom_impl();
 }
 
 function blRenderResults(){
