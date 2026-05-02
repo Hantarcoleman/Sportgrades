@@ -8261,9 +8261,7 @@ function blBackToLive(){
 }
 
 function blCloseFromResults(){
-  if(BL.running||BL.paused){
-    if(!confirm('המבחן עדיין רץ — האם אתה בטוח שהמבחן הסתיים?'))return;
-  }
+  if(!confirm('האם אתה בטוח שברצונך לסגור את המבחן?'))return;
   blStop();
   BL.paused=false;
   try{localStorage.removeItem(LIVE_LS_KEY);}catch(e){}
