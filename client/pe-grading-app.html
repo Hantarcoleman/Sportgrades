@@ -2045,7 +2045,6 @@ history.pushState(null,'',location.href);
   <!-- SCREEN: LIVE -->
   <div id="bl-screen-live" style="display:flex;flex-direction:column;height:100%;">
     <div class="bl-header">
-      <button class="modal-back-btn" onclick="blMinimizeOrClose()">← חזור</button>
       <div class="bl-title">🏃 ביפ חי — <span id="bl-group-name"></span></div>
       <div style="display:flex;gap:6px;align-items:center;">
         <span id="bl-active-remain" style="font-size:12px;color:rgba(255,255,255,.4);"></span>
@@ -2088,8 +2087,8 @@ history.pushState(null,'',location.href);
       <button class="bl-btn bl-end" onclick="blEnd()">■ סיום מבחן</button>
       <button class="bl-btn bl-undo" id="bl-undo-btn" onclick="blUndo()" disabled>↩ בטל</button>
       <button class="bl-btn bl-redo" id="bl-redo-btn" onclick="blRedo()" disabled>↪ חזור</button>
-      <button class="bl-btn" onclick="blAdjustTiming(-500)" style="background:rgba(255,255,255,.07);color:rgba(255,255,255,.6);border:1px solid rgba(255,255,255,.1);font-size:11px;">תיקון דיליי −½ שנ׳</button>
-      <button class="bl-btn" onclick="blAdjustTiming(500)" style="background:rgba(255,255,255,.07);color:rgba(255,255,255,.6);border:1px solid rgba(255,255,255,.1);font-size:11px;">תיקון דיליי +½ שנ׳</button>
+      <button class="bl-btn" onclick="blAdjustTiming(-100)" style="background:rgba(255,255,255,.07);color:rgba(255,255,255,.6);border:1px solid rgba(255,255,255,.1);font-size:11px;">דיליי −0.1 שנ׳</button>
+      <button class="bl-btn" onclick="blAdjustTiming(100)" style="background:rgba(255,255,255,.07);color:rgba(255,255,255,.6);border:1px solid rgba(255,255,255,.1);font-size:11px;">דיליי +0.1 שנ׳</button>
       <button class="bl-btn" onclick="closeBeepLive()" style="background:rgba(255,80,80,.15);border:1px solid rgba(255,80,80,.3);color:#ff8080;font-size:12px;">✕ יציאה מהמבחן</button>
     </div>
 
@@ -7804,7 +7803,7 @@ function closeBeepLive(){
 
 // ── BEEP AUDIO ──────────────────────────────────────────────
 const BL_AUDIO=(()=>{const a=new Audio('beep-test.mp3');a.preload='auto';return a;})();
-const BL_INTRO_MS=13100; // הביפ הראשון בהקלטה המקורית מגיע ~13.1 שניות אחרי תחילתה
+const BL_INTRO_MS=13800; // הביפ הראשון בהקלטה המקורית מגיע ~13.8 שניות אחרי תחילתה
 
 // ── TIMING ENGINE ──────────────────────────────────────────
 function blStart(){
@@ -8257,6 +8256,7 @@ function blRenderResults(){
       <div style="display:flex;align-items:center;gap:6px;">
         ${row.absent?'<span style="color:rgba(255,255,255,.3);font-size:13px;">נעדר</span>':`
           <span class="bl-res-result" style="color:rgba(255,255,255,.5);">${resultStr}</span>
+          ${row.cumDist?`<span style="font-size:11px;color:rgba(255,255,255,.35);">${Math.round(row.cumDist)} מ׳</span>`:''}
           <input type="text" value="${row.result||''}"
             style="background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.15);border-radius:5px;color:#fff;padding:3px 7px;font-size:12px;width:60px;font-family:Heebo,sans-serif;text-align:center;"
             data-sarr="${row.studentArrIdx}"
