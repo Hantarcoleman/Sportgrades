@@ -2086,7 +2086,6 @@ history.pushState(null,'',location.href);
       <button class="bl-btn bl-pause" id="bl-pause-btn" onclick="blPause()" style="display:none;">⏸ השהה</button>
       <button class="bl-btn bl-end" onclick="blEnd()">■ סיום מבחן</button>
       <button class="bl-btn bl-undo" id="bl-undo-btn" onclick="blUndo()" disabled>↩ בטל</button>
-      <button class="bl-btn bl-redo" id="bl-redo-btn" onclick="blRedo()" disabled>↪ חזור</button>
       <button class="bl-btn" onclick="blAdjustTiming(-100)" style="background:rgba(255,255,255,.07);color:rgba(255,255,255,.6);border:1px solid rgba(255,255,255,.1);font-size:11px;">דיליי −0.1 שנ׳</button>
       <button class="bl-btn" onclick="blAdjustTiming(100)" style="background:rgba(255,255,255,.07);color:rgba(255,255,255,.6);border:1px solid rgba(255,255,255,.1);font-size:11px;">דיליי +0.1 שנ׳</button>
       <button class="bl-btn" onclick="closeBeepLive()" style="background:rgba(255,80,80,.15);border:1px solid rgba(255,80,80,.3);color:#ff8080;font-size:12px;">✕ יציאה מהמבחן</button>
@@ -8215,7 +8214,6 @@ function blRedo(){
 
 function blUpdateUndoRedo(){
   document.getElementById('bl-undo-btn').disabled=!BL.undoStack.length;
-  document.getElementById('bl-redo-btn').disabled=!BL.redoStack.length;
 }
 
 // ── ABSENT MODE ───────────────────────────────────────────────
