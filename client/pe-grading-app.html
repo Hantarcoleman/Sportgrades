@@ -1511,7 +1511,10 @@ history.pushState(null,'',location.href);
     <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
       <span class="ic">קבוצה: <strong id="ig">—</strong></span>
       <span class="ic">תלמידים: <strong id="ic2">—</strong></span>
-      <span class="ic">הוזנו: <strong id="ient">0</strong></span>
+      <span class="ic" id="ient-wrap" style="position:relative;overflow:hidden;transition:background .2s,border-color .2s;">
+        <span style="position:absolute;inset:0;width:0;background:currentColor;opacity:.10;transition:width .35s ease;" id="ient-bar"></span>
+        <span style="position:relative;">הוזנו: <strong id="ient">0</strong><span id="ient-tot" style="opacity:.55;font-weight:400;">/0</span></span>
+      </span>
     </div>
     <div style="display:flex;gap:8px;margin-right:auto;flex-wrap:wrap;align-items:center;">
       <button id="smart-test-btn-sb" onclick="openLiveTest2()" title="מבחן חכם" style="background:linear-gradient(135deg,#059669,#10b981);border:none;color:#fff;font-weight:900;font-size:14px;padding:8px 22px;border-radius:var(--rx);box-shadow:0 4px 14px rgba(16,185,129,.45);cursor:pointer;font-family:'Heebo',sans-serif;letter-spacing:.3px;transition:transform .1s,box-shadow .1s;" onmouseover="this.style.transform='scale(1.04)';this.style.boxShadow='0 6px 20px rgba(16,185,129,.6)'" onmouseout="this.style.transform='';this.style.boxShadow='0 4px 14px rgba(16,185,129,.45)'">🤖 מבחן חכם</button>
@@ -1554,6 +1557,13 @@ history.pushState(null,'',location.href);
     <div style="font-size:11px;color:var(--ink3);margin-top:5px;">לדוגמה: "<span id="fti-example"></span>" · אנטר לאישור</div>
   </div>
   <div style="display:flex;gap:8px;align-items:center;margin-bottom:8px;flex-wrap:wrap;" id="search-filter-bar">
+    <div style="position:relative;display:flex;align-items:center;">
+      <span style="position:absolute;right:10px;font-size:13px;color:var(--ink3);pointer-events:none;">🔍</span>
+      <input type="text" id="student-search" placeholder="חיפוש שם תלמיד..." oninput="onStudentSearch()"
+        style="padding:7px 12px 7px 30px;border:1.5px solid var(--bd2);border-radius:var(--rs);font-family:'Heebo',sans-serif;font-size:13px;background:var(--bg);min-width:180px;direction:rtl;">
+      <button type="button" id="student-search-clear" onclick="clearStudentSearch()" title="נקה חיפוש"
+        style="display:none;position:absolute;left:6px;background:none;border:none;cursor:pointer;font-size:14px;color:var(--ink3);padding:2px 6px;">✕</button>
+    </div>
     <select id="class-filter" onchange="renderTable()"
       style="padding:7px 12px;border:1.5px solid var(--bd2);border-radius:var(--rs);font-family:'Heebo',sans-serif;font-size:13px;background:var(--bg);cursor:pointer;">
       <option value="">כל המקבילות</option>
@@ -1577,6 +1587,7 @@ history.pushState(null,'',location.href);
         <button class="btn bs bsm" id="pbtn" onclick="document.getElementById('ppc').style.display=''" style="display:none;">📱 הדבק לאפס</button>
         <button class="btn bs bsm" id="edit-custom-btn" onclick="editCurrentCustom()" style="display:none;">✏ ערוך</button>
         <button class="btn bs bsm" onclick="openRecords()" title="טבלת שיאים">🏆 שיאים</button>
+        <button class="btn bs bsm" onclick="openHeatmap()" title="מפת חום: כל התלמידים × כל המבחנים" style="background:rgba(239,68,68,.10);border-color:rgba(239,68,68,.30);color:#dc2626;">🔥 מפת חום</button>
         <button class="btn bs bsm" onclick="openDistribution()" title="התפלגות ציונים" style="background:rgba(79,128,255,.1);border-color:rgba(79,128,255,.3);color:#4f80ff;">📊 התפלגות</button>
         <button class="btn bs bsm" id="run-analytics-btn" onclick="openRunAnalytics()" title="ניתוח אירובי מתקדם" style="display:none;background:rgba(34,197,94,.1);border-color:rgba(34,197,94,.3);color:#16a34a;">📈 ניתוח</button>
         <button class="btn bs bsm" id="grade-table-btn" onclick="showFullTbl(CUR.test,'')" title="טבלת ציונים" style="display:none;">📋 טבלה</button>
@@ -2192,6 +2203,18 @@ history.pushState(null,'',location.href);
   <div class="mf" style="gap:8px;">
     <button class="btn bg2" onclick="closeModal('student-report-modal')">סגור</button>
     <button class="btn bp" onclick="srmExportPDF()">📄 ייצוא PDF</button>
+  </div>
+</div></div>
+
+<!-- HEATMAP MODAL — מפת חום קבוצתית -->
+<div class="mbg" id="heatmap-modal" style="align-items:flex-start;padding:30px 16px 20px;overflow-y:auto;"><div class="mod mod-wide" onclick="event.stopPropagation()" style="max-width:1280px;width:100%;position:relative;">
+  <button onclick="closeModal('heatmap-modal')" style="position:absolute;top:10px;left:10px;background:var(--bg3);border:1.5px solid var(--bd2);color:var(--ink);border-radius:50%;width:30px;height:30px;cursor:pointer;font-size:15px;line-height:1;display:flex;align-items:center;justify-content:center;font-family:'Heebo',sans-serif;z-index:2;" title="סגור">✕</button>
+  <div class="mt">🔥 מפת חום קבוצתית</div>
+  <div style="font-size:12px;color:var(--ink3);margin:4px 0 12px;">כל התלמידים מול כל המבחנים — צבע לפי גובה הציון. לחץ על תא להזנת ציון או דוח תלמיד.</div>
+  <div id="heatmap-toolbar" style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:10px;font-size:12px;"></div>
+  <div id="heatmap-content" style="overflow:auto;max-height:70vh;border:1px solid var(--bd);border-radius:var(--rs);"></div>
+  <div class="mf" style="gap:8px;">
+    <button class="btn bg2" onclick="closeModal('heatmap-modal')">סגור</button>
   </div>
 </div></div>
 
@@ -3050,6 +3073,7 @@ function showYearEndBanner(label){
 function loadState(){ /* data loaded from Supabase via sbLoadUserData */ }
 function saveState(){
   try{
+    if(typeof _invalidateRiskCache==='function')_invalidateRiskCache();
     localStorage.setItem(LS,JSON.stringify(S));
     // Sync to Supabase in background
     if(typeof sbSaveGroup === 'function' && SG_USER && CUR.gid !== undefined && CUR.gid !== null){
@@ -3657,6 +3681,105 @@ function testHasAnyResult(gid,testId){
   const res=(g[resKey()]||{})[testId]||{};
   return Object.values(res).some(d=>d&&d.a!=='');
 }
+
+// ── זיהוי תלמיד בסיכון (לפי כל המבחנים בקבוצה) ─────────────
+// מחזיר {level:'high'|'low', reasons:[]} או null
+const _riskCache={};
+function studentRiskInfo(idx){
+  const g=S.groups[CUR.gid];if(!g)return null;
+  const s=g.students?.[idx];if(!s)return null;
+  // cache לפי gid+idx+timestamp של עדכון אחרון
+  const ck=CUR.gid+'_'+idx+'_'+(g._lastSave||0);
+  if(_riskCache[ck])return _riskCache[ck];
+
+  const isFem=s.gender==='נ'||s.gender==='f';
+  const allTestIds=[...Object.keys(TABLES||{}),...Object.keys(g.customTests||{})];
+  let totA=0,cntA=0,totB=0,cntB=0,missingA=0,relevant=0;
+
+  allTestIds.forEach(tid=>{
+    const T=getTbl(tid);if(T.maleOnly&&isFem)return;
+    relevant++;
+    const dA=g.results?.[tid]?.[idx];
+    const dB=g.results_b?.[tid]?.[idx];
+    if(dA&&dA.a!==''){
+      const sc=getScore(tid,s.grade,s.gender,dA.a);
+      const fin=calcFinal(sc,dA.bonusA||0,0);
+      if(fin!==null){totA+=fin;cntA++;}
+    }else missingA++;
+    if(dB&&dB.a!==''){
+      const sc=getScore(tid,s.grade,s.gender,dB.a);
+      const fin=calcFinal(sc,dB.bonusA||0,0);
+      if(fin!==null){totB+=fin;cntB++;}
+    }
+  });
+
+  if(!relevant)return null;
+  const avgA=cntA?totA/cntA:null;
+  const avgB=cntB?totB/cntB:null;
+  const reasons=[];
+  let level=null;
+
+  if(avgA!==null&&avgA<60){reasons.push('ממוצע נמוך ('+Math.round(avgA)+')');level='high';}
+  if(avgB!==null&&avgA!==null&&avgA>0){
+    const drop=(avgA-avgB)/avgA;
+    if(drop>0.25){reasons.push('ירידה משמעותית במחצית ב׳');level='high';}
+    else if(drop>0.15){reasons.push('ירידה במחצית ב׳');level=level||'low';}
+  }
+  // היעדרויות (רק אם הקבוצה התחילה למלא — לפחות חצי המבחנים)
+  if(cntA>=Math.floor(relevant/2)&&missingA>=3){
+    reasons.push(missingA+' מבחנים חסרים');
+    if(missingA>=Math.floor(relevant*0.4))level='high';
+    else level=level||'low';
+  }
+
+  const info=level?{level,reasons,avgA,avgB,missingA,relevant}:null;
+  _riskCache[ck]=info;
+  return info;
+}
+// איפוס cache בעת שמירה
+function _invalidateRiskCache(){for(const k in _riskCache)delete _riskCache[k];}
+
+// פונקציה משותפת לחישוב ערכי שורה — בשימוש גם ב-renderTable וגם ב-refreshRow
+// מבטיחה עקביות בין render מלא לבין רענון תא בודד
+function computeRow(idx){
+  const s=S.groups[CUR.gid]?.students?.[idx];
+  if(!s)return null;
+  const d=r(idx);
+  const T=getTbl(CUR.test);
+  const isFem=s.gender==='נ'||s.gender==='f';
+  const dis=T.maleOnly&&isFem;
+  const isInSemB=CUR.semester==='b';
+  const sA=dis?null:getScore(CUR.test,s.grade,s.gender,d.a);
+  const sB=null;
+  const base=sA;
+  const fin=calcFinal(base,d.bonusA||0,0);
+  const hasResult=d.a!==''||dis;
+  // נתוני מחצית א׳ (כשנמצאים במחצית ב׳)
+  const dA=isInSemB?S.groups[CUR.gid]?.results?.[CUR.test]?.[idx]:null;
+  let semAVal='',semABest=null;
+  if(dA){
+    const sa=getScore(CUR.test,s.grade,s.gender,dA.a);
+    const sb=dA.b?getScore(CUR.test,s.grade,s.gender,dA.b):null;
+    const bst=(sb!==null&&sb>=(sa||0))?sb:sa;
+    semABest=bst!==null?calcFinal(bst,dA.bonusA||0,0):null;
+    const bestVal=(sb!==null&&sb>=(sa||0)&&dA.b)?dA.b:dA.a;
+    semAVal=bestVal||'';
+  }
+  // ציון לתעודה = best of A and B
+  let gradeScore=fin;
+  let gradeScoreIsInherited=false;
+  if(isInSemB&&semABest!==null&&fin!==null){gradeScore=Math.max(fin,semABest);}
+  else if(isInSemB&&semABest!==null&&fin===null){gradeScore=semABest;gradeScoreIsInherited=true;}
+  // בונוס מוצע על שיפור
+  let suggestedBonus=0;
+  if(isInSemB&&semABest!==null&&base!==null&&base>0&&semABest>0){
+    const pctImp=Math.round((base-semABest)/semABest*100);
+    if(pctImp>=25)suggestedBonus=15;
+    else if(pctImp>=15)suggestedBonus=10;
+    else if(pctImp>=5)suggestedBonus=5;
+  }
+  return {s,d,T,dis,isInSemB,sA,sB,base,fin,hasResult,dA,semAVal,semABest,gradeScore,gradeScoreIsInherited,suggestedBonus};
+}
 function renderTable(){
   const T=getTbl(CUR.test);const ct=customTest(CUR.test);
   const isTime=T.isTime||(ct&&ct.unit==='דקות-');
@@ -3672,47 +3795,9 @@ function renderTable(){
 
   document.getElementById('tbody').innerHTML=sorted.map(s=>{
     const idx=s._orig;
-    const d=r(idx);
-    const isFem=s.gender==='נ'||s.gender==='f';
-    const dis=T.maleOnly&&isFem;
-    const sA=dis?null:getScore(CUR.test,s.grade,s.gender,d.a);
-    const sB=null;
+    const cr=computeRow(idx);
+    const {d,dis,sA,sB,base,fin,hasResult,semAVal,semABest,gradeScore,gradeScoreIsInherited,suggestedBonus}=cr;
     let imp=0;
-    const base=sA;
-    const fin=calcFinal(base,d.bonusA||0,0);
-    const hasResult=d.a!==''||dis;
-
-    // Semester A reference (shown when in semester B) - show value AND score
-    const dA=isInSemB?S.groups[CUR.gid]?.results?.[CUR.test]?.[idx]:null;
-    let semAVal='',semABest=null;
-    if(dA){
-      const sa=getScore(CUR.test,s.grade,s.gender,dA.a);
-      const sb=dA.b?getScore(CUR.test,s.grade,s.gender,dA.b):null;
-      const bst=(sb!==null&&sb>=(sa||0))?sb:sa;
-      semABest=bst!==null?calcFinal(bst,dA.bonusA||0,0):null;
-      // Best performance value from semester A
-      const bestVal=(sb!==null&&sb>=(sa||0)&&dA.b)?dA.b:dA.a;
-      semAVal=bestVal||'';
-    }
-
-    // Suggested improvement bonus
-    let suggestedBonus=0;
-    if(isInSemB&&semABest!==null&&base!==null&&base>0&&semABest>0){
-      const pctImp=Math.round((base-semABest)/semABest*100);
-      if(pctImp>=25)suggestedBonus=15;
-      else if(pctImp>=15)suggestedBonus=10;
-      else if(pctImp>=5)suggestedBonus=5;
-    }
-
-    // ציון לתעודה = best of semester A and semester B
-    let gradeScore=fin;
-    let gradeScoreIsInherited=false; // true = from sem A only, no current result
-    if(isInSemB&&semABest!==null&&fin!==null){
-      gradeScore=Math.max(fin,semABest);
-    } else if(isInSemB&&semABest!==null&&fin===null){
-      gradeScore=semABest;
-      gradeScoreIsInherited=true; // carried over, no sem B result yet
-    }
 
     const semACell=isInSemB?`<td style="font-size:11px;color:#7c3aed;text-align:center;border-right:2px solid rgba(124,58,237,.15);">${semABest!==null?
       `<div style="font-size:10px;color:rgba(124,58,237,.6);">${semAVal}</div><div style="font-weight:700;">${semABest}</div>${suggestedBonus>0?`<div style="font-size:9px;color:var(--gn);">💡 +${suggestedBonus} מוצע</div>`:''}`:
@@ -3735,9 +3820,11 @@ function renderTable(){
     const isDecline=sB!==null&&sA!==null&&sB<sA&&d.b&&!isImprove;
     const impTxt=isImprove?`📈 שיפור ${imp}%`:isDecline?'📉 ירידה':'';
     const bonB=`<div class="${isDecline?'impr-decline':'impr-big'}" style="${(isImprove||isDecline)?'':'opacity:0;height:0;padding:0;margin:0;border:none;overflow:hidden;'}">${impTxt}</div>`;
+    const risk=studentRiskInfo(idx);
+    const riskBadge=risk?` <span style="display:inline-block;font-size:10px;padding:1px 6px;border-radius:8px;margin-right:4px;font-weight:700;${risk.level==='high'?'background:rgba(220,38,38,.12);color:#dc2626;border:1px solid rgba(220,38,38,.35);':'background:rgba(251,146,60,.12);color:#ea580c;border:1px solid rgba(251,146,60,.35);'}" title="${risk.reasons.join(' · ').replace(/"/g,'&quot;')}">${risk.level==='high'?'🔴':'🟠'} בסיכון</span>`:'';
     return `<tr data-idx="${idx}"${!hasResult&&testHasAnyResult(CUR.gid,CUR.test)?' class="no-result"':hasResult?' class="has-result"':''}>
       <td style="font-size:11px;color:var(--ink3);font-weight:700;width:28px;text-align:center;">${idx+1}</td>
-      <td class="tn" style="cursor:pointer;" onclick="openStudentReport(${idx})" title="לחץ לדוח תלמיד">${s.name}${!hasResult?'<span style="font-size:10px;color:#fbbf24;margin-right:5px;"> ⚠</span>':d._ts?`<div style="font-size:9px;color:var(--ink3);font-weight:400;">${new Date(d._ts).toLocaleDateString('he-IL',{day:'2-digit',month:'2-digit',year:'2-digit'})}</div>`:''}
+      <td class="tn" style="cursor:pointer;" onclick="openStudentReport(${idx})" title="לחץ לדוח תלמיד">${s.name}${riskBadge}${!hasResult?'<span style="font-size:10px;color:#fbbf24;margin-right:5px;"> ⚠</span>':d._ts?`<div style="font-size:9px;color:var(--ink3);font-weight:400;">${new Date(d._ts).toLocaleDateString('he-IL',{day:'2-digit',month:'2-digit',year:'2-digit'})}</div>`:''}
       </td>
       <td style="font-size:11px;color:var(--ink3);">${s.grade}${s.cls}</td>
       <td style="text-align:center;">
@@ -3851,21 +3938,8 @@ function toggleBonus(i,f,p){
   saveState();renderTable();
 }
 function refreshRow(idx){
-  const s=S.groups[CUR.gid]?.students[idx];if(!s)return;
-  const d=r(idx);const T=getTbl(CUR.test);
-  const isFem=s.gender==='נ'||s.gender==='f';const dis=T.maleOnly&&isFem;
-  const isInSemB=CUR.semester==='b';
-  const sA=dis?null:getScore(CUR.test,s.grade,s.gender,d.a);
-  const sB=null;
-  let imp=0;
-  const base=(sB!==null&&sB>=(sA||0))?sB:sA;
-  const fin=calcFinal(base,d.bonusA||0,0);
-  const dA=isInSemB?S.groups[CUR.gid]?.results?.[CUR.test]?.[idx]:null;
-  let semABest=null;
-  if(dA){const sa=getScore(CUR.test,s.grade,s.gender,dA.a);const sb=dA.b?getScore(CUR.test,s.grade,s.gender,dA.b):null;const bst=(sb!==null&&sb>=(sa||0))?sb:sa;semABest=bst!==null?calcFinal(bst,dA.bonusA||0,0):null;}
-  let gradeScore=fin;
-  if(isInSemB&&semABest!==null&&fin!==null)gradeScore=Math.max(fin,semABest);
-  else if(isInSemB&&semABest!==null&&fin===null)gradeScore=semABest;
+  const cr=computeRow(idx);if(!cr)return;
+  const {s,d,dis,fin}=cr;
   const row=document.querySelector(`tr[data-idx="${idx}"]`);if(!row)return;
   const cells=row.querySelectorAll('td');
   const isLivePreview=d.a!==''&&!d._ts;
@@ -3894,6 +3968,19 @@ function updateStats(){
     if(fin!==null)finals.push(fin);
   });
   document.getElementById('ient').textContent=entered;
+  // עדכון תצוגת "הוזנו X/Y" + פס התקדמות צבעוני
+  const totalRel=students.filter(s=>!(T.maleOnly&&(s.gender==='נ'||s.gender==='f'))).length;
+  const tot=document.getElementById('ient-tot');
+  if(tot)tot.textContent='/'+totalRel;
+  const wrap=document.getElementById('ient-wrap');
+  const bar=document.getElementById('ient-bar');
+  if(wrap&&bar){
+    const pct=totalRel?entered/totalRel:0;
+    bar.style.width=(pct*100)+'%';
+    if(pct>=1){wrap.style.background='rgba(34,197,94,.10)';wrap.style.borderColor='rgba(34,197,94,.45)';wrap.style.color='#15803d';}
+    else if(pct>=.5){wrap.style.background='rgba(251,191,36,.08)';wrap.style.borderColor='rgba(251,191,36,.40)';wrap.style.color='';}
+    else{wrap.style.background='';wrap.style.borderColor='';wrap.style.color='';}
+  }
   if(!finals.length){['s-avg','s-max','s-min','s-100'].forEach(id=>{const el=document.getElementById(id);if(el)el.textContent='—';});return;}
   document.getElementById('s-avg').textContent=(finals.reduce((a,b)=>a+b,0)/finals.length).toFixed(1);
   document.getElementById('s-max').textContent=Math.max(...finals);
@@ -5892,6 +5979,156 @@ function getStudentArchiveHistory(studentName){
     });
   });
   return history;
+}
+
+// ── HEATMAP: כל התלמידים × כל המבחנים ─────────────────────
+// צבע לפי גובה הציון, ⚠ למבחן חסר, נקודה לבנה לבני בלבד
+function _hmColor(score){
+  if(score===null||score===undefined)return null;
+  if(score>=90)return 'rgba(21,128,61,.55)';      // ירוק כהה
+  if(score>=80)return 'rgba(34,197,94,.42)';      // ירוק
+  if(score>=70)return 'rgba(132,204,22,.40)';     // ליים
+  if(score>=60)return 'rgba(251,191,36,.40)';     // צהוב
+  if(score>=50)return 'rgba(251,146,60,.40)';     // כתום
+  return 'rgba(220,38,38,.40)';                    // אדום
+}
+function _hmShortLabel(label){
+  // קיצורי שם למבחנים נפוצים כדי שהטבלה לא תהיה רחבה מדי
+  const map={
+    'שכיבות סמיכה חופשי':'שכיבות',
+    'שכיבות סמיכה מטרונום':'שכיבות מ׳',
+    'מתח / מתח סטטי':'מתח',
+    'כפיפות בטן':'כפיפות',
+    'קפיצה בדלגית':'דלגית',
+    'ריצת 60מ׳':'60מ׳','ריצת 100מ׳':'100מ׳','ריצת 4×10מ׳':'4×10',
+    'ביפ טסט':'ביפ','קופר (12 דק׳)':'קופר','מבחן איקסים':'איקסים',
+    'ריצת 1000מ׳':'1000מ׳','ריצת 2000מ׳':'2000מ׳','ריצת 3000מ׳':'3000מ׳',
+  };
+  return map[label]||label;
+}
+function openHeatmap(){
+  if(!CUR.gid||!S.groups[CUR.gid]){toast('בחר קבוצה תחילה');return;}
+  renderHeatmap();
+  openModal('heatmap-modal');
+}
+function renderHeatmap(){
+  const g=S.groups[CUR.gid];if(!g)return;
+  const sem=document.getElementById('hm-sem')?.value||CUR.semester||'a';
+  const clsFilter=document.getElementById('hm-cls')?.value||'';
+  const allTests=[...TEST_LIST,...Object.entries(g.customTests||{}).map(([id,ct])=>({id,label:ct.name,group:'custom'}))];
+
+  // toolbar — בורר מחצית + כיתה + מקרא
+  const classes=[...new Set((g.students||[]).map(s=>s.grade+s.cls))].sort((a,b)=>a.localeCompare(b,'he'));
+  const tb=document.getElementById('heatmap-toolbar');
+  if(tb){
+    tb.innerHTML=`
+      <span style="color:var(--ink2);font-weight:700;">מחצית:</span>
+      <select id="hm-sem" onchange="renderHeatmap()" style="padding:5px 10px;border:1.5px solid var(--bd2);border-radius:var(--rs);background:var(--bg);font-size:12px;">
+        <option value="a"${sem==='a'?' selected':''}>א׳</option>
+        <option value="b"${sem==='b'?' selected':''}>ב׳</option>
+      </select>
+      <span style="color:var(--ink2);font-weight:700;margin-right:8px;">כיתה:</span>
+      <select id="hm-cls" onchange="renderHeatmap()" style="padding:5px 10px;border:1.5px solid var(--bd2);border-radius:var(--rs);background:var(--bg);font-size:12px;">
+        <option value=""${!clsFilter?' selected':''}>הכל</option>
+        ${classes.map(c=>`<option value="${c}"${c===clsFilter?' selected':''}>${c}</option>`).join('')}
+      </select>
+      <span style="margin-right:auto;display:flex;align-items:center;gap:4px;font-size:11px;color:var(--ink3);">
+        <span>מקרא:</span>
+        <span style="display:inline-block;width:18px;height:14px;background:rgba(220,38,38,.40);border-radius:3px;"></span>&lt;50
+        <span style="display:inline-block;width:18px;height:14px;background:rgba(251,146,60,.40);border-radius:3px;"></span>50
+        <span style="display:inline-block;width:18px;height:14px;background:rgba(251,191,36,.40);border-radius:3px;"></span>60
+        <span style="display:inline-block;width:18px;height:14px;background:rgba(132,204,22,.40);border-radius:3px;"></span>70
+        <span style="display:inline-block;width:18px;height:14px;background:rgba(34,197,94,.42);border-radius:3px;"></span>80
+        <span style="display:inline-block;width:18px;height:14px;background:rgba(21,128,61,.55);border-radius:3px;"></span>90+
+      </span>`;
+  }
+
+  const sourceKey=sem==='b'?'results_b':'results';
+  const fallbackKey='results'; // לברירת מחדל אם אין במחצית הנבחרת — נציג מ-A
+  const students=(g.students||[])
+    .map((s,i)=>({...s,_idx:i}))
+    .filter(s=>!s._guest)
+    .filter(s=>!clsFilter||s.grade+s.cls===clsFilter)
+    .sort((a,b)=>a.name.localeCompare(b.name,'he'));
+
+  // ממוצעים לפי עמודה (מבחן) — לסיכום התחתון
+  const colSums=allTests.map(()=>({sum:0,cnt:0}));
+
+  let bodyRows='';
+  students.forEach(s=>{
+    const isFem=s.gender==='נ'||s.gender==='f';
+    const rowScores=[];
+    let cells='';
+    allTests.forEach((t,colI)=>{
+      const T=getTbl(t.id);
+      if(T.maleOnly&&isFem){
+        cells+=`<td style="background:repeating-linear-gradient(45deg,var(--bg2),var(--bg2) 4px,var(--bg) 4px,var(--bg) 8px);text-align:center;color:var(--ink3);font-size:10px;">—</td>`;
+        return;
+      }
+      const d=g[sourceKey]?.[t.id]?.[s._idx]||g[fallbackKey]?.[t.id]?.[s._idx];
+      if(!d||d.a===''){
+        cells+=`<td style="background:var(--bg2);text-align:center;color:var(--ink3);font-size:11px;cursor:pointer;" onclick="_hmJumpTo('${t.id}',${s._idx})" title="טרם נמדד — לחץ למבחן ${t.label}">·</td>`;
+        return;
+      }
+      const sc=getScore(t.id,s.grade,s.gender,d.a);
+      const fin=calcFinal(sc,d.bonusA||0,0);
+      if(fin===null){
+        cells+=`<td style="text-align:center;color:var(--ink3);">—</td>`;
+        return;
+      }
+      rowScores.push(fin);
+      colSums[colI].sum+=fin;colSums[colI].cnt++;
+      const bg=_hmColor(fin);
+      const txtColor=fin>=80?'#15803d':fin>=60?'#92400e':fin>=40?'#9a3412':'#991b1b';
+      cells+=`<td style="background:${bg};text-align:center;font-weight:700;color:${txtColor};cursor:pointer;font-size:12px;" onclick="_hmJumpTo('${t.id}',${s._idx})" title="${t.label}: ${fin} (תוצאה: ${d.a})">${fin}</td>`;
+    });
+    const avg=rowScores.length?Math.round(rowScores.reduce((a,b)=>a+b,0)/rowScores.length):null;
+    const avgBg=avg!==null?_hmColor(avg):'var(--bg2)';
+    const avgColor=avg===null?'var(--ink3)':avg>=80?'#15803d':avg>=60?'#92400e':'#991b1b';
+    const risk=studentRiskInfo(s._idx);
+    const riskMark=risk?`<span style="color:${risk.level==='high'?'#dc2626':'#ea580c'};margin-right:3px;">${risk.level==='high'?'🔴':'🟠'}</span>`:'';
+    bodyRows+=`<tr>
+      <td style="position:sticky;right:0;background:var(--sf);z-index:2;font-weight:700;font-size:12px;padding:6px 10px;border-left:1px solid var(--bd);cursor:pointer;white-space:nowrap;" onclick="closeModal('heatmap-modal');openStudentReport(${s._idx});">${riskMark}${s.name}</td>
+      <td style="font-size:10px;color:var(--ink3);text-align:center;">${s.grade}${s.cls}</td>
+      ${cells}
+      <td style="background:${avgBg};text-align:center;font-weight:800;color:${avgColor};border-right:2px solid var(--bd);">${avg!==null?avg:'—'}</td>
+    </tr>`;
+  });
+
+  // שורת ממוצע עמודה
+  let footRow='<tr style="background:var(--bg2);font-weight:700;">'+
+    '<td style="position:sticky;right:0;background:var(--bg2);z-index:2;font-size:11px;padding:6px 10px;color:var(--ink3);">ממוצע מבחן</td>'+
+    '<td></td>';
+  colSums.forEach(({sum,cnt})=>{
+    if(!cnt){footRow+='<td style="text-align:center;color:var(--ink3);font-size:11px;">—</td>';return;}
+    const avg=Math.round(sum/cnt);
+    footRow+=`<td style="background:${_hmColor(avg)};text-align:center;font-size:11px;font-weight:800;">${avg}</td>`;
+  });
+  footRow+='<td></td></tr>';
+
+  const headerCells=allTests.map(t=>`<th style="padding:6px 4px;font-size:10px;font-weight:700;color:var(--ink2);background:var(--bg2);writing-mode:vertical-rl;transform:rotate(180deg);min-width:32px;height:90px;border-bottom:2px solid var(--bd);" title="${t.label}">${_hmShortLabel(t.label)}</th>`).join('');
+  const html=`<table style="border-collapse:collapse;width:100%;font-family:'Heebo',sans-serif;direction:rtl;">
+    <thead>
+      <tr>
+        <th style="position:sticky;right:0;top:0;z-index:3;background:var(--bg2);padding:6px 10px;font-size:11px;text-align:right;border-bottom:2px solid var(--bd);min-width:140px;">תלמיד/ה</th>
+        <th style="position:sticky;top:0;z-index:2;background:var(--bg2);font-size:10px;color:var(--ink3);padding:6px 4px;border-bottom:2px solid var(--bd);">כיתה</th>
+        ${headerCells}
+        <th style="position:sticky;top:0;z-index:2;background:var(--bg2);padding:6px 4px;font-size:10px;color:var(--ink2);border-bottom:2px solid var(--bd);border-right:2px solid var(--bd);min-width:48px;">ממוצע</th>
+      </tr>
+    </thead>
+    <tbody>${bodyRows||'<tr><td colspan="99" style="padding:24px;text-align:center;color:var(--ink3);">אין תלמידים תואמים לסינון</td></tr>'}</tbody>
+    <tfoot>${students.length?footRow:''}</tfoot>
+  </table>`;
+  document.getElementById('heatmap-content').innerHTML=html;
+}
+// קפיצה ממפת חום למבחן ספציפי בטבלה הראשית
+function _hmJumpTo(testId,studentIdx){
+  closeModal('heatmap-modal');
+  if(testId&&testId!==CUR.test)selectTest(testId);
+  setTimeout(()=>{
+    const row=document.querySelector(`tr[data-idx="${studentIdx}"]`);
+    if(row){row.scrollIntoView({behavior:'smooth',block:'center'});highlightRow(studentIdx);}
+  },200);
 }
 
 // ── SCORE DISTRIBUTION (bell curve) ───────────────────────────
@@ -8955,6 +9192,7 @@ function updateClassFilter(){
 function getFilteredStudents(){
   const students=S.groups[CUR.gid]?.students||[];
   const cls=(document.getElementById('class-filter')?.value||'');
+  const q=(document.getElementById('student-search')?.value||'').trim().toLowerCase();
   const key=resKey();
   return students.map((s,i)=>({...s,_orig:i})).filter(s=>{
     // Guests only shown if they have a result in the current test
@@ -8963,8 +9201,22 @@ function getFilteredStudents(){
       if(!d||d.a==='')return false;
     }
     if(cls&&s.grade+s.cls!==cls)return false;
+    if(q&&!s.name.toLowerCase().includes(q))return false;
     return true;
   });
+}
+
+// חיפוש חי של תלמיד בטבלה
+function onStudentSearch(){
+  const inp=document.getElementById('student-search');
+  const clr=document.getElementById('student-search-clear');
+  if(clr)clr.style.display=inp&&inp.value?'':'none';
+  renderTable();
+}
+function clearStudentSearch(){
+  const inp=document.getElementById('student-search');
+  if(inp){inp.value='';inp.focus();}
+  onStudentSearch();
 }
 
 function sortedStudents(){
@@ -9139,6 +9391,96 @@ function _srmRenderContent(){
   else _srmTab2Compare(g,s,idx,isFem,allTests);
 }
 
+// ── תגים דינמיים לכרטיס תלמיד ─────────────────────────────
+// משווה את התלמיד לכלל הקבוצה ומחזיר רשימת badges שזכה בהם
+function computeStudentBadges(g,s,idx,isFem,allTests){
+  const badges=[];
+  // קליטת ציון תלמיד למבחן (המקסימום בין מחצית א׳ ו-ב׳)
+  function bestFin(testId,sIdx,stu){
+    const isF=stu.gender==='נ'||stu.gender==='f';
+    const T=getTbl(testId);if(T.maleOnly&&isF)return null;
+    const dA=g.results?.[testId]?.[sIdx];
+    const dB=g.results_b?.[testId]?.[sIdx];
+    const fA=dA?.a?calcFinal(getScore(testId,stu.grade,stu.gender,dA.a),dA.bonusA||0,0):null;
+    const fB=dB?.a?calcFinal(getScore(testId,stu.grade,stu.gender,dB.a),dB.bonusA||0,0):null;
+    if(fA===null&&fB===null)return null;
+    return Math.max(fA??-1,fB??-1);
+  }
+  // ציון ממוצע על כל המבחנים
+  const myScores=[];
+  let myMissing=0,myRelevant=0;
+  allTests.forEach(({id})=>{
+    const T=getTbl(id);if(T.maleOnly&&isFem)return;
+    myRelevant++;
+    const f=bestFin(id,idx,s);
+    if(f!==null)myScores.push(f);
+    else myMissing++;
+  });
+  const myAvg=myScores.length?myScores.reduce((a,b)=>a+b,0)/myScores.length:0;
+
+  // 1. מצטיין כללי (ממוצע ≥ 90)
+  if(myAvg>=90)badges.push({icon:'🎯',label:'מצטיין כללי',color:'#059669',bg:'rgba(16,185,129,.12)',title:'ממוצע '+myAvg.toFixed(1)});
+  else if(myAvg>=80)badges.push({icon:'⭐',label:'משובח',color:'#d97706',bg:'rgba(251,191,36,.14)',title:'ממוצע '+myAvg.toFixed(1)});
+
+  // 2. מתמיד — ביצע את כל המבחנים הרלוונטיים
+  if(myRelevant>=4&&myMissing===0)badges.push({icon:'💪',label:'מתמיד',color:'#0369a1',bg:'rgba(14,165,233,.14)',title:'ביצע את כל '+myRelevant+' המבחנים'});
+
+  // 3. ציון 100 באחד המבחנים
+  if(myScores.some(f=>f===100))badges.push({icon:'💯',label:'ציון מושלם',color:'#9f1239',bg:'rgba(236,72,153,.14)',title:'קיבל 100 לפחות במבחן אחד'});
+
+  // 4. מהיר/חזק/אלוף — השוואה לכל בני אותו המין באותה קבוצה
+  // נמצא לכל קטגוריית מבחן (ריצות/כוח/אירובי) האם התלמיד הוא במקום הראשון
+  const cats=[
+    {key:'speed',icon:'⚡',label:'מהיר הכיתה',tests:['run60','run100','run4x10']},
+    {key:'strength',icon:'🦾',label:'חזק הכיתה',tests:['pushups','pushups_metro','pullups','plank']},
+    {key:'aerobic',icon:'🏃',label:'אלוף הסיבולת',tests:['beep','cooper','run1000','run2000','run3000','xtest']},
+  ];
+  cats.forEach(cat=>{
+    const peers=g.students.filter(p=>(p.gender==='נ'||p.gender==='f')===isFem);
+    let myBest=null,peerBest=-1;
+    cat.tests.forEach(tid=>{
+      if(!getTbl(tid).grades&&!customTest(tid))return;
+      const f=bestFin(tid,idx,s);
+      if(f!==null&&(myBest===null||f>myBest))myBest=f;
+      peers.forEach((p,pi)=>{
+        const realIdx=g.students.indexOf(p);
+        if(realIdx===idx)return;
+        const pf=bestFin(tid,realIdx,p);
+        if(pf!==null&&pf>peerBest)peerBest=pf;
+      });
+    });
+    if(myBest!==null&&myBest>=85&&myBest>peerBest){
+      badges.push({icon:cat.icon,label:cat.label,color:'#7c3aed',bg:'rgba(139,92,246,.14)',title:'הציון הגבוה ביותר בקבוצה בקטגוריה זו ('+myBest+')'});
+    }
+  });
+
+  // 5. המשתפר — שיפור הכי גדול בין מחצית א׳ ל-ב׳
+  let myMaxImprove=0,bestTest=null;
+  allTests.forEach(({id,label})=>{
+    const T=getTbl(id);if(T.maleOnly&&isFem)return;
+    const dA=g.results?.[id]?.[idx];
+    const dB=g.results_b?.[id]?.[idx];
+    if(!dA?.a||!dB?.a)return;
+    const fA=calcFinal(getScore(id,s.grade,s.gender,dA.a),dA.bonusA||0,0);
+    const fB=calcFinal(getScore(id,s.grade,s.gender,dB.a),dB.bonusA||0,0);
+    if(fA===null||fB===null||fA===0)return;
+    const pct=Math.round((fB-fA)/fA*100);
+    if(pct>myMaxImprove){myMaxImprove=pct;bestTest=label;}
+  });
+  if(myMaxImprove>=15)badges.push({icon:'📈',label:'המשתפר',color:'#16a34a',bg:'rgba(34,197,94,.14)',title:'שיפור של '+myMaxImprove+'% במבחן '+bestTest});
+
+  return badges;
+}
+
+function _renderStudentBadges(g,s,idx,isFem,allTests){
+  const badges=computeStudentBadges(g,s,idx,isFem,allTests);
+  if(!badges.length)return '';
+  return `<div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:14px;padding:10px 12px;background:linear-gradient(135deg,rgba(251,191,36,.06),rgba(139,92,246,.06));border:1px solid var(--bd);border-radius:var(--rs);">
+    <div style="font-size:10px;font-weight:800;color:var(--ink3);text-transform:uppercase;letter-spacing:.5px;width:100%;margin-bottom:2px;">🏅 הישגים</div>
+    ${badges.map(b=>`<span title="${b.title.replace(/"/g,'&quot;')}" style="display:inline-flex;align-items:center;gap:5px;padding:5px 11px;border-radius:14px;font-size:12px;font-weight:700;color:${b.color};background:${b.bg};border:1px solid ${b.color}33;cursor:help;"><span style="font-size:14px;">${b.icon}</span>${b.label}</span>`).join('')}
+  </div>`;
+}
+
 function _srmTab0(g,s,idx,isFem,allTests){
   let scores=[],html='';
   html+=`<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:16px;">`;
@@ -9146,6 +9488,8 @@ function _srmTab0(g,s,idx,isFem,allTests){
   html+=`<div class="sc"><div class="sv" style="font-size:20px;">${isFem?'נ':'ז'}</div><div class="sl">מין</div></div>`;
   const doneCount=allTests.filter(t=>{const d=g.results?.[t.id]?.[idx];return d&&d.a!=='';}).length;
   html+=`<div class="sc"><div class="sv" style="font-size:20px;">${doneCount}</div><div class="sl">מבחנים</div></div></div>`;
+  // תגי הישגים דינמיים
+  html+=_renderStudentBadges(g,s,idx,isFem,allTests);
   html+='<table style="width:100%;border-collapse:collapse;font-size:13px;">';
   html+='<thead><tr><th style="text-align:right;padding:7px 12px;background:var(--bg2);font-size:10px;color:var(--ink3);font-weight:800;letter-spacing:.5px;text-transform:uppercase;">מבחן</th><th style="text-align:right;padding:7px 12px;background:var(--bg2);font-size:10px;color:var(--ink3);font-weight:800;">תוצאה</th><th style="text-align:center;padding:7px 12px;background:var(--bg2);font-size:10px;color:var(--ink3);font-weight:800;">ציון</th><th style="text-align:right;padding:7px 12px;background:var(--bg2);font-size:10px;color:var(--ink3);font-weight:800;">תאריך</th></tr></thead><tbody>';
   allTests.forEach(({id,label})=>{
