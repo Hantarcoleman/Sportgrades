@@ -1192,7 +1192,7 @@ history.pushState(null,'',location.href);
   </div>
 
   <!-- כלים מהירים -->
-  <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px;">
+  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:12px;margin-bottom:14px;">
     <div class="card" style="background:linear-gradient(135deg,var(--pubg) 0%,rgba(91,33,182,.04) 100%);border-color:var(--pubd);cursor:pointer;" onclick="sbGoRandom()">
       <div style="padding:16px;text-align:center;">
         <div style="font-size:28px;margin-bottom:6px;">🎲</div>
@@ -1205,6 +1205,20 @@ history.pushState(null,'',location.href);
         <div style="font-size:28px;margin-bottom:6px;">🏆</div>
         <div style="font-weight:800;color:#b45309;font-size:14px;">טבלת שיאים</div>
         <div style="font-size:11px;color:var(--ink3);margin-top:3px;">שיאי הכיתה</div>
+      </div>
+    </div>
+    <div class="card" style="cursor:pointer;border-color:rgba(14,165,233,.3);background:linear-gradient(135deg,rgba(14,165,233,.06) 0%,transparent 100%);" onclick="openDashboard()">
+      <div style="padding:16px;text-align:center;">
+        <div style="font-size:28px;margin-bottom:6px;">📊</div>
+        <div style="font-weight:800;color:#0369a1;font-size:14px;">דשבורד כיתות</div>
+        <div style="font-size:11px;color:var(--ink3);margin-top:3px;">מבט-על לכל הקבוצות</div>
+      </div>
+    </div>
+    <div class="card" style="cursor:pointer;border-color:rgba(220,38,38,.3);background:linear-gradient(135deg,rgba(220,38,38,.06) 0%,transparent 100%);" onclick="openBattleMode()">
+      <div style="padding:16px;text-align:center;">
+        <div style="font-size:28px;margin-bottom:6px;">⚔</div>
+        <div style="font-weight:800;color:#dc2626;font-size:14px;">Battle Mode</div>
+        <div style="font-size:11px;color:var(--ink3);margin-top:3px;">השוואת שתי כיתות</div>
       </div>
     </div>
   </div>
@@ -1607,6 +1621,8 @@ history.pushState(null,'',location.href);
   <div class="eb" style="justify-content:center;">
     <div style="display:flex;gap:8px;flex-wrap:wrap;justify-content:center;">
       <button class="btn bgn" onclick="exportAllExcel()">⬇ אקסל סיכום</button>
+      <button class="btn bgn" onclick="document.getElementById('fi-excel-import').click()" style="background:#0369a1;" title="ייבוא תוצאות מקובץ אקסל שיוצא בעבר">⬆ ייבוא מ-Excel</button>
+      <input type="file" id="fi-excel-import" accept=".xlsx,.xls" style="display:none" onchange="importExcel(event)">
       <button class="btn bgn" onclick="openMashovExportModal()" style="background:#1d4ed8;" title="ייצוא לקובץ משו״ב — תעודות הזהות לא נשמרות בשרת">🔐 ייצא למשו״ב</button>
       <button class="btn bgn" onclick="exportPDF()" style="background:#dc2626;">📄 PDF — מבחן זה</button>
       <button class="btn bgn" onclick="exportFullPDF()" style="background:#9f1239;">📋 PDF — כל המבחנים</button>
@@ -2216,6 +2232,34 @@ history.pushState(null,'',location.href);
   <div class="mf" style="gap:8px;">
     <button class="btn bg2" onclick="closeModal('heatmap-modal')">סגור</button>
     <button class="btn bp bsm" onclick="heatmapExportPDF()">📄 ייצוא PDF</button>
+  </div>
+</div></div>
+
+<!-- DASHBOARD MODAL — מבט-על כל הקבוצות -->
+<div class="mbg" id="dashboard-modal" style="align-items:flex-start;padding:30px 16px 20px;overflow-y:auto;"><div class="mod mod-wide" onclick="event.stopPropagation()" style="max-width:900px;width:100%;position:relative;">
+  <button onclick="closeModal('dashboard-modal')" style="position:absolute;top:10px;left:10px;background:var(--bg3);border:1.5px solid var(--bd2);color:var(--ink);border-radius:50%;width:30px;height:30px;cursor:pointer;font-size:15px;line-height:1;display:flex;align-items:center;justify-content:center;font-family:'Heebo',sans-serif;z-index:2;" title="סגור">✕</button>
+  <div class="mt">📊 דשבורד כיתות</div>
+  <div style="font-size:12px;color:var(--ink3);margin:4px 0 14px;">מבט-על לכל הקבוצות — לחץ על כרטיסייה לפתיחת הקבוצה</div>
+  <div id="dashboard-content"></div>
+  <div class="mf" style="gap:8px;margin-top:16px;">
+    <button class="btn bg2" onclick="closeModal('dashboard-modal')">סגור</button>
+  </div>
+</div></div>
+
+<!-- BATTLE MODE MODAL — השוואת שתי כיתות -->
+<div class="mbg" id="battle-modal" style="align-items:flex-start;padding:30px 16px 20px;overflow-y:auto;"><div class="mod mod-wide" onclick="event.stopPropagation()" style="max-width:700px;width:100%;position:relative;">
+  <button onclick="closeModal('battle-modal')" style="position:absolute;top:10px;left:10px;background:var(--bg3);border:1.5px solid var(--bd2);color:var(--ink);border-radius:50%;width:30px;height:30px;cursor:pointer;font-size:15px;line-height:1;display:flex;align-items:center;justify-content:center;font-family:'Heebo',sans-serif;z-index:2;" title="סגור">✕</button>
+  <div class="mt">⚔ Battle Mode</div>
+  <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin:10px 0 14px;font-size:13px;">
+    <label style="font-weight:700;">כיתה א׳:</label>
+    <select id="battle-a" onchange="renderBattleMode()" style="padding:6px 10px;border:1.5px solid var(--bd2);border-radius:var(--rs);background:var(--bg);font-size:13px;"></select>
+    <span style="font-size:20px;">⚔</span>
+    <label style="font-weight:700;">כיתה ב׳:</label>
+    <select id="battle-b" onchange="renderBattleMode()" style="padding:6px 10px;border:1.5px solid var(--bd2);border-radius:var(--rs);background:var(--bg);font-size:13px;"></select>
+  </div>
+  <div id="battle-content"></div>
+  <div class="mf" style="gap:8px;margin-top:16px;">
+    <button class="btn bg2" onclick="closeModal('battle-modal')">סגור</button>
   </div>
 </div></div>
 
@@ -6252,6 +6296,185 @@ function heatmapExportPDF(){
   }).catch(()=>toast('לא ניתן לטעון ספריות PDF — בדוק חיבור לאינטרנט'));
 }
 
+// ── DASHBOARD — מבט-על כל הקבוצות ────────────────────────────
+function _dashStats(gid){
+  const g=S.groups[gid];if(!g)return null;
+  const allTests=[...TEST_LIST,...Object.entries(g.customTests||{}).map(([id,ct])=>({id,label:ct.name}))];
+  const students=(g.students||[]).filter(s=>!s._guest);
+  const testAvgs={};
+  allTests.forEach(({id,label})=>{testAvgs[id]={sum:0,cnt:0,label};});
+  const groupScores=[];let atRisk=0;
+  students.forEach((s,idx)=>{
+    const isFem=s.gender==='נ'||s.gender==='f';
+    const sScores=[];let missing=0,relevant=0;
+    allTests.forEach(({id})=>{
+      const T=getTbl(id);if(T.maleOnly&&isFem)return;
+      relevant++;
+      const dA=g.results?.[id]?.[idx];const dB=g.results_b?.[id]?.[idx];
+      const fA=dA?.a?calcFinal(getScore(id,s.grade,s.gender,dA.a),dA.bonusA||0,0):null;
+      const fB=dB?.a?calcFinal(getScore(id,s.grade,s.gender,dB.a),dB.bonusA||0,0):null;
+      const fin=(fA===null&&fB===null)?null:Math.max(fA??-1,fB??-1);
+      if(fin===null){missing++;return;}
+      sScores.push(fin);testAvgs[id].sum+=fin;testAvgs[id].cnt++;
+    });
+    const avg=sScores.length?sScores.reduce((a,b)=>a+b,0)/sScores.length:null;
+    if(avg!==null){groupScores.push(avg);if(avg<60||missing>=Math.max(3,Math.round(relevant*0.4)))atRisk++;}
+  });
+  const avg=groupScores.length?Math.round(groupScores.reduce((a,b)=>a+b,0)/groupScores.length):null;
+  let bestTest=null,bestAvg=-1,worstTest=null,worstAvg=101;
+  Object.values(testAvgs).forEach(({sum,cnt,label})=>{
+    if(cnt<3)return;const a=sum/cnt;
+    if(a>bestAvg){bestAvg=a;bestTest=label;}
+    if(a<worstAvg){worstAvg=a;worstTest=label;}
+  });
+  return{avg,atRisk,total:students.length,bestTest,bestAvg:Math.round(bestAvg),worstTest,worstAvg:Math.round(worstAvg)};
+}
+
+function openDashboard(){
+  renderGroupDashboard();
+  openModal('dashboard-modal');
+}
+
+function renderGroupDashboard(){
+  const cont=document.getElementById('dashboard-content');if(!cont)return;
+  const gids=Object.keys(S.groups);
+  if(!gids.length){cont.innerHTML='<div style="padding:24px;text-align:center;color:var(--ink3);">אין קבוצות טעונות</div>';return;}
+  let html='<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:12px;">';
+  gids.forEach(gid=>{
+    const g=S.groups[gid];const stats=_dashStats(gid);
+    const a=stats?.avg;
+    const avgBg=a==null?'#f3f4f6':a>=80?'#d1fae5':a>=60?'#fef9c3':'#fee2e2';
+    const avgCol=a==null?'#6b7280':a>=80?'#15803d':a>=60?'#92400e':'#991b1b';
+    html+=`<div class="card" style="cursor:pointer;padding:0;overflow:hidden;" onclick="setCUR({gid:'${gid}'});closeModal('dashboard-modal');showView('group');">
+      <div style="padding:14px 16px;border-bottom:1px solid var(--bd);display:flex;justify-content:space-between;align-items:center;">
+        <div style="min-width:0;">
+          <div style="font-weight:800;font-size:15px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${g.name}</div>
+          <div style="font-size:11px;color:var(--ink3);margin-top:2px;">${g.classes||''} · ${stats?.total||0} תלמידים</div>
+        </div>
+        <div style="background:${avgBg};color:${avgCol};font-weight:800;font-size:22px;padding:8px 14px;border-radius:10px;flex-shrink:0;margin-right:10px;">${a!=null?a:'—'}</div>
+      </div>
+      <div style="padding:9px 16px;display:flex;flex-wrap:wrap;gap:8px;font-size:11px;">
+        ${stats?.atRisk?`<span style="color:#dc2626;font-weight:700;">⚠ ${stats.atRisk} בסיכון</span>`:'<span style="color:#16a34a;font-weight:700;">✓ אין בסיכון</span>'}
+        ${stats?.bestTest?`<span style="color:var(--ink3);">↑ ${stats.bestTest} (${stats.bestAvg})</span>`:''}
+        ${stats?.worstTest&&stats.worstTest!==stats.bestTest?`<span style="color:var(--ink3);">↓ ${stats.worstTest} (${stats.worstAvg})</span>`:''}
+      </div>
+    </div>`;
+  });
+  html+='</div>';
+  cont.innerHTML=html;
+}
+
+// ── BATTLE MODE — השוואת שתי קבוצות ──────────────────────────
+function openBattleMode(){
+  const gids=Object.keys(S.groups);
+  if(gids.length<2){toast('נדרשות לפחות 2 קבוצות');return;}
+  const selA=document.getElementById('battle-a');
+  const selB=document.getElementById('battle-b');
+  if(!selA||!selB)return;
+  const opts=gids.map(gid=>`<option value="${gid}">${S.groups[gid].name}</option>`).join('');
+  selA.innerHTML=opts;selB.innerHTML=opts;
+  selA.value=gids[0];selB.value=gids[1]||gids[0];
+  renderBattleMode();
+  openModal('battle-modal');
+}
+
+function renderBattleMode(){
+  const gidA=document.getElementById('battle-a')?.value;
+  const gidB=document.getElementById('battle-b')?.value;
+  const cont=document.getElementById('battle-content');if(!cont)return;
+  const gA=S.groups[gidA],gB=S.groups[gidB];
+  if(!gA||!gB){cont.innerHTML='';return;}
+  if(gidA===gidB){cont.innerHTML='<div style="padding:24px;text-align:center;color:var(--ink3);">בחר שתי קבוצות שונות</div>';return;}
+  function grpTestAvg(g,testId){
+    const T=getTbl(testId);let sum=0,cnt=0;
+    (g.students||[]).forEach((s,idx)=>{
+      if(s._guest)return;
+      const isFem=s.gender==='נ'||s.gender==='f';if(T.maleOnly&&isFem)return;
+      const dA=g.results?.[testId]?.[idx];const dB=g.results_b?.[testId]?.[idx];
+      const fA=dA?.a?calcFinal(getScore(testId,s.grade,s.gender,dA.a),dA.bonusA||0,0):null;
+      const fB=dB?.a?calcFinal(getScore(testId,s.grade,s.gender,dB.a),dB.bonusA||0,0):null;
+      const fin=(fA===null&&fB===null)?null:Math.max(fA??-1,fB??-1);
+      if(fin!==null){sum+=fin;cnt++;}
+    });
+    return cnt>=2?Math.round(sum/cnt):null;
+  }
+  let winsA=0,winsB=0,ties=0,rows='';
+  TEST_LIST.forEach(({id,label})=>{
+    const aAvg=grpTestAvg(gA,id),bAvg=grpTestAvg(gB,id);
+    if(aAvg===null&&bAvg===null)return;
+    const winA=aAvg!==null&&bAvg!==null&&aAvg>bAvg;
+    const winB=aAvg!==null&&bAvg!==null&&bAvg>aAvg;
+    const tie=aAvg!==null&&bAvg!==null&&aAvg===bAvg;
+    if(winA)winsA++;else if(winB)winsB++;else if(tie)ties++;
+    rows+=`<tr style="border-bottom:1px solid var(--bd);">
+      <td style="padding:7px 12px;font-weight:${winA?800:400};color:${winA?'#15803d':winB?'#9ca3af':'var(--ink)'};text-align:right;">${aAvg!==null?aAvg:'—'} ${winA?'🏆':''}</td>
+      <td style="padding:7px 12px;font-size:11px;font-weight:600;text-align:center;color:var(--ink3);">${label}</td>
+      <td style="padding:7px 12px;font-weight:${winB?800:400};color:${winB?'#15803d':winA?'#9ca3af':'var(--ink)'};text-align:left;">${winB?'🏆 ':''}${bAvg!==null?bAvg:'—'}</td>
+    </tr>`;
+  });
+  const sA=_dashStats(gidA),sB=_dashStats(gidB);
+  const oA=sA?.avg,oB=sB?.avg;
+  cont.innerHTML=`
+    <div style="display:grid;grid-template-columns:1fr auto 1fr;gap:8px;margin-bottom:16px;text-align:center;align-items:center;">
+      <div style="background:${oA!=null&&oA>=(oB??0)?'rgba(21,128,61,.1)':'var(--bg2)'};border-radius:var(--rs);padding:12px;border:2px solid ${oA!=null&&oA>=(oB??0)?'#16a34a':'var(--bd)'};">
+        <div style="font-weight:800;font-size:15px;">${gA.name}</div>
+        <div style="font-size:30px;font-weight:800;color:${oA>=80?'#15803d':oA>=60?'#92400e':'#991b1b'};margin:4px 0;">${oA??'—'}</div>
+        <div style="font-size:11px;color:var(--ink3);">ממוצע כללי</div>
+        <div style="font-size:13px;font-weight:800;color:#15803d;margin-top:6px;">${winsA} ניצחונות</div>
+      </div>
+      <div style="font-size:22px;color:var(--ink3);">⚔</div>
+      <div style="background:${oB!=null&&oB>(oA??-1)?'rgba(21,128,61,.1)':'var(--bg2)'};border-radius:var(--rs);padding:12px;border:2px solid ${oB!=null&&oB>(oA??-1)?'#16a34a':'var(--bd)'};">
+        <div style="font-weight:800;font-size:15px;">${gB.name}</div>
+        <div style="font-size:30px;font-weight:800;color:${oB>=80?'#15803d':oB>=60?'#92400e':'#991b1b'};margin:4px 0;">${oB??'—'}</div>
+        <div style="font-size:11px;color:var(--ink3);">ממוצע כללי</div>
+        <div style="font-size:13px;font-weight:800;color:#15803d;margin-top:6px;">${winsB} ניצחונות</div>
+      </div>
+    </div>
+    ${ties?`<div style="text-align:center;font-size:11px;color:var(--ink3);margin-bottom:10px;">${ties} תיקו</div>`:''}
+    <div style="overflow:auto;border:1px solid var(--bd);border-radius:var(--rs);">
+    <table style="width:100%;border-collapse:collapse;font-size:13px;">
+      <thead><tr style="background:var(--bg2);">
+        <th style="padding:8px 12px;text-align:right;font-size:11px;color:var(--ink3);">${gA.name}</th>
+        <th style="padding:8px 12px;text-align:center;font-size:11px;color:var(--ink3);">מבחן</th>
+        <th style="padding:8px 12px;text-align:left;font-size:11px;color:var(--ink3);">${gB.name}</th>
+      </tr></thead>
+      <tbody>${rows||'<tr><td colspan="3" style="padding:24px;text-align:center;color:var(--ink3);">אין נתונים</td></tr>'}</tbody>
+    </table></div>`;
+}
+
+// ── EXCEL IMPORT — ייבוא תוצאות מ-Excel ───────────────────────
+function importExcel(e){
+  const file=e.target.files[0];if(!file)return;
+  e.target.value='';
+  const g=S.groups[CUR.gid];if(!g){toast('פתח קבוצה תחילה');return;}
+  const reader=new FileReader();
+  reader.onload=ev=>{
+    try{
+      const wb=XLSX.read(ev.target.result,{type:'array'});
+      const ws=wb.Sheets[wb.SheetNames[0]];
+      const rows=XLSX.utils.sheet_to_json(ws,{header:1,defval:''});
+      if(rows.length<2){toast('הקובץ ריק');return;}
+      const rk=CUR.semester==='b'?'results_b':'results';
+      if(!g[rk])g[rk]={};
+      if(!g[rk][CUR.test])g[rk][CUR.test]={};
+      let updated=0,notFound=0;
+      rows.slice(1).forEach(row=>{
+        const name=String(row[1]||'').trim();
+        const rawVal=String(row[4]||'').trim();
+        const bonus=parseFloat(row[6])||0;
+        if(!name||rawVal==='')return;
+        const idx=g.students.findIndex(s=>s.name===name);
+        if(idx<0){notFound++;return;}
+        g[rk][CUR.test][idx]={a:rawVal,...(bonus?{bonusA:bonus}:{}),_ts:Date.now()};
+        updated++;
+      });
+      saveState();renderTable();
+      toast(`יובאו ${updated} תוצאות${notFound?` · ${notFound} שמות לא נמצאו`:''}`);
+    }catch(err){toast('שגיאה בקריאת הקובץ — ודא שזהו קובץ Excel שיוצא מ-SportGrade');}
+  };
+  reader.readAsArrayBuffer(file);
+}
+
 // ── SCORE DISTRIBUTION (bell curve) ───────────────────────────
 function openDistribution(){
   if(!window.Chart){toast('טוען נתונים...');return;}
@@ -9426,6 +9649,25 @@ function srmExportPDF(){
     const scores=[];
     let rows='';
 
+    // חישוב ממוצע כיתה לכל מבחן
+    const testClassAvg={};
+    allTests.forEach(({id})=>{
+      const T=getTbl(id);let sum=0,cnt=0;
+      (g.students||[]).forEach((ss,si)=>{
+        const isF=ss.gender==='נ'||ss.gender==='f';
+        if(T.maleOnly&&isF)return;
+        const dA=g.results?.[id]?.[si];const dB=g.results_b?.[id]?.[si];
+        const d=CUR.semester==='b'?(dB||dA):dA;
+        if(!d||d.a==='')return;
+        const fin=calcFinal(getScore(id,ss.grade,ss.gender,d.a),d.bonusA||0,0);
+        if(fin!==null){sum+=fin;cnt++;}
+      });
+      if(cnt>0)testClassAvg[id]=Math.round(sum/cnt);
+    });
+
+    // ציוני היעד לשנה הבאה
+    const nextGradeItems=[];
+
     allTests.forEach(({id,label})=>{
       const da=g.results?.[id]?.[idx];
       const db=g.results_b?.[id]?.[idx];
@@ -9440,17 +9682,42 @@ function srmExportPDF(){
       const col=fin===null?'#555':fin>=80?'#15803d':fin>=60?'#b45309':'#dc2626';
       const bg=fin===null?'#f9f9f9':fin>=80?'#f0fdf4':fin>=60?'#fffbeb':'#fef2f2';
       const dateStr=d._ts?new Date(d._ts).toLocaleDateString('he-IL',{day:'2-digit',month:'2-digit',year:'2-digit'}):'—';
+      const classAvg=testClassAvg[id];
+      const diff=fin!==null&&classAvg!==undefined?fin-classAvg:null;
+      const diffStr=diff===null?'':diff>0?`<span style="color:#15803d;font-size:10px;"> (+${diff})</span>`:diff<0?`<span style="color:#dc2626;font-size:10px;"> (${diff})</span>`:`<span style="color:#6b7280;font-size:10px;"> (=)</span>`;
+      const classAvgCell=classAvg!==undefined?`<td style="padding:8px 12px;text-align:center;font-size:11px;color:#6b7280;">${classAvg}${diffStr}</td>`:'<td></td>';
       rows+=`<tr style="border-bottom:1px solid #e5e7eb;">
         <td style="padding:8px 12px;font-weight:600;color:#111;">${label}</td>
         <td style="padding:8px 12px;color:#444;">${d.a}${d.bonusA?` +${d.bonusA}%`:''}</td>
         <td style="padding:8px 12px;text-align:center;"><span style="background:${bg};color:${col};font-weight:700;padding:3px 10px;border-radius:20px;font-size:13px;">${fin!==null?fin:'—'}</span></td>
+        ${classAvgCell}
         <td style="padding:8px 12px;font-size:11px;color:#888;">${dateStr}</td>
       </tr>`;
+      // יעד שנה הבאה — רק אם יש מבחן ידוע ולא custom
+      if(fin!==null&&!customTest(id)){
+        const ng=_nextGradeScore(id,s.grade,s.gender,d.a);
+        if(ng)nextGradeItems.push({label,grade:ng.grade,score:ng.score});
+      }
     });
 
     const avg=scores.length?(scores.reduce((a,b)=>a+b,0)/scores.length).toFixed(1):null;
     const now=new Date().toLocaleDateString('he-IL',{day:'2-digit',month:'2-digit',year:'numeric'});
     const semLabel=CUR.semester==='b'?'מחצית ב׳':'מחצית א׳';
+
+    // תגים
+    const badges=computeStudentBadges(g,s,idx,isFem,allTests);
+    const badgesHtml=badges.length?`<div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:16px;padding:10px 14px;background:#fef9ef;border:1px solid #fed7aa;border-radius:8px;">
+      <div style="font-size:10px;font-weight:800;color:#92400e;width:100%;margin-bottom:4px;">הישגים</div>
+      ${badges.map(b=>`<span style="display:inline-flex;align-items:center;gap:4px;padding:4px 10px;border-radius:20px;font-size:11px;font-weight:700;color:${b.color};background:${b.bg};border:1px solid ${b.color}44;">${b.icon} ${b.label}</span>`).join('')}
+    </div>`:'';
+
+    // יעד שנה הבאה
+    const nextGradeHtml=nextGradeItems.length?`<div style="margin-top:14px;background:#eff6ff;border:1.5px solid #bfdbfe;border-radius:8px;padding:12px 16px;">
+      <div style="font-weight:700;font-size:12px;color:#1d4ed8;margin-bottom:8px;">יעד לשנה הבאה — מה הציון הצפוי בכיתה הבאה לאותה תוצאה</div>
+      <div style="display:flex;flex-wrap:wrap;gap:6px;">
+        ${nextGradeItems.map(it=>`<span style="background:#fff;border:1px solid #bfdbfe;border-radius:6px;padding:3px 10px;font-size:11px;color:#1e40af;font-weight:600;">${it.label}: <strong>${it.score}</strong> (כיתה ${it.grade})</span>`).join('')}
+      </div>
+    </div>`:'';
 
     const html=`<div style="font-family:Arial,Helvetica,sans-serif;direction:rtl;color:#111;background:#fff;padding:28px;width:720px;box-sizing:border-box;">
       <div style="display:flex;justify-content:space-between;align-items:flex-start;padding-bottom:14px;border-bottom:3px solid #ea580c;margin-bottom:18px;">
@@ -9463,12 +9730,14 @@ function srmExportPDF(){
           <div style="font-size:11px;color:#999;margin-top:2px;">הופק: ${now}</div>
         </div>
       </div>
+      ${badgesHtml}
       ${rows?`
         <table style="width:100%;border-collapse:collapse;font-size:13px;">
           <thead><tr style="background:#f3f4f6;">
             <th style="padding:8px 12px;text-align:right;color:#666;font-size:11px;font-weight:700;letter-spacing:.4px;">מבחן</th>
             <th style="padding:8px 12px;text-align:right;color:#666;font-size:11px;font-weight:700;">תוצאה</th>
             <th style="padding:8px 12px;text-align:center;color:#666;font-size:11px;font-weight:700;">ציון</th>
+            <th style="padding:8px 12px;text-align:center;color:#666;font-size:11px;font-weight:700;">ממוצע כיתה</th>
             <th style="padding:8px 12px;text-align:right;color:#666;font-size:11px;font-weight:700;">תאריך</th>
           </tr></thead>
           <tbody>${rows}</tbody>
@@ -9477,6 +9746,7 @@ function srmExportPDF(){
           <span style="font-weight:700;font-size:14px;">ממוצע כל המבחנים</span>
           <span style="font-size:28px;font-weight:800;color:#ea580c;">${avg}</span>
         </div>`:''}
+        ${nextGradeHtml}
       `:'<div style="padding:40px;text-align:center;color:#999;">אין ציונים להצגה במחצית זו</div>'}
     </div>`;
 
