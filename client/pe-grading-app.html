@@ -2215,6 +2215,7 @@ history.pushState(null,'',location.href);
   <div id="heatmap-content" style="overflow:auto;max-height:70vh;border:1px solid var(--bd);border-radius:var(--rs);"></div>
   <div class="mf" style="gap:8px;">
     <button class="btn bg2" onclick="closeModal('heatmap-modal')">סגור</button>
+    <button class="btn bp bsm" onclick="heatmapExportPDF()">📄 ייצוא PDF</button>
   </div>
 </div></div>
 
@@ -6129,6 +6130,126 @@ function _hmJumpTo(testId,studentIdx){
     const row=document.querySelector(`tr[data-idx="${studentIdx}"]`);
     if(row){row.scrollIntoView({behavior:'smooth',block:'center'});highlightRow(studentIdx);}
   },200);
+}
+
+// ייצוא מפת חום ל-PDF
+function heatmapExportPDF(){
+  const g=S.groups[CUR.gid];if(!g){toast('אין קבוצה פתוחה');return;}
+  function loadScript(src){
+    return new Promise((res,rej)=>{
+      if(document.querySelector(`script[src="${src}"]`)){res();return;}
+      const s=document.createElement('script');s.src=src;s.onload=res;s.onerror=rej;
+      document.head.appendChild(s);
+    });
+  }
+  toast('מכין PDF…');
+  const sem=document.getElementById('hm-sem')?.value||CUR.semester||'a';
+  const clsFilter=document.getElementById('hm-cls')?.value||'';
+  const allTests=[...TEST_LIST,...Object.entries(g.customTests||{}).map(([id,ct])=>({id,label:ct.name,group:'custom'}))];
+  const sourceKey=sem==='b'?'results_b':'results';
+  const students=(g.students||[])
+    .map((s,i)=>({...s,_idx:i}))
+    .filter(s=>!s._guest)
+    .filter(s=>!clsFilter||s.grade+s.cls===clsFilter)
+    .sort((a,b)=>a.name.localeCompare(b.name,'he'));
+  function pdfBg(sc){
+    if(sc>=90)return'#bbf7d0';if(sc>=80)return'#d1fae5';if(sc>=70)return'#ecfccb';
+    if(sc>=60)return'#fef9c3';if(sc>=50)return'#ffedd5';return'#fee2e2';
+  }
+  function pdfFg(sc){return sc>=80?'#15803d':sc>=60?'#92400e':'#991b1b';}
+  const colSums=allTests.map(()=>({sum:0,cnt:0}));
+  let bodyRows='';
+  let hasRisk=false;
+  students.forEach(s=>{
+    const isFem=s.gender==='נ'||s.gender==='f';
+    const rowScores=[];let cells='';
+    allTests.forEach((t,colI)=>{
+      const T=getTbl(t.id);
+      if(T.maleOnly&&isFem){cells+=`<td style="background:#f9fafb;text-align:center;color:#9ca3af;font-size:9px;">—</td>`;return;}
+      const d=g[sourceKey]?.[t.id]?.[s._idx]||g['results']?.[t.id]?.[s._idx];
+      if(!d||d.a===''){cells+=`<td style="background:#f3f4f6;text-align:center;color:#9ca3af;font-size:10px;">·</td>`;return;}
+      const sc=getScore(t.id,s.grade,s.gender,d.a);
+      const fin=calcFinal(sc,d.bonusA||0,0);
+      if(fin===null){cells+=`<td style="text-align:center;color:#9ca3af;">—</td>`;return;}
+      rowScores.push(fin);colSums[colI].sum+=fin;colSums[colI].cnt++;
+      cells+=`<td style="background:${pdfBg(fin)};text-align:center;font-weight:700;color:${pdfFg(fin)};font-size:11px;">${fin}</td>`;
+    });
+    const avg=rowScores.length?Math.round(rowScores.reduce((a,b)=>a+b,0)/rowScores.length):null;
+    const risk=studentRiskInfo(s._idx);
+    const riskMark=risk?(hasRisk=true,risk.level==='high'?'[!] ':'[~] '):'';
+    bodyRows+=`<tr>
+      <td style="font-weight:700;font-size:11px;padding:5px 8px;border-left:1px solid #e5e7eb;border-bottom:1px solid #e5e7eb;white-space:nowrap;">${riskMark}${s.name}</td>
+      <td style="font-size:10px;color:#6b7280;text-align:center;border-bottom:1px solid #e5e7eb;">${s.grade}${s.cls}</td>
+      ${cells}
+      <td style="background:${avg!==null?pdfBg(avg):'#f3f4f6'};text-align:center;font-weight:800;color:${avg!==null?pdfFg(avg):'#9ca3af'};border-right:2px solid #d1d5db;border-bottom:1px solid #e5e7eb;">${avg!==null?avg:'—'}</td>
+    </tr>`;
+  });
+  let footCells='';
+  colSums.forEach(({sum,cnt})=>{
+    if(!cnt){footCells+=`<td style="text-align:center;color:#9ca3af;background:#f9fafb;">—</td>`;return;}
+    const avg=Math.round(sum/cnt);
+    footCells+=`<td style="background:${pdfBg(avg)};text-align:center;font-size:10px;font-weight:800;color:${pdfFg(avg)};">${avg}</td>`;
+  });
+  const headerCells=allTests.map(t=>`<th style="padding:4px 2px;font-size:9px;font-weight:700;color:#374151;background:#f3f4f6;writing-mode:vertical-rl;transform:rotate(180deg);min-width:28px;height:80px;border-bottom:2px solid #d1d5db;border-right:1px solid #e5e7eb;">${_hmShortLabel(t.label)}</th>`).join('');
+  const semLabel=sem==='b'?'ב\'':'א\'';
+  const dateStr=new Date().toLocaleDateString('he-IL');
+  const htmlContent=`<div style="font-family:Arial,Helvetica,sans-serif;direction:rtl;padding:20px;background:#fff;width:max-content;min-width:800px;">
+    <div style="margin-bottom:12px;">
+      <div style="font-size:18px;font-weight:800;color:#111;">מפת חום קבוצתית — ${g.name}</div>
+      <div style="font-size:12px;color:#6b7280;margin-top:3px;">מחצית ${semLabel}${clsFilter?' | כיתה '+clsFilter:''} | ${students.length} תלמידים | ${dateStr}</div>
+    </div>
+    <table style="border-collapse:collapse;font-family:Arial,Helvetica,sans-serif;direction:rtl;border:1px solid #d1d5db;">
+      <thead><tr>
+        <th style="padding:6px 8px;font-size:11px;text-align:right;background:#f3f4f6;border-bottom:2px solid #d1d5db;min-width:120px;">תלמיד/ה</th>
+        <th style="font-size:9px;color:#6b7280;padding:4px;background:#f3f4f6;border-bottom:2px solid #d1d5db;">כיתה</th>
+        ${headerCells}
+        <th style="padding:4px 6px;font-size:10px;background:#f3f4f6;border-bottom:2px solid #d1d5db;border-right:2px solid #d1d5db;min-width:40px;">ממוצע</th>
+      </tr></thead>
+      <tbody>${bodyRows||'<tr><td colspan="99" style="padding:24px;text-align:center;color:#9ca3af;">אין תלמידים</td></tr>'}</tbody>
+      ${students.length?`<tfoot><tr style="background:#f9fafb;font-weight:700;border-top:2px solid #d1d5db;">
+        <td style="padding:5px 8px;font-size:10px;color:#6b7280;">ממוצע מבחן</td><td></td>${footCells}<td></td>
+      </tr></tfoot>`:''}
+    </table>
+    <div style="margin-top:10px;font-size:10px;color:#6b7280;display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
+      <span>מקרא:</span>
+      <span style="background:#fee2e2;padding:2px 6px;border-radius:3px;font-weight:700;color:#991b1b;">&lt;50</span>
+      <span style="background:#ffedd5;padding:2px 6px;border-radius:3px;font-weight:700;color:#9a3412;">50-59</span>
+      <span style="background:#fef9c3;padding:2px 6px;border-radius:3px;font-weight:700;color:#92400e;">60-69</span>
+      <span style="background:#ecfccb;padding:2px 6px;border-radius:3px;font-weight:700;color:#3f6212;">70-79</span>
+      <span style="background:#d1fae5;padding:2px 6px;border-radius:3px;font-weight:700;color:#166534;">80-89</span>
+      <span style="background:#bbf7d0;padding:2px 6px;border-radius:3px;font-weight:700;color:#14532d;">90+</span>
+      ${hasRisk?'<span style="margin-right:8px;color:#dc2626;">[!]=סיכון גבוה &nbsp; [~]=סיכון בינוני</span>':''}
+    </div>
+  </div>`;
+  Promise.all([
+    loadScript('https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js'),
+    loadScript('https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js')
+  ]).then(()=>{
+    const wrap=document.createElement('div');
+    wrap.style.cssText='position:fixed;left:-9999px;top:0;background:#fff;';
+    wrap.innerHTML=htmlContent;
+    document.body.appendChild(wrap);
+    html2canvas(wrap,{scale:2,useCORS:true,backgroundColor:'#ffffff'}).then(canvas=>{
+      document.body.removeChild(wrap);
+      const {jsPDF}=window.jspdf;
+      const imgW=canvas.width,imgH=canvas.height;
+      const orientation=imgW>imgH?'l':'p';
+      const doc=new jsPDF({orientation,unit:'pt',format:'a4'});
+      const pageW=doc.internal.pageSize.getWidth();
+      const pageH=doc.internal.pageSize.getHeight();
+      const imgData=canvas.toDataURL('image/jpeg',0.92);
+      const drawH=imgH*(pageW/imgW);
+      let yOff=0;
+      while(yOff<drawH){
+        if(yOff>0)doc.addPage();
+        doc.addImage(imgData,'JPEG',0,-yOff,pageW,drawH);
+        yOff+=pageH;
+      }
+      const gname=(g.name||'קבוצה').replace(/[^א-תa-zA-Z0-9 ]/g,'').trim();
+      doc.save(`SportGrade_heatmap_${gname}_${sem}.pdf`);
+      toast('PDF הורד בהצלחה');
+    }).catch(()=>toast('שגיאה בייצוא PDF'));
+  }).catch(()=>toast('לא ניתן לטעון ספריות PDF — בדוק חיבור לאינטרנט'));
 }
 
 // ── SCORE DISTRIBUTION (bell curve) ───────────────────────────
