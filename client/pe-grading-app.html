@@ -6096,15 +6096,25 @@ function renderHeatmap(){
     .filter(s=>!clsFilter||s.grade+s.cls===clsFilter)
     .sort((a,b)=>a.name.localeCompare(b.name,'he'));
 
+  // סנן מבחנים שאף תלמיד מהסינון הנוכחי לא ביצע
+  const _usedTests=new Set();
+  students.forEach(s=>{
+    allTests.forEach(t=>{
+      const d=g[sourceKey]?.[t.id]?.[s._idx]||g[fallbackKey]?.[t.id]?.[s._idx];
+      if(d&&d.a!=='')_usedTests.add(t.id);
+    });
+  });
+  const visibleTests=allTests.filter(t=>_usedTests.has(t.id));
+
   // ממוצעים לפי עמודה (מבחן) — לסיכום התחתון
-  const colSums=allTests.map(()=>({sum:0,cnt:0}));
+  const colSums=visibleTests.map(()=>({sum:0,cnt:0}));
 
   let bodyRows='';
   students.forEach(s=>{
     const isFem=s.gender==='נ'||s.gender==='f';
     const rowScores=[];
     let cells='';
-    allTests.forEach((t,colI)=>{
+    visibleTests.forEach((t,colI)=>{
       const T=getTbl(t.id);
       if(T.maleOnly&&isFem){
         cells+=`<td style="background:repeating-linear-gradient(45deg,var(--bg2),var(--bg2) 4px,var(--bg) 4px,var(--bg) 8px);text-align:center;color:var(--ink3);font-size:10px;">—</td>`;
@@ -6151,7 +6161,7 @@ function renderHeatmap(){
   });
   footRow+='<td></td></tr>';
 
-  const headerCells=allTests.map(t=>`<th style="padding:6px 4px;font-size:10px;font-weight:700;color:var(--ink2);background:var(--bg2);writing-mode:vertical-rl;transform:rotate(180deg);min-width:32px;height:90px;border-bottom:2px solid var(--bd);" title="${t.label}">${_hmShortLabel(t.label)}</th>`).join('');
+  const headerCells=visibleTests.map(t=>`<th style="padding:6px 4px;font-size:10px;font-weight:700;color:var(--ink2);background:var(--bg2);writing-mode:vertical-rl;transform:rotate(180deg);min-width:32px;height:90px;border-bottom:2px solid var(--bd);" title="${t.label}">${_hmShortLabel(t.label)}</th>`).join('');
   const html=`<table style="border-collapse:collapse;width:100%;font-family:'Heebo',sans-serif;direction:rtl;">
     <thead>
       <tr>
