@@ -6933,6 +6933,15 @@ function openRecordPopup(rowIdx){
 // ── RUN ANALYTICS ────────────────────────────────────────────
 const GRADE_AGE={ז:12.5,ח:13.5,ט:14.5,י:15.5,יא:16.5,יב:17.5};
 
+// מחשב מרחק מצטבר (מ׳) מתוצאת ביפ מקודדת (למשל 9.3)
+function _beepValToCumDist(val){
+  const v=parseFloat(val)||0;if(!v)return null;
+  const level=Math.floor(v);
+  const shuttle=parseInt(String(v).split('.')[1]||'1')||1;
+  const entry=BEEP_TIMELINE.find(t=>t.level===level&&t.shuttle===shuttle);
+  return entry?entry.cumDist:null;
+}
+
 function _parseTimeToSecs(val){
   if(!val&&val!==0)return null;
   const s=String(val).trim();
@@ -6995,8 +7004,10 @@ function buildRunAnalyticsHtml(testId,val,grade,gender,mode){
       const ltPace=3600/ltSpeedKmh;
       const vo2=_calcVO2maxBeep(level,grade||'ח');
       const mets=vo2/3.5;
+      const distM=_beepValToCumDist(val);
       rows=[
         ['שלב אחרון',`${val}`,''],
+        ...(distM?[['מרחק שרץ',`${distM} מ׳`,'']]:[]),
         ['מהירות שלב',`${speedKmh.toFixed(1)} ק"מ/ש`,''],
         ['VO₂max (לז׳ה)',`${Math.max(0,vo2).toFixed(1)} מ"ל/ק"ג/דק`,''],
         ['METs',`${Math.max(0,mets).toFixed(1)}`,''],
@@ -7135,13 +7146,25 @@ function _buildGroupAnalytics(testId){
         ${bestP?`<div class="sc"><div class="sv" style="font-size:16px;">${_fmtPace(bestP)}</div><div class="sl">קצב מיטבי</div></div>`:''}`;
     }
   } else if(testId==='beep'){
-    const levels=studentRows.map(r=>parseFloat(r.val)).filter(Boolean);
-    if(levels.length){
-      const avgL=levels.reduce((a,b)=>a+b,0)/levels.length;
-      const bestL=Math.max(...levels);
+    const beepScoreRows=[];
+    g.students.forEach((s,idx)=>{
+      const d=res[idx];if(!d||d.a==='')return;
+      const sc=getScore('beep',s.grade,s.gender,d.a);
+      const dist=_beepValToCumDist(d.a);
+      if(sc!==null)beepScoreRows.push({score:sc,dist:dist||0});
+    });
+    if(beepScoreRows.length){
+      const scores=beepScoreRows.map(r=>r.score);
+      const dists=beepScoreRows.map(r=>r.dist).filter(Boolean);
+      const avgScore=Math.round(scores.reduce((a,b)=>a+b,0)/scores.length);
+      const bestScore=Math.max(...scores);
+      const avgDist=dists.length?Math.round(dists.reduce((a,b)=>a+b,0)/dists.length):null;
+      const maxDist=dists.length?Math.round(Math.max(...dists)):null;
       extraStatsHtml=`
-        <div class="sc"><div class="sv">${avgL.toFixed(1)}</div><div class="sl">רמה ממוצעת</div></div>
-        <div class="sc"><div class="sv">${bestL.toFixed(1)}</div><div class="sl">רמה מיטבית</div></div>`;
+        <div class="sc"><div class="sv">${avgScore}</div><div class="sl">ציון ממוצע</div></div>
+        <div class="sc"><div class="sv">${bestScore}</div><div class="sl">ציון מיטבי</div></div>
+        ${avgDist?`<div class="sc"><div class="sv">${avgDist}</div><div class="sl">מרחק ממוצע (מ׳)</div></div>`:''}
+        ${maxDist?`<div class="sc"><div class="sv">${maxDist}</div><div class="sl">מרחק מקסימלי (מ׳)</div></div>`:''}`;
     }
   }
   let html=`<div class="mt" style="padding-left:36px;margin-bottom:12px;">📈 ניתוח אירובי — ${testLabel}</div>
@@ -8716,13 +8739,15 @@ function blRenderElimRow(elim,rank){
   const div=document.createElement('div');
   div.className='bl-elim-row';
   div.id='bl-elimrow-'+elim.studentArrIdx;
-  div.style.gridTemplateColumns='1fr auto auto auto auto';
+  div.style.gridTemplateColumns='1fr auto auto auto auto auto';
+  const elimDistM=elim.cumDist?Math.round(elim.cumDist):0;
   div.innerHTML=`
     <div class="bl-elim-name">${elim.name}</div>
     <input type="text" value="${elim.level}-${elim.shuttle}"
       style="background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.15);border-radius:5px;color:#fff;padding:3px 7px;font-size:12px;width:52px;font-family:Heebo,sans-serif;text-align:center;"
       title="ערוך מקטע" onchange="blEditElimShuttle(this,${elim.studentArrIdx})">
     <div class="bl-elim-score" style="color:${col}" id="blelimsc-${elim.studentArrIdx}">${elim.score!==null?elim.score:'—'}</div>
+    <div style="font-size:11px;color:rgba(255,255,255,.4);white-space:nowrap;">${elimDistM} מ׳</div>
     <div class="bl-elim-rank">#${rank}</div>
     <button onclick="blRestoreElim(${elim.studentArrIdx})"
       style="background:rgba(79,128,255,.15);border:1px solid rgba(79,128,255,.25);color:#7ba8ff;border-radius:5px;padding:3px 8px;cursor:pointer;font-size:11px;font-weight:700;font-family:Heebo,sans-serif;">↩</button>
@@ -8736,7 +8761,11 @@ function blUpdateScoreBar(){
   const scores=BL.eliminations.map(e=>e.score).filter(s=>s!==null);
   if(!scores.length)return;
   const avg=(scores.reduce((a,b)=>a+b,0)/scores.length).toFixed(1);
-  document.getElementById('bl-avg-score').textContent=`ממוצע: ${avg}`;
+  const dists=BL.eliminations.map(e=>e.cumDist||0).filter(Boolean);
+  const avgDist=dists.length?Math.round(dists.reduce((a,b)=>a+b,0)/dists.length):null;
+  const maxDist=dists.length?Math.round(Math.max(...dists)):null;
+  const distStr=avgDist?` | מרחק ממוצע: ${avgDist} מ׳ | מקס׳: ${maxDist} מ׳`:'';
+  document.getElementById('bl-avg-score').textContent=`ממוצע: ${avg}${distStr}`;
   const bar=document.getElementById('bl-score-bar');
   bar.innerHTML='';
   scores.forEach(sc=>{
@@ -8925,6 +8954,25 @@ function blRenderResults(){
     `;
     list.appendChild(div);
   });
+  // סיכום מרחקים
+  const distVals=rows.filter(r=>!r.absent&&r.cumDist).map(r=>r.cumDist);
+  if(distVals.length){
+    const avgDist=Math.round(distVals.reduce((a,b)=>a+b,0)/distVals.length);
+    const maxDist=Math.round(Math.max(...distVals));
+    const summary=document.createElement('div');
+    summary.style.cssText='background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);border-radius:9px;padding:12px 16px;margin-top:10px;display:flex;gap:20px;font-family:Heebo,sans-serif;';
+    summary.innerHTML=`
+      <div style="text-align:center;">
+        <div style="font-size:20px;font-weight:900;color:#a78bfa;">${avgDist}</div>
+        <div style="font-size:11px;color:rgba(255,255,255,.4);">מרחק ממוצע (מ׳)</div>
+      </div>
+      <div style="text-align:center;">
+        <div style="font-size:20px;font-weight:900;color:#4ade80;">${maxDist}</div>
+        <div style="font-size:11px;color:rgba(255,255,255,.4);">מרחק מקסימלי (מ׳)</div>
+      </div>
+    `;
+    list.appendChild(summary);
+  }
 }
 
 function blEditResult(input){
