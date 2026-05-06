@@ -3381,6 +3381,10 @@ function openGroup(gid){
 function confirmSemester(sem){
   closeModal('semester-modal');
   const gid=_pendingGid;
+  _openGroupDirect(gid,sem);
+}
+function _openGroupDirect(gid,sem){
+  sem=sem||CUR.semester||'a';
   setCUR({gid:gid,test:'pushups',semester:sem});
   const g=S.groups[gid];
   document.getElementById('bc-g').textContent=g.name;
@@ -6358,7 +6362,7 @@ function renderGroupDashboard(){
     const a=stats?.avg;
     const avgBg=a==null?'#f3f4f6':a>=80?'#d1fae5':a>=60?'#fef9c3':'#fee2e2';
     const avgCol=a==null?'#6b7280':a>=80?'#15803d':a>=60?'#92400e':'#991b1b';
-    html+=`<div class="card" style="cursor:pointer;padding:0;overflow:hidden;" onclick="setCUR({gid:'${gid}'});closeModal('dashboard-modal');showView('group');">
+    html+=`<div class="card" style="cursor:pointer;padding:0;overflow:hidden;" onclick="closeModal('dashboard-modal');_openGroupDirect('${gid}');">
       <div style="padding:14px 16px;border-bottom:1px solid var(--bd);display:flex;justify-content:space-between;align-items:center;">
         <div style="min-width:0;">
           <div style="font-weight:800;font-size:15px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${g.name}</div>
