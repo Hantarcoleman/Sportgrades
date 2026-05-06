@@ -507,6 +507,8 @@ tr.has-result td:first-child{border-right:3px solid var(--gn);}
 .sort-bar{display:flex;gap:6px;align-items:center;font-size:11px;color:var(--ink3);margin-bottom:8px;}
 .sort-btn{padding:3px 10px;border-radius:var(--rx);border:1px solid var(--bd2);background:var(--bg2);font-size:11px;font-weight:700;cursor:pointer;font-family:'Heebo',sans-serif;color:var(--ink2);transition:all var(--t);}
 .sort-btn.on{background:var(--ac);color:#fff;border-color:var(--ac);}
+.desktop-only{display:none;}
+@media(hover:hover) and (pointer:fine){.desktop-only{display:inline-flex;}}
 .ng-row{display:grid;grid-template-columns:1fr 80px 32px;align-items:center;gap:8px;padding:7px 12px;border-bottom:1px solid var(--bg2);font-size:13px;}
 .ng-row:last-child{border-bottom:none;}
 .ng-row:hover{background:var(--bg);}
@@ -1580,7 +1582,7 @@ history.pushState(null,'',location.href);
       <button class="sort-btn on" id="sort-alpha-btn" onclick="setSort('alpha')">א-ב</button>
       <button class="sort-btn" id="sort-recent-btn" onclick="setSort('recent')">שונו לאחרונה</button>
       <button class="sort-btn" id="sort-score-btn" onclick="setSort('score')">ציון ↓↑</button>
-      <button class="sort-btn" onclick="showKbHelp()" title="קיצורי מקלדת" style="opacity:.5;">⌨</button>
+      <button class="sort-btn desktop-only" onclick="showKbHelp()" title="קיצורי מקלדת" style="opacity:.5;">⌨</button>
     </div>
     <div style="font-size:12px;color:var(--ink3);" id="filter-count"></div>
   </div>
@@ -2268,10 +2270,10 @@ history.pushState(null,'',location.href);
     <button id="srl-tap-btn" onclick="srlTap()" style="width:180px;height:180px;border-radius:50%;background:var(--gn);color:#fff;font-size:15px;font-weight:800;border:none;cursor:pointer;box-shadow:0 8px 32px rgba(0,210,100,.35);display:block;transition:transform .08s,opacity .15s;font-family:'Heebo',sans-serif;line-height:1.5;flex-shrink:0;">🪢<br>התחל מבחן</button>
   </div>
   <!-- Stop / Reset (shown while running or paused) -->
-  <div id="srl-controls" style="display:none;gap:8px;justify-content:center;margin-bottom:14px;flex-wrap:wrap;">
-    <button id="srl-stop-btn" class="btn bg2" onclick="srlTogglePause()">⏸ עצור</button>
-    <button class="btn bgn" onclick="srlEnd()" style="background:var(--gn);color:#fff;">✓ סיום מבחן</button>
-    <button class="btn bg2" onclick="srlReset()">🔄 איפוס</button>
+  <div id="srl-controls" style="display:none;gap:10px;justify-content:center;margin-bottom:14px;flex-wrap:wrap;">
+    <button id="srl-stop-btn" class="btn bg2" onclick="srlTogglePause()" style="font-size:19px;padding:16px 26px;font-weight:800;">⏸ עצור</button>
+    <button class="btn bgn" onclick="srlEnd()" style="background:var(--gn);color:#fff;font-size:19px;padding:16px 26px;font-weight:800;">✓ סיום מבחן</button>
+    <button class="btn bg2" onclick="srlReset()" style="font-size:19px;padding:16px 26px;font-weight:800;">🔄 איפוס</button>
   </div>
   <!-- Finish row — shown after time ends -->
   <div id="srl-finish-row" style="display:none;background:var(--bg2);border:1px solid var(--bd);border-radius:var(--rs);padding:14px;margin-bottom:12px;text-align:right;">
@@ -2299,7 +2301,7 @@ history.pushState(null,'',location.href);
   </div>
   <!-- Bottom close -->
   <div style="display:flex;justify-content:center;">
-    <button class="btn bg2" onclick="srlClose()">סגור</button>
+    <button class="btn bg2" onclick="srlClose()" style="font-size:19px;padding:16px 40px;font-weight:800;">סגור</button>
   </div>
 </div></div>
 
@@ -2325,8 +2327,8 @@ history.pushState(null,'',location.href);
   </button>
   <!-- Controls row -->
   <div style="display:flex;gap:8px;justify-content:center;margin-bottom:14px;">
-    <button id="sp-finish-btn" class="btn bg2" onclick="spFinish()" style="display:none;">⏹ סיום מבחן</button>
-    <button id="sp-new-btn" class="btn bg2" onclick="spNew()" style="display:none;">🔄 מבחן חדש</button>
+    <button id="sp-finish-btn" class="btn bg2" onclick="spFinish()" style="display:none;font-size:19px;padding:16px 26px;font-weight:800;">⏹ סיום מבחן</button>
+    <button id="sp-new-btn" class="btn bg2" onclick="spNew()" style="display:none;font-size:19px;padding:16px 26px;font-weight:800;">🔄 מבחן חדש</button>
   </div>
   <datalist id="sp-names-list"></datalist>
   <!-- Results — shown after finish -->
@@ -2336,7 +2338,7 @@ history.pushState(null,'',location.href);
     <button class="btn bgn" style="width:100%;padding:12px;font-size:15px;font-weight:800;" onclick="spSaveAll()">✓ שמור הכל</button>
   </div>
   <div style="display:flex;justify-content:center;">
-    <button class="btn bg2" onclick="spClose()">סגור</button>
+    <button class="btn bg2" onclick="spClose()" style="font-size:19px;padding:16px 40px;font-weight:800;">סגור</button>
   </div>
 </div></div>
 
@@ -2355,8 +2357,8 @@ history.pushState(null,'',location.href);
   <button id="str-tap-btn" onclick="strTap()" style="width:180px;height:180px;border-radius:50%;background:var(--ac);color:#fff;font-size:16px;font-weight:800;border:none;cursor:pointer;box-shadow:0 8px 32px rgba(234,88,12,.3);margin:0 auto 16px;display:block;transition:transform .08s;font-family:'Heebo',sans-serif;line-height:1.5;">+1<br>חזרה</button>
   <!-- Controls: reset + finish -->
   <div style="display:flex;gap:8px;justify-content:center;margin-bottom:14px;">
-    <button class="btn bg2" onclick="strReset()">🔄 איפוס</button>
-    <button class="btn bgn" onclick="strFinish()" style="background:var(--gn);">✓ סיום מבחן</button>
+    <button class="btn bg2" onclick="strReset()" style="font-size:19px;padding:16px 26px;font-weight:800;">🔄 איפוס</button>
+    <button class="btn bgn" onclick="strFinish()" style="background:var(--gn);font-size:19px;padding:16px 26px;font-weight:800;">✓ סיום מבחן</button>
   </div>
   <!-- Finish row — shown after סיום -->
   <div id="str-finish-row" style="display:none;background:var(--bg2);border:1px solid var(--bd);border-radius:var(--rs);padding:14px;margin-bottom:12px;text-align:right;">
@@ -2382,7 +2384,7 @@ history.pushState(null,'',location.href);
     </div>
   </div>
   <div style="display:flex;justify-content:center;">
-    <button class="btn bg2" onclick="strClose()">סגור</button>
+    <button class="btn bg2" onclick="strClose()" style="font-size:19px;padding:16px 40px;font-weight:800;">סגור</button>
   </div>
 </div></div>
 
@@ -7234,6 +7236,7 @@ function openSkipropeLive(testId='skiprope'){
   if(dl)dl.innerHTML=g?g.students.map(s=>`<option value="${s.name}">`).join(''):'';
   srlReset();
   openModal('skiprope-live-modal');
+  _liveModalOpen(_doSrlClose);
 }
 
 function srlUpdatePotential(){
@@ -7393,12 +7396,50 @@ function srlNewTest(){
   srlReset();
 }
 
-function srlClose(){
-  if((SRL.running||SRL.paused)&&!confirm('המבחן עדיין פועל. האם לסגור?'))return;
+// ── יציאה ממבחן חי — דיאלוג אישור ──────────────────────────
+let _currentLiveCloseFn=null;
+function _confirmExitLive(onYes){
+  let el=document.getElementById('exit-live-confirm');
+  if(!el){
+    el=document.createElement('div');
+    el.id='exit-live-confirm';
+    el.style.cssText='position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,.78);display:flex;align-items:center;justify-content:center;font-family:"Heebo",sans-serif;direction:rtl;';
+    el.innerHTML=`<div style="background:#1a1c2a;border:1.5px solid rgba(255,255,255,.14);border-radius:18px;padding:30px 36px;text-align:center;max-width:310px;width:90%;box-shadow:0 24px 64px rgba(0,0,0,.6);">
+      <div style="font-size:22px;font-weight:900;color:#fff;margin-bottom:8px;">לצאת מהמבחן?</div>
+      <div style="font-size:13px;color:rgba(255,255,255,.45);margin-bottom:24px;">תוצאות שלא נשמרו יאבדו</div>
+      <div style="display:flex;gap:12px;justify-content:center;">
+        <button id="exit-live-yes" style="background:#ef4444;color:#fff;border:none;border-radius:12px;padding:14px 30px;font-size:17px;font-weight:900;cursor:pointer;font-family:'Heebo',sans-serif;min-width:100px;">כן, צא</button>
+        <button id="exit-live-no" style="background:rgba(255,255,255,.1);color:#fff;border:1.5px solid rgba(255,255,255,.2);border-radius:12px;padding:14px 30px;font-size:17px;font-weight:900;cursor:pointer;font-family:'Heebo',sans-serif;min-width:100px;">ביטול</button>
+      </div>
+    </div>`;
+    document.body.appendChild(el);
+  }
+  el.style.display='flex';
+  const yes=el.querySelector('#exit-live-yes');const no=el.querySelector('#exit-live-no');
+  const cleanup=()=>{el.style.display='none';yes.onclick=null;no.onclick=null;};
+  yes.onclick=()=>{cleanup();onYes();};
+  no.onclick=()=>{cleanup();};
+}
+function _liveModalOpen(doCloseFn){
+  _currentLiveCloseFn=doCloseFn;
+  history.pushState({_liveModal:true},'');
+}
+function _liveModalClose(){_currentLiveCloseFn=null;}
+window.addEventListener('popstate',function(e){
+  if(_currentLiveCloseFn){
+    const fn=_currentLiveCloseFn;
+    history.pushState({_liveModal:true},'');
+    _confirmExitLive(()=>{fn();});
+  }
+});
+
+function _doSrlClose(){
   if(SRL.interval){clearInterval(SRL.interval);SRL.interval=null;}
   SRL.running=false;SRL.paused=false;
+  _liveModalClose();
   closeModal('skiprope-live-modal');
 }
+function srlClose(){ _confirmExitLive(_doSrlClose); }
 
 // ── STRENGTH LIVE TEST (pushups / pullups / crunches) ─────────
 let STR={gid:null,testId:null,count:0,lastSavedIdx:-1,lastSavedName:''};
@@ -7415,6 +7456,7 @@ function openStrengthLive(testId){
   if(dl)dl.innerHTML=g?g.students.map(s=>`<option value="${s.name}">`).join(''):'';
   strReset();
   openModal('strength-live-modal');
+  _liveModalOpen(_doStrClose);
 }
 
 function strUpdatePotential(){
@@ -7519,9 +7561,8 @@ function strNewTest(){
   strReset();
 }
 
-function strClose(){
-  closeModal('strength-live-modal');
-}
+function _doStrClose(){ _liveModalClose(); closeModal('strength-live-modal'); }
+function strClose(){ _confirmExitLive(_doStrClose); }
 
 // ── SPRINT LIVE TEST (run60 / run100 / run4x10) ───────────────
 let SR={testId:null,gid:null,running:false,startTime:0,splits:[],raf:null};
@@ -7538,6 +7579,7 @@ function openSprintLive(testId){
   if(dl)dl.innerHTML=g?g.students.map(s=>`<option value="${s.name}">`).join(''):'';
   spRenderReset();
   openModal('sprint-live-modal');
+  _liveModalOpen(_doSpClose);
 }
 
 function spUpdatePotential(secs){
@@ -7682,14 +7724,13 @@ function spNew(){
   spRenderReset();
 }
 
-function spClose(){
-  if(SR.running&&!confirm('המבחן עדיין פועל. האם לסגור?'))return;
-  const hasUnsaved=SR.splits.length>0&&SR.splits.some(sp=>!sp.name);
-  if(hasUnsaved&&!confirm('יש נבחנים שלא הוזנו שמותיהם. האם לסגור?'))return;
+function _doSpClose(){
   if(SR.raf){cancelAnimationFrame(SR.raf);SR.raf=null;}
   SR.running=false;
+  _liveModalClose();
   closeModal('sprint-live-modal');
 }
+function spClose(){ _confirmExitLive(_doSpClose); }
 
 function recSwitchGroup(gid){
   if(gid!=='__all__') CUR.gid=gid;
@@ -7998,13 +8039,15 @@ function openTimer(){
   }
   renderTimerHistory();
   document.getElementById('timer-modal').classList.add('open');
+  _liveModalOpen(_doCloseTimer);
 }
 
-function closeTimer(){
-  if(TMR.running){if(!confirm('השעון עדיין רץ — לסגור?'))return;}
+function _doCloseTimer(){
   timerStop(true);
+  _liveModalClose();
   document.getElementById('timer-modal').classList.remove('open');
 }
+function closeTimer(){ _confirmExitLive(_doCloseTimer); }
 
 function timerStart(){
   if(TMR.running)return;
@@ -8494,17 +8537,18 @@ function openBeepLive(){
   blRenderElimList();
   blUpdateUndoRedo();
   document.getElementById('bl-modal').classList.add('open');
+  _liveModalOpen(_doCloseBeepLive);
 }
 
-function closeBeepLive(){
-  if(BL.running&&!BL.paused){if(!confirm('המבחן רץ — לסגור?'))return;}
-  blStop();
-  BL.paused=false;
+function _doCloseBeepLive(){
+  blStop();BL.paused=false;
   try{localStorage.removeItem(LIVE_LS_KEY);}catch(e){}
+  _liveModalClose();
   document.getElementById('bl-modal').classList.remove('open');
   document.getElementById('rg-bl-add-btn')?.remove();
-  if(BL.gid==='__random__'){ sbGoRandom_impl(); }
+  if(BL.gid==='__random__'){sbGoRandom_impl();}
 }
+function closeBeepLive(){ _confirmExitLive(_doCloseBeepLive); }
 
 // ── BEEP AUDIO ──────────────────────────────────────────────
 const BL_AUDIO=(()=>{const a=new Audio('beep-test.mp3');a.preload='auto';return a;})();
@@ -8937,14 +8981,7 @@ function blBackToLive(){
   document.getElementById('bl-screen-live').style.display='flex';
 }
 
-function blCloseFromResults(){
-  if(!confirm('האם אתה בטוח שברצונך לסגור את המבחן?'))return;
-  blStop();
-  BL.paused=false;
-  try{localStorage.removeItem(LIVE_LS_KEY);}catch(e){}
-  document.getElementById('bl-modal').classList.remove('open');
-  if(BL.gid==='__random__')sbGoRandom_impl();
-}
+function blCloseFromResults(){ _confirmExitLive(_doCloseBeepLive); }
 
 function blRenderResults(){
   // For random group: show "חזור" button, hide regular close path
@@ -10274,16 +10311,18 @@ function openLongRunLive(){
   setLrRound('a');
   lrRenderGrid();
   document.getElementById('lr-modal').classList.add('open');
+  _liveModalOpen(_doCloseLongRunLive);
 }
 
-function closeLongRunLive(){
-  if(LR.running&&!confirm('השעון רץ — לסגור?'))return;
+function _doCloseLongRunLive(){
   LR.running=false;cancelAnimationFrame(LR.raf);
   try{localStorage.removeItem(LIVE_LS_KEY);}catch(e){}
+  _liveModalClose();
   document.getElementById('lr-modal').classList.remove('open');
   document.getElementById('rg-lr-add-btn')?.remove();
-  if(LR.gid==='__random__'){ sbGoRandom_impl(); }
+  if(LR.gid==='__random__'){sbGoRandom_impl();}
 }
+function closeLongRunLive(){ _confirmExitLive(_doCloseLongRunLive); }
 
 function lrStart(){
   LR.running=true;LR.startTime=performance.now()-LR.elapsed;
@@ -10779,22 +10818,20 @@ function openMetronome(){
   const muteBtn=document.getElementById('metro-mute-btn');
   if(muteBtn){muteBtn.textContent='🔊';muteBtn.style.color='#fff';}
   document.getElementById('metro-modal').classList.add('open');
+  _liveModalOpen(_doCloseMetronome);
   // Auto-start metronome
   setTimeout(()=>metroPlay(),200);
 }
 
-function closeMetronome(){
-  if(MTR.testing){
-    toast('יש לעצור את המבחן לפני הסגירה');
-    return;
-  }
-  if(MTR.splits && MTR.splits.length){
-    const unnamed=MTR.splits.filter(s=>!s.name).length;
-    if(unnamed>0&&!confirm(`${unnamed} תלמידים עדיין ללא שם — לסגור בלי לשמור?`))return;
-  }
+function _doCloseMetronome(){
   metroStop();
+  _liveModalClose();
   document.getElementById('metro-modal').classList.remove('open');
-  if(MTR.gid==='__random__'||CUR.gid==='__random__'){ sbGoRandom_impl(); }
+  if(MTR.gid==='__random__'||CUR.gid==='__random__'){sbGoRandom_impl();}
+}
+function closeMetronome(){
+  if(MTR.testing){toast('יש לעצור את המבחן לפני הסגירה');return;}
+  _confirmExitLive(_doCloseMetronome);
 }
 
 // ═══════════════════════════════════════════════════════════
