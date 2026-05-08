@@ -45,7 +45,7 @@ body{font-family:'Heebo',sans-serif;background:var(--bg);color:var(--ink);font-s
 .tab-content.active{display:flex;}
 
 /* פאנל צד */
-.side-panel{width:225px;min-width:185px;background:var(--bg2);border-left:1px solid var(--bd);display:flex;flex-direction:column;overflow:hidden;flex-shrink:0;}
+.side-panel{width:200px;min-width:170px;background:var(--bg2);border-left:1px solid var(--bd);display:flex;flex-direction:column;overflow:hidden;flex-shrink:0;}
 .cls-row{padding:7px 10px;border-bottom:1px solid var(--bd);display:flex;align-items:center;gap:5px;}
 .grp-sel{flex:1;padding:5px 7px;border:1px solid var(--bd);border-radius:var(--rs);background:var(--bg);color:var(--ink);font-family:'Heebo',sans-serif;font-size:12px;cursor:pointer;}
 .icon-btn{padding:4px 7px;border-radius:var(--rs);border:1px solid var(--bd);cursor:pointer;font-size:12px;background:var(--bg);transition:all var(--t);line-height:1;}
@@ -91,7 +91,7 @@ body{font-family:'Heebo',sans-serif;background:var(--bg);color:var(--ink);font-s
 .seat:hover .trash-badge{opacity:1;pointer-events:all;}
 
 /* אזור כיתה */
-.class-wrap{flex:1;overflow:auto;padding:18px;display:flex;flex-direction:column;align-items:center;}
+.class-wrap{flex:1;overflow:auto;padding:12px;display:flex;flex-direction:column;align-items:center;}
 .class-toolbar{display:flex;align-items:center;gap:7px;margin-bottom:10px;flex-wrap:wrap;width:100%;max-width:940px;}
 .tb-label{font-size:11px;color:var(--ink3);font-weight:700;}
 .layout-sel{padding:5px 9px;border-radius:var(--rs);border:1px solid var(--bd);background:var(--bg2);color:var(--ink);font-family:'Heebo',sans-serif;font-size:12px;cursor:pointer;}
@@ -115,14 +115,14 @@ body{font-family:'Heebo',sans-serif;background:var(--bg);color:var(--ink);font-s
 .w-lobby{background:rgba(255,122,47,.5);color:#fff;}
 .w-yard{background:rgba(34,197,94,.5);color:#fff;}
 
-.class-card{background:var(--bg2);border:1px solid var(--bd);border-radius:16px;padding:20px 18px;width:100%;box-shadow:var(--sh);position:relative;flex:1;}
+.class-card{background:var(--bg2);border:1px solid var(--bd);border-radius:16px;padding:14px 12px;width:100%;box-shadow:var(--sh);position:relative;flex:1;}
 .board-lbl{text-align:center;font-size:10px;font-weight:700;color:var(--ink3);letter-spacing:2px;padding:5px 24px;background:var(--bd);border-radius:5px;margin-bottom:18px;width:55%;margin-left:auto;margin-right:auto;}
-.class-rows{display:flex;flex-direction:column;gap:10px;align-items:center;}
-.class-row{display:flex;gap:8px;align-items:center;}
-.pair-gap{width:20px;flex-shrink:0;}
+.class-rows{display:flex;flex-direction:column;gap:8px;align-items:center;}
+.class-row{display:flex;gap:6px;align-items:center;}
+.pair-gap{width:14px;flex-shrink:0;}
 
 /* מושב */
-.seat{width:64px;height:64px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-direction:column;cursor:pointer;transition:all var(--t);position:relative;border:2px dashed rgba(0,0,0,.15);color:var(--ink3);text-align:center;user-select:none;overflow:hidden;padding:4px;flex-shrink:0;}
+.seat{width:60px;height:60px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-direction:column;cursor:pointer;transition:all var(--t);position:relative;border:2px dashed rgba(0,0,0,.15);color:var(--ink3);text-align:center;user-select:none;overflow:hidden;padding:4px;flex-shrink:0;}
 [data-theme="dark"] .seat{border-color:rgba(255,255,255,.12);}
 .seat:hover:not(.occupied){border-color:var(--ac);border-style:solid;background:var(--abg);color:var(--ac);}
 .seat .seat-plus{font-size:16px;font-weight:300;}
@@ -135,7 +135,7 @@ body{font-family:'Heebo',sans-serif;background:var(--bg);color:var(--ink);font-s
 .seat.drop-over{border-color:var(--ac)!important;border-style:solid!important;background:var(--abg)!important;transform:scale(1.1);}
 .seat.sel-target{border-color:var(--ac)!important;border-style:solid!important;box-shadow:0 0 0 3px var(--abg);}
 .seat.sel-student{border-color:var(--ac)!important;border-style:solid!important;box-shadow:0 0 0 3px var(--abg);}
-.seat-placeholder{width:64px;height:64px;flex-shrink:0;visibility:hidden;}
+.seat-placeholder{width:60px;height:60px;flex-shrink:0;visibility:hidden;}
 .seat-fn{font-size:12px;font-weight:800;line-height:1.2;display:block;text-align:center;}
 .seat-ln{font-size:10px;font-weight:600;opacity:.75;line-height:1.1;display:block;text-align:center;max-width:60px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
 
@@ -750,7 +750,7 @@ function buildWarnings(){
     const p=stu.prefs||{};
     const w=(warnings[seat.id]=warnings[seat.id]||[]);
     if(p.front&&seat.row>1)w.push('צריך לשבת קרוב ללוח');
-    if(p.tall&&seat.row<mR-1)w.push('גבוה — כדאי בשורות אחרונות');
+    if(p.tall&&seat.row<mR-1&&seat.col!==0&&seat.col!==mC)w.push('גבוה — כדאי בשורה אחורית או עמודת צד');
     if(p.alone){
       const neighbor=isNeighbor(seat,sess,sm);
       if(neighbor)w.push('צריך לשבת לבד — יש שכן');
@@ -867,6 +867,8 @@ function aiArrange(){
   // מושבים לפי אזורים
   const frontSeats=freeSeats.filter(s=>s.row<=1);
   const backSeats=freeSeats.filter(s=>s.row>=mR-1);
+  // גבוהים: שורה אחורית (כל עמודה) או עמודות צד (כל שורה)
+  const tallSeats=freeSeats.filter(s=>s.row>=mR-1||s.col===0||s.col===mC);
   const midSeats=freeSeats.filter(s=>s.row>1&&s.row<mR-1);
 
   // "alone" seats = מושבים שאין להם שכן ישיר (קצה שורה)
@@ -876,8 +878,8 @@ function aiArrange(){
 
   // שבץ front תחילה בשורות ראשונות
   assignGroup(frontPool,frontSeats,assigned,students,cfg);
-  // שבץ tall בשורות אחרונות
-  assignGroup(tallPool,backSeats,assigned,students,cfg);
+  // שבץ tall בשורה אחורית / עמודות צד
+  assignGroup(tallPool,tallSeats,assigned,students,cfg);
   // שבץ alone במושבים בודדים
   assignGroup(alonePool,aloneSeats.filter(s=>!Object.keys(assigned).includes(s.id)),assigned,students,cfg);
 
@@ -1136,7 +1138,7 @@ function renderWait(){
     const chip=document.createElement('div');
     chip.className=`chip ${s.gender==='f'?'female':'male'}`;
     chip.dataset.idx=idx;chip.textContent=shortName(idx,students);
-    chip.title=s.name;chip.draggable=true;
+    chip.draggable=true;
     if(_selChip?.src==='wait'&&_selChip?.idx===idx)chip.classList.add('sel');
     if(_selDel===idx)chip.classList.add('sel');
     chip.onclick=()=>onChipClick(idx);
