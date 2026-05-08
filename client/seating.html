@@ -27,7 +27,9 @@
 html,body{height:100%;}
 body{font-family:'Heebo',sans-serif;background:var(--bg);color:var(--ink);font-size:14px;direction:rtl;overflow:hidden;}
 
-.app-hdr{height:54px;background:var(--bg2);border-bottom:1px solid var(--bd);padding:0 14px;display:flex;align-items:center;gap:8px;position:sticky;top:0;z-index:100;box-shadow:var(--sh);}
+.app-hdr{height:54px;background:var(--bg2);border-bottom:1px solid var(--bd);padding:0 10px;display:flex;align-items:center;gap:6px;position:sticky;top:0;z-index:100;box-shadow:var(--sh);}
+.hdr-grp{padding:5px 7px;border:1px solid var(--bd);border-radius:var(--rs);background:var(--bg);color:var(--ink);font-family:'Heebo',sans-serif;font-size:12px;cursor:pointer;max-width:110px;}
+.hdr-sep{width:1px;height:22px;background:var(--bd);flex-shrink:0;margin:0 2px;}
 .hdr-logo{font-weight:800;font-size:17px;color:var(--ac);white-space:nowrap;}
 .hdr-tabs{display:flex;gap:3px;margin:0 8px;}
 .htab{padding:5px 14px;border-radius:var(--rx);border:none;cursor:pointer;font-family:'Heebo',sans-serif;font-size:13px;font-weight:600;transition:all var(--t);background:transparent;color:var(--ink2);}
@@ -53,7 +55,7 @@ body{font-family:'Heebo',sans-serif;background:var(--bg);color:var(--ink);font-s
 .import-row{padding:5px 10px;border-bottom:1px solid var(--bd);}
 .import-btn{width:100%;padding:6px;border-radius:var(--rs);border:1px dashed var(--bd);cursor:pointer;font-family:'Heebo',sans-serif;font-size:11px;font-weight:700;background:var(--bg);color:var(--ink2);transition:all var(--t);text-align:center;}
 .import-btn:hover{border-color:var(--ac);color:var(--ac);background:var(--abg);}
-.side-hdr{padding:10px 12px 8px;border-bottom:1px solid var(--bd);display:flex;align-items:center;justify-content:space-between;}
+.side-hdr{padding:6px 12px 6px;border-bottom:1px solid var(--bd);display:flex;align-items:center;justify-content:space-between;}
 .side-title{font-size:12px;font-weight:700;color:var(--ink);}
 .side-count{font-size:11px;color:var(--ink3);}
 .side-stats{padding:6px 12px;border-bottom:1px solid var(--bd);font-size:10px;color:var(--ink3);line-height:1.7;}
@@ -62,9 +64,9 @@ body{font-family:'Heebo',sans-serif;background:var(--bg);color:var(--ink);font-s
 .wait-search{width:100%;padding:5px 8px;border:1px solid var(--bd);border-radius:var(--rs);background:var(--bg);color:var(--ink);font-family:'Heebo',sans-serif;font-size:12px;}
 .wait-search:focus{outline:none;border-color:var(--ac);}
 .waiting-body{flex:1;overflow-y:auto;}
-.wait-item{display:flex;align-items:center;gap:7px;padding:8px 10px;cursor:pointer;border-bottom:1px solid var(--bd);font-size:12px;font-weight:600;transition:background var(--t);user-select:none;direction:rtl;}
+.wait-item{display:flex;align-items:center;gap:7px;padding:8px 10px;cursor:pointer;border-bottom:1px solid var(--bd);font-size:12px;font-weight:600;transition:background var(--t);user-select:none;-webkit-user-select:none;-webkit-touch-callout:none;direction:rtl;}
 .wait-item:hover{background:var(--bd);}
-.wait-item.sel{background:var(--abg)!important;border-right:3px solid var(--ac);}
+.wait-item.sel{background:var(--abg)!important;box-shadow:inset -3px 0 0 var(--ac);}
 .wait-item.male{background:rgba(59,130,246,.04);}
 .wait-item.female{background:rgba(236,72,153,.04);}
 .wait-item-icon{font-size:13px;flex-shrink:0;}
@@ -289,12 +291,19 @@ body{font-family:'Heebo',sans-serif;background:var(--bg);color:var(--ink);font-s
 
 <header class="app-hdr">
   <span class="hdr-logo">🪑 מקומות ישיבה</span>
+  <div class="hdr-sep"></div>
+  <select class="hdr-grp" id="grp-sel" onchange="loadGroup(this.value)"></select>
+  <button class="icon-btn" onclick="openAddClass()" title="כיתה חדשה">＋</button>
+  <button class="icon-btn" onclick="openRenameClass()" id="rename-cls-btn" title="שנה שם">✏</button>
+  <button class="icon-btn" onclick="deleteClass()" id="del-cls-btn" title="מחק" style="color:var(--re)">🗑</button>
+  <button class="hbtn" onclick="openImport()" style="font-size:11px;padding:5px 9px;">📥 ייבוא</button>
+  <div class="hdr-sep"></div>
   <div class="hdr-tabs">
     <button class="htab active" onclick="switchTab('arrange')" id="htab-arrange">סידור</button>
     <button class="htab" onclick="switchTab('settings')" id="htab-settings">⚙️ הגדרות</button>
   </div>
   <div class="hdr-spacer"></div>
-  <button class="hbtn primary" onclick="aiArrange()" id="ai-btn">✨ סדר מחדש עם AI</button>
+  <button class="hbtn primary" onclick="aiArrange()" id="ai-btn">✨ AI</button>
   <button class="hbtn" onclick="toggleTheme()" title="בהיר/כהה" style="padding:6px 9px;">🌙</button>
 </header>
 
@@ -304,15 +313,6 @@ body{font-family:'Heebo',sans-serif;background:var(--bg);color:var(--ink);font-s
 <div class="tab-content active" id="tab-arrange">
 
   <div class="side-panel">
-    <div class="cls-row">
-      <select class="grp-sel" id="grp-sel" onchange="loadGroup(this.value)"></select>
-      <button class="icon-btn" onclick="openAddClass()" title="כיתה חדשה">＋</button>
-      <button class="icon-btn" onclick="openRenameClass()" id="rename-cls-btn" title="שנה שם">✏</button>
-      <button class="icon-btn" onclick="deleteClass()" id="del-cls-btn" title="מחק" style="color:var(--re)">🗑</button>
-    </div>
-    <div class="import-row">
-      <button class="import-btn" onclick="openImport()">📥 ייבוא מאלפון / קובץ</button>
-    </div>
     <div class="side-hdr">
       <span class="side-title">⏳ אזור המתנה</span>
       <span class="side-count" id="wait-count">0</span>
@@ -355,7 +355,6 @@ body{font-family:'Heebo',sans-serif;background:var(--bg);color:var(--ink);font-s
       </div>
     </div>
     <div class="class-stats" id="class-stats"></div>
-    <div id="sel-hint"></div>
     <div id="print-title"></div>
     <div class="room-outer">
       <div class="wall-strip wall-h w-board" id="wall-top">◼ לוח / קדמת הכיתה ◼</div>
@@ -416,6 +415,8 @@ body{font-family:'Heebo',sans-serif;background:var(--bg);color:var(--ink);font-s
   </div>
 </div>
 </div>
+
+<div id="sel-hint"></div>
 
 <!-- ── מודאל: הוספת כיתה ── -->
 <div class="modal-bg" id="modal-add-cls">
