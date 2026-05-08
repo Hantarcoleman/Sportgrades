@@ -71,7 +71,7 @@ body{font-family:'Heebo',sans-serif;background:var(--bg);color:var(--ink);font-s
 .chip.male{background:rgba(59,130,246,.11);border-color:rgba(59,130,246,.28);color:#2563eb;}
 .chip.female{background:rgba(236,72,153,.11);border-color:rgba(236,72,153,.28);color:#be185d;}
 .chip.sel{border-color:var(--ac)!important;box-shadow:0 0 0 3px var(--abg);background:var(--abg)!important;}
-.chip:hover{transform:scale(1.07);box-shadow:var(--sh);}
+.chip:hover{box-shadow:0 4px 14px rgba(0,0,0,.18);filter:brightness(1.06);}
 .chip.dragging{opacity:.35;cursor:grabbing;}
 [data-theme="dark"] .chip.male{color:#60a5fa;}
 [data-theme="dark"] .chip.female{color:#f472b6;}
@@ -194,7 +194,7 @@ body{font-family:'Heebo',sans-serif;background:var(--bg);color:var(--ink);font-s
 .pref-card-desc{font-size:10px;color:var(--ink3);margin-top:2px;}
 
 /* away-from */
-.away-list{max-height:130px;overflow-y:auto;border:1px solid var(--bd);border-radius:var(--rs);margin-bottom:12px;}
+.away-list{max-height:260px;overflow-y:auto;border:1px solid var(--bd);border-radius:var(--rs);margin-bottom:12px;}
 .away-item{padding:6px 10px;display:flex;align-items:center;gap:8px;font-size:12px;cursor:pointer;transition:background var(--t);}
 .away-item:hover{background:var(--bd);}
 .away-item input{accent-color:var(--ac);}
@@ -1160,18 +1160,36 @@ function renderWait(){
 // ════════════════════════════════════════════════════════
 // אינטראקציות
 // ════════════════════════════════════════════════════════
+// עדכון סלקטיבי של מצב בחירה — ללא rebuild של ה-DOM
+function updateWaitSel(){
+  document.querySelectorAll('#wait-grid .chip').forEach(chip=>{
+    const i=Number(chip.dataset.idx);
+    chip.classList.toggle('sel',(_selChip?.src==='wait'&&_selChip?.idx===i)||_selDel===i);
+  });
+}
+function updateClassSel(){
+  document.querySelectorAll('#class-rows .seat').forEach(div=>{
+    const sid=div.dataset.sid;if(!sid)return;
+    div.classList.toggle('sel-target',_selSeat===sid);
+    div.classList.toggle('sel-student',_selChip?.src==='seat'&&_selChip?.seatId===sid);
+  });
+}
+
 function onChipClick(idx){
   if(_selSeat){assignTo(_selSeat,idx);clearSel();return;}
   if(_selChip?.src==='wait'&&_selChip?.idx===idx){clearSel();return;}
   _selChip={src:'wait',idx};_selSeat=null;_selDel=null;
   document.getElementById('del-btn').disabled=true;
-  renderWait();renderClass();
+  updateWaitSel();updateClassSel();updateSelHint();
 }
 function onSeatClick(seatId,e){
   e.stopPropagation();const sess=curSess();const idx=sess.assignments[seatId];
   if(_selChip){
-    if(_selChip.src==='seat'){if(_selChip.seatId===seatId){clearSel();return;}swapSeats(_selChip.seatId,seatId);}
-    else assignTo(seatId,_selChip.idx);
+    if(_selChip.src==='seat'){
+      // לחיצה חוזרת על אותו מושב → פתח עריכה
+      if(_selChip.seatId===seatId){const ei=_selChip.idx;clearSel();openEditStudent(ei);return;}
+      swapSeats(_selChip.seatId,seatId);
+    }else assignTo(seatId,_selChip.idx);
     clearSel();return;
   }
   if(_selSeat===seatId){clearSel();return;}
@@ -1179,7 +1197,7 @@ function onSeatClick(seatId,e){
   if(_selSeat&&idx!=null){assignTo(_selSeat,idx);clearSel();return;}
   if(idx!=null){_selChip={src:'seat',idx,seatId};_selSeat=null;}
   else{_selSeat=seatId;_selChip=null;}
-  renderClass();renderWait();updateSelHint();
+  updateClassSel();updateWaitSel();updateSelHint();
 }
 function returnToWaiting(seatId){
   const sess=curSess();
@@ -1199,7 +1217,7 @@ function swapSeats(a,b){
   if(ai!=null)sess.assignments[b]=ai;else delete sess.assignments[b];
   saveState();renderClass();renderWait();
 }
-function clearSel(){_selChip=null;_selSeat=null;renderClass();renderWait();updateSelHint();}
+function clearSel(){_selChip=null;_selSeat=null;updateClassSel();updateWaitSel();updateSelHint();}
 function updateSelHint(){
   const h=document.getElementById('sel-hint');
   if(_selChip){h.textContent=`נבחר: ${getStudents()[_selChip.idx]?.name||''} — לחץ על מקום (ריק להעברה, תפוס להחלפה) | Esc ביטול`;h.classList.add('visible');}
