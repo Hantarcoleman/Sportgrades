@@ -94,6 +94,8 @@ body{font-family:'Heebo',sans-serif;background:var(--bg);color:var(--ink);font-s
 .pdot-alone{background:#8b5cf6;}
 .pdot-tall{background:#f59e0b;}
 .pdot-away{background:#ef4444;}
+.pdot-row0{background:#7c3aed;}
+.pdot-rows12{background:#0891b2;}
 
 .pin-badge,.warn-badge,.trash-badge{position:absolute;border-radius:50%;width:17px;height:17px;display:flex;align-items:center;justify-content:center;box-shadow:0 1px 3px rgba(0,0,0,.25);font-size:10px;line-height:1;}
 .pin-badge{top:-3px;right:-3px;background:var(--bg2);}
@@ -253,6 +255,14 @@ body{font-family:'Heebo',sans-serif;background:var(--bg);color:var(--ink);font-s
 .empty-state p{font-size:11px;line-height:1.5;}
 @media(max-width:600px){.side-panel{width:185px;}.seat,.chip{width:54px;height:54px;}}
 
+.col-ctrl-row{display:flex;gap:6px;align-items:center;justify-content:center;margin-bottom:8px;}
+.col-ctrl-pair{width:118px;display:flex;align-items:center;justify-content:center;gap:6px;flex-shrink:0;}
+.row-ctrl{display:flex;gap:4px;align-items:center;margin-right:6px;flex-shrink:0;}
+.ctrl-btn{width:22px;height:22px;border-radius:50%;border:none;cursor:pointer;font-size:15px;font-weight:900;display:flex;align-items:center;justify-content:center;transition:all var(--t);line-height:1;font-family:'Heebo',sans-serif;}
+.ctrl-btn.add{background:rgba(34,197,94,.13);color:#15803d;border:1.5px solid rgba(34,197,94,.35);}
+.ctrl-btn.add:hover{background:#22c55e;color:#fff;}
+.ctrl-btn.rem{background:rgba(239,68,68,.09);color:#dc2626;border:1.5px solid rgba(239,68,68,.28);}
+.ctrl-btn.rem:hover{background:#ef4444;color:#fff;}
 @media print{
   *{-webkit-print-color-adjust:exact;print-color-adjust:exact;}
   body{font-family:Arial,'Helvetica Neue',sans-serif;background:#fff;direction:rtl;overflow:visible;}
@@ -305,7 +315,6 @@ body{font-family:'Heebo',sans-serif;background:var(--bg);color:var(--ink);font-s
       <span class="side-title">⏳ אזור המתנה</span>
       <span class="side-count" id="wait-count">0</span>
     </div>
-    <div class="side-stats" id="side-stats"></div>
     <div class="overflow-warn" id="overflow-warn" style="display:none"></div>
     <div class="wait-search-row">
       <input class="wait-search" id="wait-search" type="text" placeholder="🔍 חיפוש..." oninput="renderWait()">
@@ -333,8 +342,6 @@ body{font-family:'Heebo',sans-serif;background:var(--bg);color:var(--ink);font-s
         <option value="ushape">צורת U</option>
         <option value="outdoor">חצר (3×10)</option>
       </select>
-      <button class="hbtn" onclick="addRow()">+ שורה</button>
-      <button class="hbtn" onclick="addCol()">+ עמודה</button>
       <button class="hbtn" onclick="clearAssign()" style="color:var(--re)">🧹 נקה</button>
       <button class="hbtn" onclick="openSepGroups()">⛔ קבוצות הפרדה</button>
       <button class="hbtn" onclick="printSeating()" title="הדפס / שמור PDF">🖨️ הדפס</button>
@@ -353,6 +360,7 @@ body{font-family:'Heebo',sans-serif;background:var(--bg);color:var(--ink);font-s
       <div class="room-mid">
         <div class="wall-strip wall-v" id="wall-right" style="margin-left:4px;"></div>
         <div class="class-card">
+          <div class="col-ctrl-row" id="col-ctrl-row"></div>
           <div class="class-rows" id="class-rows"></div>
         </div>
         <div class="wall-strip wall-v" id="wall-left" style="margin-right:4px;"></div>
@@ -586,10 +594,12 @@ const WALL_CYCLE=[null,'small','lobby','yard'];
 const WALL_LABELS={null:'קיר רגיל',small:'חלון קטן',lobby:'חלון ללובי',yard:'חלון לחצר'};
 const WALL_CLASS={null:'w-none',small:'w-small',lobby:'w-lobby',yard:'w-yard',board:'w-board'};
 const PREF_DEFS=[
-  {key:'front', icon:'🔭', label:'צריך לשבת קרוב ללוח',   desc:'ישובץ בשורות הראשונות'},
-  {key:'alone', icon:'🏝', label:'צריך לשבת לבד',          desc:'ללא שכן ישיר'},
-  {key:'tall',  icon:'📏', label:'גבוה — לא יחסום אחרים', desc:'ישובץ בשורות אחרונות'},
-  {key:'away',  icon:'↔',  label:'שמור מרחק מ...',         desc:'בחר תלמידים להרחקה'},
+  {key:'row0',   icon:'🥇', label:'חייב שורה ראשונה',       desc:'שורה קדמית בלבד'},
+  {key:'rows12', icon:'🥈', label:'חייב שורות 1-2',          desc:'אחת מהשתי השורות הקדמיות'},
+  {key:'front',  icon:'🔭', label:'קרוב ללוח (מומלץ)',       desc:'ישובץ בשורות הראשונות'},
+  {key:'alone',  icon:'🏝', label:'צריך לשבת לבד',           desc:'ללא שכן ישיר'},
+  {key:'tall',   icon:'📏', label:'גבוה — לא יחסום אחרים',  desc:'ישובץ בשורות אחרונות'},
+  {key:'away',   icon:'↔',  label:'שמור מרחק מ...',          desc:'בחר תלמידים להרחקה'},
 ];
 
 function mkuid(){return Math.random().toString(36).slice(2,9);}
@@ -721,6 +731,47 @@ function delRow(row){
   toDelete.forEach(id=>delete curSess().assignments[id]);
   saveState();renderClass();renderWait();
 }
+function addTableToColPair(cp){
+  pushUndo();const c1=cp*2,c2=cp*2+1;
+  const colSeats=ST.classroom.seats.filter(s=>s.col===c1||s.col===c2);
+  const maxR=colSeats.length?Math.max(...colSeats.map(s=>s.row)):-1;
+  const n=ST.classroom.next;
+  ST.classroom.seats.push({id:`s${n}`,row:maxR+1,col:c1});
+  ST.classroom.seats.push({id:`s${n+1}`,row:maxR+1,col:c2});
+  ST.classroom.next+=2;saveState();renderClass();
+}
+function removeTableFromColPair(cp){
+  pushUndo();const c1=cp*2,c2=cp*2+1;
+  const colSeats=ST.classroom.seats.filter(s=>s.col===c1||s.col===c2);
+  if(!colSeats.length){_undo.pop();updateUndoBtns();return;}
+  const maxR=Math.max(...colSeats.map(s=>s.row));
+  const toDelete=colSeats.filter(s=>s.row===maxR).map(s=>s.id);
+  ST.classroom.seats=ST.classroom.seats.filter(s=>!toDelete.includes(s.id));
+  toDelete.forEach(id=>delete curSess().assignments[id]);
+  saveState();renderClass();renderWait();
+}
+function addTableToRow(r){
+  pushUndo();
+  const rowSeats=ST.classroom.seats.filter(s=>s.row===r);
+  const rowMaxC=rowSeats.length?Math.max(...rowSeats.map(s=>s.col)):-1;
+  const c1=Math.floor((rowMaxC+2)/2)*2;
+  const n=ST.classroom.next;
+  ST.classroom.seats.push({id:`s${n}`,row:r,col:c1});
+  ST.classroom.seats.push({id:`s${n+1}`,row:r,col:c1+1});
+  ST.classroom.next+=2;saveState();renderClass();
+}
+function removeTableFromRow(r){
+  pushUndo();
+  const rowSeats=ST.classroom.seats.filter(s=>s.row===r);
+  if(rowSeats.length<2){_undo.pop();updateUndoBtns();return;}
+  const maxC=Math.max(...rowSeats.map(s=>s.col));
+  const pairStart=maxC%2===0?maxC-1:maxC;
+  const toDelete=rowSeats.filter(s=>s.col===pairStart||s.col===pairStart+1).map(s=>s.id);
+  if(!toDelete.length){_undo.pop();updateUndoBtns();return;}
+  ST.classroom.seats=ST.classroom.seats.filter(s=>!toDelete.includes(s.id));
+  toDelete.forEach(id=>delete curSess().assignments[id]);
+  saveState();renderClass();renderWait();
+}
 
 // ════════════════════════════════════════════════════════
 // Session
@@ -784,7 +835,9 @@ function buildWarnings(){
     const stu=students[idx];if(!stu)continue;
     const p=stu.prefs||{};
     const w=(warnings[seat.id]=warnings[seat.id]||[]);
-    if(p.front&&seat.row>1)w.push('צריך לשבת קרוב ללוח');
+    if(p.row0&&seat.row!==0)w.push('חייב שורה ראשונה בלבד');
+    if(p.rows12&&seat.row>1)w.push('חייב שורות 1-2');
+    if(p.front&&seat.row>1)w.push('קרוב ללוח — כדאי בשורות הראשונות');
     if(p.tall&&seat.row<mR-1&&seat.col!==0&&seat.col!==mC)w.push('גבוה — כדאי בשורה אחורית או עמודת צד');
     if(p.alone){
       const neighbor=isNeighbor(seat,sess,sm);
@@ -894,12 +947,16 @@ function aiArrange(){
   let pool=freeIdxs.map(i=>({i,sc:stuScore(i),g:students[i]?.gender||'m',p:students[i]?.prefs||{}}));
 
   // הפרד לפי אפיון
-  const frontPool=cfg.aiPrefs?pool.filter(x=>x.p.front):[];
-  const tallPool=cfg.aiPrefs?pool.filter(x=>x.p.tall):[];
-  const alonePool=cfg.aiPrefs?pool.filter(x=>x.p.alone&&!x.p.front&&!x.p.tall):[];
-  const normalPool=pool.filter(x=>!frontPool.includes(x)&&!tallPool.includes(x)&&!alonePool.includes(x));
+  const row0Pool=cfg.aiPrefs?pool.filter(x=>x.p.row0):[];
+  const rows12Pool=cfg.aiPrefs?pool.filter(x=>x.p.rows12&&!x.p.row0):[];
+  const frontPool=cfg.aiPrefs?pool.filter(x=>x.p.front&&!x.p.row0&&!x.p.rows12):[];
+  const tallPool=cfg.aiPrefs?pool.filter(x=>x.p.tall&&!x.p.row0&&!x.p.rows12):[];
+  const alonePool=cfg.aiPrefs?pool.filter(x=>x.p.alone&&!x.p.front&&!x.p.tall&&!x.p.row0&&!x.p.rows12):[];
+  const normalPool=pool.filter(x=>!frontPool.includes(x)&&!tallPool.includes(x)&&!alonePool.includes(x)&&!row0Pool.includes(x)&&!rows12Pool.includes(x));
 
   // מושבים לפי אזורים
+  const row0Seats=freeSeats.filter(s=>s.row===0);
+  const row12Seats=freeSeats.filter(s=>s.row<=1);
   const frontSeats=freeSeats.filter(s=>s.row<=1);
   const backSeats=freeSeats.filter(s=>s.row>=mR-1);
   // גבוהים: שורה אחורית (כל עמודה) או עמודות צד (כל שורה)
@@ -911,8 +968,14 @@ function aiArrange(){
 
   let assigned={};
 
+  // שבץ חייב שורה ראשונה ראשונים
+  assignGroup(row0Pool,row0Seats,assigned,students,cfg);
+  // שבץ חייב שורות 1-2
+  const usedRow12=new Set(Object.keys(assigned));
+  assignGroup(rows12Pool,row12Seats.filter(s=>!usedRow12.has(s.id)),assigned,students,cfg);
   // שבץ front תחילה בשורות ראשונות
-  assignGroup(frontPool,frontSeats,assigned,students,cfg);
+  const usedFront=new Set(Object.keys(assigned));
+  assignGroup(frontPool,frontSeats.filter(s=>!usedFront.has(s.id)),assigned,students,cfg);
   // שבץ tall בשורה אחורית / עמודות צד
   assignGroup(tallPool,tallSeats,assigned,students,cfg);
   // שבץ alone במושבים בודדים
@@ -1053,10 +1116,32 @@ function updateUndoBtns(){
 function renderClass(){
   const el=document.getElementById('class-rows');
   const students=getStudents(),sess=curSess(),warnings=buildWarnings(),sm=seatMap();
-  if(!ST.classroom.seats.length){el.innerHTML='<div class="empty-state"><h3>אין מקומות ישיבה</h3><p>לחץ "+ שורה"</p></div>';renderStats();return;}
+  const ccr=document.getElementById('col-ctrl-row');
+  if(!ST.classroom.seats.length){el.innerHTML='<div class="empty-state"><h3>אין מקומות ישיבה</h3><p>לחץ + כדי להוסיף שולחן</p></div>';if(ccr)ccr.innerHTML='';renderStats();return;}
   const{mR,mC}=dims();el.innerHTML='';
+  // בנה שורת בקרת טורים
+  if(ccr){
+    ccr.innerHTML='';
+    const numPairs=Math.ceil((mC+1)/2);
+    for(let cp=0;cp<numPairs;cp++){
+      if(cp>0){const g=document.createElement('div');g.className='pair-gap';ccr.appendChild(g);}
+      const pc=document.createElement('div');pc.className='col-ctrl-pair';
+      const ab=document.createElement('button');ab.className='ctrl-btn add';ab.textContent='+';ab.title='הוסף שולחן לטור';
+      (function(c){ab.onclick=()=>addTableToColPair(c);})(cp);
+      const rb=document.createElement('button');rb.className='ctrl-btn rem';rb.textContent='−';rb.title='הסר שולחן מהטור';
+      (function(c){rb.onclick=()=>removeTableFromColPair(c);})(cp);
+      pc.appendChild(ab);pc.appendChild(rb);ccr.appendChild(pc);
+    }
+  }
   for(let r=0;r<=mR;r++){
     const rowDiv=document.createElement('div');rowDiv.className='class-row';
+    // כפתורי בקרת שורה (בתחילת השורה — בימין ב-RTL)
+    const rc=document.createElement('div');rc.className='row-ctrl';
+    const rab=document.createElement('button');rab.className='ctrl-btn add';rab.textContent='+';rab.title='הוסף שולחן לשורה';
+    (function(row){rab.onclick=()=>addTableToRow(row);})(r);
+    const rrb=document.createElement('button');rrb.className='ctrl-btn rem';rrb.textContent='−';rrb.title='הסר שולחן מהשורה';
+    (function(row){rrb.onclick=()=>removeTableFromRow(row);})(r);
+    rc.appendChild(rab);rc.appendChild(rrb);rowDiv.appendChild(rc);
     for(let c=0;c<=mC;c++){
       if(c>0&&c%2===0){const g=document.createElement('div');g.className='pair-gap';rowDiv.appendChild(g);}
       const seat=sm[`${r},${c}`];
@@ -1144,8 +1229,6 @@ function cycleWall(side){
 // ════════════════════════════════════════════════════════
 function renderStats(){
   const st=seatStats();
-  const sideEl=document.getElementById('side-stats');
-  if(sideEl)sideEl.innerHTML=`<b>${st.pairs}</b> שולחנות &nbsp;·&nbsp; <b>${st.totalSeats}</b> מושבים`+(st.totalStudents&&st.alone>0?` &nbsp;·&nbsp; <b>${st.alone}</b> יכולים לשבת לבד`:'');
   const owEl=document.getElementById('overflow-warn');
   if(owEl){if(st.overflow>0){owEl.style.display='';owEl.textContent=`⚠️ ${st.overflow} תלמידים ללא מקום!`;}else owEl.style.display='none';}
   const clEl=document.getElementById('class-stats');
@@ -1181,8 +1264,10 @@ function renderWait(){
     icon.textContent=s.gender==='f'?'👩':'👦';item.appendChild(icon);
     const nm=document.createElement('span');nm.className='wait-item-name';nm.textContent=s.name;item.appendChild(nm);
     if(ST.settings.showPrefs){
-      const p=s.prefs||{};const has=p.front||p.alone||p.tall||p.away;
+      const p=s.prefs||{};const has=p.row0||p.rows12||p.front||p.alone||p.tall||p.away;
       if(has){const dots=document.createElement('div');dots.className='wait-item-prefs';
+        if(p.row0){const d=document.createElement('div');d.className='pdot pdot-row0';dots.appendChild(d);}
+        if(p.rows12){const d=document.createElement('div');d.className='pdot pdot-rows12';dots.appendChild(d);}
         if(p.front){const d=document.createElement('div');d.className='pdot pdot-front';dots.appendChild(d);}
         if(p.alone){const d=document.createElement('div');d.className='pdot pdot-alone';dots.appendChild(d);}
         if(p.tall){const d=document.createElement('div');d.className='pdot pdot-tall';dots.appendChild(d);}
@@ -1328,7 +1413,7 @@ function buildPrefGrid(containerId,prefs){
   }
 }
 function readPrefs(containerId){
-  const prefs={front:false,alone:false,tall:false,away:false,awayFrom:[]};
+  const prefs={row0:false,rows12:false,front:false,alone:false,tall:false,away:false,awayFrom:[]};
   document.querySelectorAll(`#${containerId} .pref-card`).forEach(c=>{
     if(c.classList.contains('checked'))prefs[c.dataset.key]=true;
   });
