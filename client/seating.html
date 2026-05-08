@@ -84,9 +84,11 @@ body{font-family:'Heebo',sans-serif;background:var(--bg);color:var(--ink);font-s
 .pdot-tall{background:#f59e0b;}
 .pdot-away{background:#ef4444;}
 
-.pin-badge,.warn-badge{position:absolute;border-radius:50%;width:17px;height:17px;display:flex;align-items:center;justify-content:center;box-shadow:0 1px 3px rgba(0,0,0,.25);font-size:10px;line-height:1;}
+.pin-badge,.warn-badge,.trash-badge{position:absolute;border-radius:50%;width:17px;height:17px;display:flex;align-items:center;justify-content:center;box-shadow:0 1px 3px rgba(0,0,0,.25);font-size:10px;line-height:1;}
 .pin-badge{top:-3px;right:-3px;background:var(--bg2);}
 .warn-badge{top:-3px;left:-3px;background:#f59e0b;color:#fff;cursor:pointer;font-size:9px;font-weight:900;}
+.trash-badge{bottom:-3px;right:-3px;background:var(--re);color:#fff;cursor:pointer;font-size:9px;opacity:0;transition:opacity var(--t);pointer-events:none;}
+.seat:hover .trash-badge{opacity:1;pointer-events:all;}
 
 /* אזור כיתה */
 .class-wrap{flex:1;overflow:auto;padding:18px;display:flex;flex-direction:column;align-items:center;}
@@ -212,6 +214,17 @@ body{font-family:'Heebo',sans-serif;background:var(--bg);color:var(--ink);font-s
 .gender-tog.m{background:rgba(59,130,246,.1);border-color:rgba(59,130,246,.3);color:#2563eb;}
 .gender-tog.f{background:rgba(236,72,153,.1);border-color:rgba(236,72,153,.3);color:#be185d;}
 
+/* קבוצות הפרדה */
+.sep-group-item{border:1px solid var(--bd);border-radius:var(--rs);padding:8px 10px 8px 32px;margin-bottom:6px;position:relative;}
+.sep-group-members-row{display:flex;flex-wrap:wrap;gap:4px;margin-top:5px;}
+.sep-tag{padding:2px 8px;border-radius:var(--rx);font-size:11px;font-weight:700;background:rgba(239,68,68,.1);color:#dc2626;border:1px solid rgba(239,68,68,.25);}
+.sep-del-btn{position:absolute;top:7px;left:7px;background:none;border:none;cursor:pointer;color:var(--ink3);font-size:13px;padding:2px 4px;border-radius:4px;transition:color var(--t);}
+.sep-del-btn:hover{color:var(--re);}
+.sep-stu-list{max-height:220px;overflow-y:auto;border:1px solid var(--bd);border-radius:var(--rs);margin-bottom:10px;}
+.sep-stu-item{padding:6px 10px;display:flex;align-items:center;gap:8px;font-size:12px;cursor:pointer;transition:background var(--t);}
+.sep-stu-item:hover{background:var(--bd);}
+.sep-stu-item input{accent-color:var(--re);}
+
 /* context menu */
 .ctx-menu{position:fixed;background:var(--bg2);border:1px solid var(--bd);border-radius:var(--rs);box-shadow:var(--shl);z-index:400;overflow:hidden;min-width:170px;display:none;}
 .ctx-menu.open{display:block;animation:ctxIn .1s ease;}
@@ -239,7 +252,7 @@ body{font-family:'Heebo',sans-serif;background:var(--bg);color:var(--ink);font-s
     <button class="htab" onclick="switchTab('settings')" id="htab-settings">⚙️ הגדרות</button>
   </div>
   <div class="hdr-spacer"></div>
-  <button class="hbtn primary" onclick="aiArrange()" id="ai-btn">✨ סדר AI</button>
+  <button class="hbtn primary" onclick="aiArrange()" id="ai-btn">✨ סדר מחדש עם AI</button>
   <button class="hbtn" onclick="toggleTheme()" title="בהיר/כהה" style="padding:6px 9px;">🌙</button>
 </header>
 
@@ -290,6 +303,7 @@ body{font-family:'Heebo',sans-serif;background:var(--bg);color:var(--ink);font-s
       <button class="hbtn" onclick="addRow()">+ שורה</button>
       <button class="hbtn" onclick="addCol()">+ עמודה</button>
       <button class="hbtn" onclick="clearAssign()" style="color:var(--re)">🧹 נקה</button>
+      <button class="hbtn" onclick="openSepGroups()">⛔ קבוצות הפרדה</button>
       <div style="flex:1"></div>
       <div class="legend">
         <div class="legend-item"><div class="ldot" style="background:rgba(59,130,246,.5)"></div>בן</div>
@@ -476,6 +490,32 @@ body{font-family:'Heebo',sans-serif;background:var(--bg);color:var(--ink);font-s
   </div>
 </div>
 
+<!-- ── מודאל: קבוצות הפרדה ── -->
+<div class="modal-bg" id="modal-sep">
+  <div class="modal" style="max-width:500px;">
+    <div class="modal-title">⛔ קבוצות הפרדה</div>
+    <p style="font-size:12px;color:var(--ink3);margin-bottom:12px;">תלמידים בקבוצה לא ישובצו באותו שולחן. ה-AI ינסה גם להרחיק בין שולחנות סמוכים.</p>
+    <div id="sep-groups-list" style="margin-bottom:12px;"></div>
+    <button class="btn-ok" style="width:100%;margin-bottom:8px;" onclick="openNewSepGroup()">+ הוסף קבוצת הפרדה</button>
+    <div class="btn-row">
+      <button class="btn-cancel" onclick="closeModal('modal-sep')">סגור</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── מודאל: הוספת קבוצת הפרדה ── -->
+<div class="modal-bg" id="modal-sep-new">
+  <div class="modal" style="max-width:400px;">
+    <div class="modal-title">קבוצה חדשה — בחר תלמידים</div>
+    <p style="font-size:12px;color:var(--ink3);margin-bottom:10px;">סמן לפחות 2 תלמידים שלא ישבו באותו שולחן:</p>
+    <div class="sep-stu-list" id="sep-stu-list"></div>
+    <div class="btn-row">
+      <button class="btn-cancel" onclick="closeModal('modal-sep-new')">ביטול</button>
+      <button class="btn-ok" onclick="confirmNewSepGroup()">שמור קבוצה</button>
+    </div>
+  </div>
+</div>
+
 <!-- ── תפריט הקשר ── -->
 <div id="ctx" class="ctx-menu">
   <div class="ctx-item" id="ctx-pin"       onclick="ctxPin()">📌 נעץ/שחרר</div>
@@ -497,6 +537,7 @@ let ST = {
   nextCid: 1,
   classroom: null,
   sessions: {},    // {[cid]: {assignments:{[seatId]:idx}, pinned:[]}}
+  separationGroups: [], // [[uid,uid,...], ...]
   settings: {aiGender:true,aiMix:true,aiPrefs:true,aiWindow:true,showWarn:true,showLevel:false,showPrefs:true},
   room: {walls:{top:'board',bottom:null,left:null,right:null}}
 };
@@ -545,6 +586,7 @@ function loadState(){
     ST.sessions=d.sessions||{};
     ST.settings={...ST.settings,...(d.settings||{})};
     ST.room=d.room||{walls:{top:'board',bottom:null,left:null,right:null}};
+    ST.separationGroups=d.separationGroups||[];
   }catch(e){ST.classroom=makeLayout('5x8');}
 }
 function saveState(){localStorage.setItem('sg_seating_v1',JSON.stringify(ST));}
@@ -722,6 +764,26 @@ function buildWarnings(){
       }
     }
   }
+  // קבוצות הפרדה — אזהרה אם שני חברי קבוצה באותו שולחן
+  if(ST.separationGroups?.length){
+    const sm2=seatMap();
+    for(const group of ST.separationGroups){
+      const seated=group.map(uid=>({uid,i:students.findIndex(s=>s.uid===uid)})).filter(x=>x.i>=0);
+      for(let a=0;a<seated.length;a++){
+        for(let b=a+1;b<seated.length;b++){
+          const sAId=Object.keys(sess.assignments).find(k=>sess.assignments[k]===seated[a].i);
+          const sBId=Object.keys(sess.assignments).find(k=>sess.assignments[k]===seated[b].i);
+          if(!sAId||!sBId)continue;
+          const sA=ST.classroom.seats.find(s=>s.id===sAId),sB=ST.classroom.seats.find(s=>s.id===sBId);
+          if(!sA||!sB)continue;
+          if(Math.floor(sA.col/2)===Math.floor(sB.col/2)){
+            (warnings[sAId]=warnings[sAId]||[]).push(`קבוצת הפרדה — ישוב עם ${students[seated[b].i].name.split(' ')[0]}`);
+            (warnings[sBId]=warnings[sBId]||[]).push(`קבוצת הפרדה — ישוב עם ${students[seated[a].i].name.split(' ')[0]}`);
+          }
+        }
+      }
+    }
+  }
   return warnings;
 }
 
@@ -729,6 +791,53 @@ function isNeighbor(seat,sess,sm){
   const adj=[[0,1],[0,-1],[1,0],[-1,0]];
   for(const[dr,dc]of adj){const n=sm[`${seat.row+dr},${seat.col+dc}`];if(n&&sess.assignments[n.id]!=null)return true;}
   return false;
+}
+
+// ════════════════════════════════════════════════════════
+// קבוצות הפרדה
+// ════════════════════════════════════════════════════════
+function openSepGroups(){
+  if(!ST.gid){alert('בחר כיתה תחילה.');return;}
+  renderSepGroupsList();
+  document.getElementById('modal-sep').classList.add('open');
+}
+function renderSepGroupsList(){
+  const el=document.getElementById('sep-groups-list');
+  const students=getStudents();
+  if(!ST.separationGroups.length){el.innerHTML='<p style="font-size:12px;color:var(--ink3);text-align:center;padding:8px 0;">אין קבוצות הפרדה עדיין</p>';return;}
+  el.innerHTML='';
+  ST.separationGroups.forEach((group,gi)=>{
+    const div=document.createElement('div');div.className='sep-group-item';
+    const del=document.createElement('button');del.className='sep-del-btn';del.textContent='✕';del.title='מחק קבוצה';
+    del.onclick=()=>{ST.separationGroups.splice(gi,1);saveState();renderSepGroupsList();};
+    div.appendChild(del);
+    const lbl=document.createElement('div');lbl.style.cssText='font-size:11px;font-weight:700;color:var(--ink3);';lbl.textContent=`קבוצה ${gi+1}`;div.appendChild(lbl);
+    const row=document.createElement('div');row.className='sep-group-members-row';
+    for(const uid of group){
+      const s=students.find(x=>x.uid===uid);if(!s)continue;
+      const tag=document.createElement('span');tag.className='sep-tag';tag.textContent=s.name.split(' ')[0];row.appendChild(tag);
+    }
+    div.appendChild(row);el.appendChild(div);
+  });
+}
+function openNewSepGroup(){
+  const students=getStudents();
+  const list=document.getElementById('sep-stu-list');list.innerHTML='';
+  students.forEach((s,i)=>{
+    const item=document.createElement('div');item.className='sep-stu-item';
+    const cb=document.createElement('input');cb.type='checkbox';cb.dataset.uid=s.uid;
+    const lbl=document.createElement('span');lbl.textContent=s.name;
+    item.appendChild(cb);item.appendChild(lbl);
+    item.onclick=e=>{if(e.target!==cb)cb.checked=!cb.checked;};
+    list.appendChild(item);
+  });
+  document.getElementById('modal-sep-new').classList.add('open');
+}
+function confirmNewSepGroup(){
+  const uids=[...document.querySelectorAll('#sep-stu-list input:checked')].map(cb=>cb.dataset.uid);
+  if(uids.length<2){alert('בחר לפחות 2 תלמידים.');return;}
+  ST.separationGroups.push(uids);
+  saveState();closeModal('modal-sep-new');renderSepGroupsList();
 }
 
 // ════════════════════════════════════════════════════════
@@ -779,6 +888,8 @@ function aiArrange(){
 
   // אפיוני "רחוק מ" — נסה להחליף צמדים בעיתיים
   if(cfg.aiPrefs)fixAwayFrom(assigned,students,freeSeats);
+  // קבוצות הפרדה
+  fixSeparationGroups(assigned,students,freeSeats);
 
   sess.assignments={...pinnedEntries,...assigned};
   saveState();renderClass();renderWait();
@@ -821,6 +932,41 @@ function fixAwayFrom(assigned,students,seats){
           Math.abs(s.row-seat.row)>2&&
           !students[assigned[s.id]]?.prefs?.front&&!students[assigned[s.id]]?.prefs?.tall);
         if(farSeat){const tmp=assigned[farSeat.id];assigned[farSeat.id]=assigned[oSid];assigned[oSid]=tmp;revAssign[assigned[farSeat.id]]=farSeat.id;revAssign[assigned[oSid]]=oSid;}
+      }
+    }
+  }
+}
+
+function fixSeparationGroups(assigned,students,seats){
+  if(!ST.separationGroups?.length)return;
+  const rev={};for(const[sid,i]of Object.entries(assigned))rev[i]=sid;
+  for(const group of ST.separationGroups){
+    const idxs=group.map(uid=>students.findIndex(s=>s.uid===uid)).filter(i=>i>=0&&rev[i]);
+    for(let a=0;a<idxs.length;a++){
+      for(let b=a+1;b<idxs.length;b++){
+        const iA=idxs[a],iB=idxs[b];
+        const sA=seats.find(s=>s.id===rev[iA]),sB=seats.find(s=>s.id===rev[iB]);
+        if(!sA||!sB)continue;
+        const tA=Math.floor(sA.col/2),tB=Math.floor(sB.col/2);
+        const adjDist=Math.abs(tA-tB);
+        const innerAdj=adjDist===1&&Math.abs(sA.col-sB.col)<=2;
+        if(tA===tB||innerAdj){
+          // מצא מועמד להחלפה: לא בקבוצה, רחוק מספיק
+          const allIdxsInGroups=new Set(ST.separationGroups.flat().map(uid=>students.findIndex(s=>s.uid===uid)).filter(i=>i>=0));
+          const candidate=seats.find(s=>{
+            const ci=assigned[s.id];
+            if(ci==null||allIdxsInGroups.has(ci))return false;
+            const ct=Math.floor(s.col/2);
+            if(tA===tB)return ct!==tA;
+            // adjacent case: want table not adjacent to either
+            return Math.abs(ct-tA)>1&&Math.abs(ct-tB)>1;
+          });
+          if(candidate){
+            const tmp=assigned[candidate.id];
+            assigned[candidate.id]=iB;assigned[rev[iB]]=tmp;
+            rev[tmp]=rev[iB];rev[iB]=candidate.id;
+          }
+        }
       }
     }
   }
@@ -885,6 +1031,8 @@ function renderClass(){
         div.classList.add('occupied',stu.gender==='f'?'female':'male');
         if(pinned){const pb=document.createElement('div');pb.className='pin-badge';pb.textContent='📌';div.appendChild(pb);}
         if(warn?.length&&ST.settings.showWarn){const wb=document.createElement('div');wb.className='warn-badge';wb.textContent='⚠';wb.title=warn.join('\n');wb.onclick=e=>{e.stopPropagation();alert(warn.join('\n'));};div.appendChild(wb);}
+        const tb=document.createElement('div');tb.className='trash-badge';tb.textContent='🗑';tb.title='החזר להמתנה';
+        tb.onclick=e=>{e.stopPropagation();returnToWaiting(seat.id);};div.appendChild(tb);
         const parts=stu.name.trim().split(/\s+/);
         const fn=document.createElement('span');fn.className='seat-fn';fn.textContent=parts[0];div.appendChild(fn);
         if(parts.length>1){const ln=document.createElement('span');ln.className='seat-ln';ln.textContent=parts.slice(1).join(' ');div.appendChild(ln);}
@@ -893,7 +1041,6 @@ function renderClass(){
       if(_selSeat===seat.id)div.classList.add('sel-target');
       if(_selChip?.src==='seat'&&_selChip?.seatId===seat.id)div.classList.add('sel-student');
       div.onclick=e=>onSeatClick(seat.id,e);
-      div.ondblclick=e=>{e.preventDefault();onSeatDbl(seat.id);};
       div.oncontextmenu=e=>onSeatCtx(seat.id,r,e);
       if(stu){div.draggable=true;div.ondragstart=e=>onSeatDragStart(seat.id,idx,e);}
       div.ondragover=e=>{e.preventDefault();div.classList.add('drop-over');};
@@ -1028,13 +1175,16 @@ function onSeatClick(seatId,e){
     clearSel();return;
   }
   if(_selSeat===seatId){clearSel();return;}
+  // מקום ריק נבחר קודם + לחיצה על מקום תפוס → שבץ שם
+  if(_selSeat&&idx!=null){assignTo(_selSeat,idx);clearSel();return;}
   if(idx!=null){_selChip={src:'seat',idx,seatId};_selSeat=null;}
   else{_selSeat=seatId;_selChip=null;}
   renderClass();renderWait();updateSelHint();
 }
-function onSeatDbl(seatId){
+function returnToWaiting(seatId){
   const sess=curSess();
-  if(sess.assignments[seatId]!=null){pushUndo();delete sess.assignments[seatId];clearSel();saveState();renderClass();renderWait();}
+  if(sess.assignments[seatId]==null)return;
+  pushUndo();delete sess.assignments[seatId];clearSel();saveState();renderClass();renderWait();
 }
 function assignTo(seatId,idx){
   pushUndo();const sess=curSess();
@@ -1052,8 +1202,8 @@ function swapSeats(a,b){
 function clearSel(){_selChip=null;_selSeat=null;renderClass();renderWait();updateSelHint();}
 function updateSelHint(){
   const h=document.getElementById('sel-hint');
-  if(_selChip){h.textContent=`נבחר: ${getStudents()[_selChip.idx]?.name||''} — לחץ על מקום לשיבוץ (או תלמיד אחר להחלפה) | Esc ביטול`;h.classList.add('visible');}
-  else if(_selSeat){h.textContent='מקום נבחר — לחץ על תלמיד לשיבוץ | Esc ביטול';h.classList.add('visible');}
+  if(_selChip){h.textContent=`נבחר: ${getStudents()[_selChip.idx]?.name||''} — לחץ על מקום (ריק להעברה, תפוס להחלפה) | Esc ביטול`;h.classList.add('visible');}
+  else if(_selSeat){h.textContent='מקום ריק נבחר — לחץ על תלמיד ממתין או ישוב להעברה לכאן | Esc ביטול';h.classList.add('visible');}
   else h.classList.remove('visible');
 }
 
@@ -1064,7 +1214,7 @@ function onDropSeat(seatId){if(_dragIdx==null)return;assignTo(seatId,_dragIdx);_
 document.addEventListener('DOMContentLoaded',()=>{
   const wb=document.getElementById('wait-body');
   wb.ondragover=e=>e.preventDefault();
-  wb.ondrop=e=>{e.preventDefault();if(_dragFrom)onSeatDbl(_dragFrom);_dragIdx=null;_dragFrom=null;};
+  wb.ondrop=e=>{e.preventDefault();if(_dragFrom)returnToWaiting(_dragFrom);_dragIdx=null;_dragFrom=null;};
 });
 
 // ════════════════════════════════════════════════════════
@@ -1093,7 +1243,7 @@ function onChipCtx(idx,e){
   showCtx(e.clientX,e.clientY);
 }
 function ctxPin(){if(!_ctx||_ctx.idx==null)return;togglePin(curSess(),_ctx.idx);hideCtx();}
-function ctxUnassign(){if(_ctx)onSeatDbl(_ctx.seatId);hideCtx();}
+function ctxUnassign(){if(_ctx)returnToWaiting(_ctx.seatId);hideCtx();}
 function ctxDelSeat(){if(_ctx?.seatId)delSeat(_ctx.seatId);hideCtx();}
 function ctxDelRow(){if(_ctx?.row!=null)delRow(_ctx.row);hideCtx();}
 function ctxEditStu(){if(_ctx?.idx!=null)openEditStudent(_ctx.idx);hideCtx();}
