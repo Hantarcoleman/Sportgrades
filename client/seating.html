@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>סידור מקומות ישיבה</title>
 <link href="https://fonts.googleapis.com/css2?family=Heebo:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <style>
 :root{
   --bg:#f5f7fa;--bg2:#fff;--sf:#fff;
@@ -26,266 +27,211 @@
 html,body{height:100%;}
 body{font-family:'Heebo',sans-serif;background:var(--bg);color:var(--ink);font-size:14px;direction:rtl;overflow:hidden;}
 
-/* ── כותרת ── */
-.app-hdr{
-  height:54px;background:var(--bg2);border-bottom:1px solid var(--bd);
-  padding:0 14px;display:flex;align-items:center;gap:8px;
-  position:sticky;top:0;z-index:100;box-shadow:var(--sh);
-}
+.app-hdr{height:54px;background:var(--bg2);border-bottom:1px solid var(--bd);padding:0 14px;display:flex;align-items:center;gap:8px;position:sticky;top:0;z-index:100;box-shadow:var(--sh);}
 .hdr-logo{font-weight:800;font-size:17px;color:var(--ac);white-space:nowrap;}
 .hdr-tabs{display:flex;gap:3px;margin:0 8px;}
-.htab{
-  padding:5px 14px;border-radius:var(--rx);border:none;cursor:pointer;
-  font-family:'Heebo',sans-serif;font-size:13px;font-weight:600;
-  transition:all var(--t);background:transparent;color:var(--ink2);
-}
+.htab{padding:5px 14px;border-radius:var(--rx);border:none;cursor:pointer;font-family:'Heebo',sans-serif;font-size:13px;font-weight:600;transition:all var(--t);background:transparent;color:var(--ink2);}
 .htab.active{background:var(--abg);color:var(--ac);}
 .htab:hover:not(.active){background:var(--bd);color:var(--ink);}
 .hdr-spacer{flex:1;}
-.hbtn{
-  padding:6px 13px;border-radius:var(--rs);border:1px solid var(--bd);cursor:pointer;
-  font-family:'Heebo',sans-serif;font-size:12px;font-weight:700;
-  transition:all var(--t);background:var(--bg2);color:var(--ink2);
-  display:flex;align-items:center;gap:5px;white-space:nowrap;flex-shrink:0;
-}
+.hbtn{padding:6px 13px;border-radius:var(--rs);border:1px solid var(--bd);cursor:pointer;font-family:'Heebo',sans-serif;font-size:12px;font-weight:700;transition:all var(--t);background:var(--bg2);color:var(--ink2);display:flex;align-items:center;gap:5px;white-space:nowrap;flex-shrink:0;}
 .hbtn:hover{background:var(--bd);color:var(--ink);}
 .hbtn:disabled{opacity:.3;cursor:not-allowed;}
 .hbtn.primary{background:var(--ac);color:#fff;border-color:var(--ac);}
 .hbtn.primary:hover{opacity:.88;}
 
-/* ── גוף ── */
 .app-body{display:flex;height:calc(100vh - 54px);overflow:hidden;}
 .tab-content{display:none;width:100%;height:100%;overflow:hidden;}
 .tab-content.active{display:flex;}
 
-/* ── פאנל צד ── */
-.side-panel{
-  width:225px;min-width:185px;background:var(--bg2);border-left:1px solid var(--bd);
-  display:flex;flex-direction:column;overflow:hidden;flex-shrink:0;
-}
-.side-hdr{
-  padding:10px 12px 8px;border-bottom:1px solid var(--bd);
-  display:flex;align-items:center;justify-content:space-between;
-}
+/* פאנל צד */
+.side-panel{width:225px;min-width:185px;background:var(--bg2);border-left:1px solid var(--bd);display:flex;flex-direction:column;overflow:hidden;flex-shrink:0;}
+.cls-row{padding:7px 10px;border-bottom:1px solid var(--bd);display:flex;align-items:center;gap:5px;}
+.grp-sel{flex:1;padding:5px 7px;border:1px solid var(--bd);border-radius:var(--rs);background:var(--bg);color:var(--ink);font-family:'Heebo',sans-serif;font-size:12px;cursor:pointer;}
+.icon-btn{padding:4px 7px;border-radius:var(--rs);border:1px solid var(--bd);cursor:pointer;font-size:12px;background:var(--bg);transition:all var(--t);line-height:1;}
+.icon-btn:hover{background:var(--bd);}
+.import-row{padding:5px 10px;border-bottom:1px solid var(--bd);}
+.import-btn{width:100%;padding:6px;border-radius:var(--rs);border:1px dashed var(--bd);cursor:pointer;font-family:'Heebo',sans-serif;font-size:11px;font-weight:700;background:var(--bg);color:var(--ink2);transition:all var(--t);text-align:center;}
+.import-btn:hover{border-color:var(--ac);color:var(--ac);background:var(--abg);}
+.side-hdr{padding:10px 12px 8px;border-bottom:1px solid var(--bd);display:flex;align-items:center;justify-content:space-between;}
 .side-title{font-size:12px;font-weight:700;color:var(--ink);}
 .side-count{font-size:11px;color:var(--ink3);}
-
-/* אזור כיתה בפאנל */
-.cls-row{
-  padding:7px 10px;border-bottom:1px solid var(--bd);
-  display:flex;align-items:center;gap:6px;
-}
-.grp-sel{
-  flex:1;padding:5px 7px;border:1px solid var(--bd);border-radius:var(--rs);
-  background:var(--bg);color:var(--ink);font-family:'Heebo',sans-serif;font-size:12px;cursor:pointer;
-}
-.icon-btn{
-  padding:5px 7px;border-radius:var(--rs);border:1px solid var(--bd);cursor:pointer;
-  font-size:13px;background:var(--bg);transition:all var(--t);
-}
-.icon-btn:hover{background:var(--bd);}
-
-/* סטטיסטיקות פאנל */
-.side-stats{
-  padding:6px 12px;border-bottom:1px solid var(--bd);
-  font-size:10px;color:var(--ink3);line-height:1.7;
-}
-/* אזהרת עודף תלמידים */
-.overflow-warn{
-  margin:6px 8px;padding:6px 10px;
-  background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.3);
-  border-radius:var(--rs);font-size:11px;font-weight:700;color:#dc2626;
-  text-align:center;
-}
+.side-stats{padding:6px 12px;border-bottom:1px solid var(--bd);font-size:10px;color:var(--ink3);line-height:1.7;}
+.overflow-warn{margin:6px 8px;padding:6px 10px;background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.3);border-radius:var(--rs);font-size:11px;font-weight:700;color:#dc2626;text-align:center;}
 .waiting-body{flex:1;overflow-y:auto;padding:8px;}
 .waiting-grid{display:flex;flex-wrap:wrap;gap:7px;padding:2px 0;}
+.side-actions{padding:7px 8px;border-top:1px solid var(--bd);display:flex;gap:6px;}
+.sa-btn{flex:1;padding:6px 4px;border-radius:var(--rs);border:1px solid var(--bd);cursor:pointer;font-family:'Heebo',sans-serif;font-size:11px;font-weight:700;background:var(--bg);color:var(--ink2);transition:all var(--t);}
+.sa-btn:hover{background:var(--bd);color:var(--ink);}
+.sa-btn.danger{color:var(--re);border-color:rgba(239,68,68,.2);}
+.sa-btn.danger:hover{background:rgba(239,68,68,.07);}
 
-/* ── כרטיס תלמיד (המתנה) ── */
-.chip{
-  width:58px;height:58px;border-radius:50%;display:flex;align-items:center;justify-content:center;
-  font-size:12px;font-weight:700;cursor:grab;user-select:none;
-  border:2.5px solid transparent;transition:all var(--t);
-  text-align:center;line-height:1.25;position:relative;flex-shrink:0;
-  word-break:break-word;overflow:hidden;padding:4px;
-}
+/* chip */
+.chip{width:58px;height:58px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;cursor:grab;user-select:none;border:2.5px solid transparent;transition:all var(--t);text-align:center;line-height:1.25;position:relative;flex-shrink:0;word-break:break-word;overflow:hidden;padding:4px;}
 .chip.male{background:rgba(59,130,246,.11);border-color:rgba(59,130,246,.28);color:#2563eb;}
 .chip.female{background:rgba(236,72,153,.11);border-color:rgba(236,72,153,.28);color:#be185d;}
-.chip.sel{border-color:var(--ac) !important;box-shadow:0 0 0 3px var(--abg);background:var(--abg) !important;}
+.chip.sel{border-color:var(--ac)!important;box-shadow:0 0 0 3px var(--abg);background:var(--abg)!important;}
 .chip:hover{transform:scale(1.07);box-shadow:var(--sh);}
 .chip.dragging{opacity:.35;cursor:grabbing;}
 [data-theme="dark"] .chip.male{color:#60a5fa;}
 [data-theme="dark"] .chip.female{color:#f472b6;}
 
-/* ── תגי פין / אזהרה ── */
-.pin-badge,.warn-badge{
-  position:absolute;border-radius:50%;width:17px;height:17px;
-  display:flex;align-items:center;justify-content:center;
-  box-shadow:0 1px 3px rgba(0,0,0,.25);font-size:10px;line-height:1;
-}
+/* תגיות על chip */
+.pref-dots{position:absolute;bottom:1px;left:50%;transform:translateX(-50%);display:flex;gap:2px;}
+.pdot{width:6px;height:6px;border-radius:50%;}
+.pdot-front{background:#3b82f6;}
+.pdot-alone{background:#8b5cf6;}
+.pdot-tall{background:#f59e0b;}
+.pdot-away{background:#ef4444;}
+
+.pin-badge,.warn-badge{position:absolute;border-radius:50%;width:17px;height:17px;display:flex;align-items:center;justify-content:center;box-shadow:0 1px 3px rgba(0,0,0,.25);font-size:10px;line-height:1;}
 .pin-badge{top:-3px;right:-3px;background:var(--bg2);}
 .warn-badge{top:-3px;left:-3px;background:#f59e0b;color:#fff;cursor:pointer;font-size:9px;font-weight:900;}
 
-/* ── כפתורי פעולה בפאנל ── */
-.side-actions{padding:7px 8px;border-top:1px solid var(--bd);display:flex;gap:6px;}
-.sa-btn{
-  flex:1;padding:6px 4px;border-radius:var(--rs);border:1px solid var(--bd);cursor:pointer;
-  font-family:'Heebo',sans-serif;font-size:11px;font-weight:700;
-  background:var(--bg);color:var(--ink2);transition:all var(--t);
-}
-.sa-btn:hover{background:var(--bd);color:var(--ink);}
-.sa-btn.danger{color:var(--re);border-color:rgba(239,68,68,.2);}
-.sa-btn.danger:hover{background:rgba(239,68,68,.07);}
-
-/* ── אזור כיתה ── */
+/* אזור כיתה */
 .class-wrap{flex:1;overflow:auto;padding:18px;display:flex;flex-direction:column;align-items:center;}
-.class-toolbar{
-  display:flex;align-items:center;gap:7px;margin-bottom:10px;
-  flex-wrap:wrap;width:100%;max-width:900px;
-}
+.class-toolbar{display:flex;align-items:center;gap:7px;margin-bottom:10px;flex-wrap:wrap;width:100%;max-width:940px;}
 .tb-label{font-size:11px;color:var(--ink3);font-weight:700;}
-.layout-sel{
-  padding:5px 9px;border-radius:var(--rs);border:1px solid var(--bd);
-  background:var(--bg2);color:var(--ink);font-family:'Heebo',sans-serif;font-size:12px;cursor:pointer;
-}
-/* סטטיסטיקות כיתה */
-.class-stats{
-  width:100%;max-width:900px;margin-bottom:10px;
-  display:flex;align-items:center;gap:10px;flex-wrap:wrap;
-  font-size:11px;color:var(--ink3);
-}
-.class-stats .stat-chip{
-  padding:3px 10px;border:1px solid var(--bd);border-radius:var(--rx);
-  background:var(--bg2);font-weight:600;
-}
-.class-stats .stat-chip.warn{background:rgba(239,68,68,.08);border-color:rgba(239,68,68,.3);color:#dc2626;}
-.class-stats .stat-chip.ok{background:rgba(34,197,94,.08);border-color:rgba(34,197,94,.3);color:#15803d;}
-.class-card{
-  background:var(--bg2);border:1px solid var(--bd);border-radius:16px;
-  padding:22px 20px;max-width:900px;width:100%;box-shadow:var(--sh);position:relative;
-}
-.board-lbl{
-  text-align:center;font-size:10px;font-weight:700;color:var(--ink3);
-  letter-spacing:2px;text-transform:uppercase;padding:6px 24px;
-  background:var(--bd);border-radius:5px;margin-bottom:20px;
-  width:55%;margin-left:auto;margin-right:auto;
-}
+.layout-sel{padding:5px 9px;border-radius:var(--rs);border:1px solid var(--bd);background:var(--bg2);color:var(--ink);font-family:'Heebo',sans-serif;font-size:12px;cursor:pointer;}
+.class-stats{width:100%;max-width:940px;margin-bottom:8px;display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:11px;color:var(--ink3);}
+.stat-chip{padding:3px 10px;border:1px solid var(--bd);border-radius:var(--rx);background:var(--bg2);font-weight:600;}
+.stat-chip.warn{background:rgba(239,68,68,.08);border-color:rgba(239,68,68,.3);color:#dc2626;}
+.stat-chip.ok{background:rgba(34,197,94,.08);border-color:rgba(34,197,94,.3);color:#15803d;}
+
+#sel-hint{width:100%;max-width:940px;margin-bottom:8px;padding:7px 12px;border-radius:var(--rs);background:var(--abg);border:1px solid var(--abd);font-size:11px;color:var(--ac);font-weight:600;display:none;text-align:center;}
+#sel-hint.visible{display:block;}
+
+/* חדר עם קירות */
+.room-outer{display:flex;flex-direction:column;align-items:center;width:100%;max-width:940px;}
+.room-mid{display:flex;align-items:stretch;width:100%;gap:0;}
+.wall-strip{display:flex;align-items:center;justify-content:center;border-radius:6px;font-size:9px;font-weight:800;letter-spacing:.5px;color:#fff;cursor:default;transition:all var(--t);}
+.wall-h{height:20px;width:100%;margin:3px 0;}
+.wall-v{width:20px;flex-shrink:0;margin:0 3px;writing-mode:vertical-rl;}
+.w-board{background:#64748b;}
+.w-none{background:var(--bd);color:var(--ink3);}
+.w-small{background:rgba(59,130,246,.5);color:#fff;}
+.w-lobby{background:rgba(255,122,47,.5);color:#fff;}
+.w-yard{background:rgba(34,197,94,.5);color:#fff;}
+
+.class-card{background:var(--bg2);border:1px solid var(--bd);border-radius:16px;padding:20px 18px;width:100%;box-shadow:var(--sh);position:relative;flex:1;}
+.board-lbl{text-align:center;font-size:10px;font-weight:700;color:var(--ink3);letter-spacing:2px;padding:5px 24px;background:var(--bd);border-radius:5px;margin-bottom:18px;width:55%;margin-left:auto;margin-right:auto;}
 .class-rows{display:flex;flex-direction:column;gap:10px;align-items:center;}
 .class-row{display:flex;gap:8px;align-items:center;}
-.pair-gap{width:22px;flex-shrink:0;}
+.pair-gap{width:20px;flex-shrink:0;}
 
-/* ── מקום ישיבה ── */
-.seat{
-  width:64px;height:64px;border-radius:50%;
-  display:flex;align-items:center;justify-content:center;flex-direction:column;
-  cursor:pointer;transition:all var(--t);position:relative;
-  border:2px dashed rgba(0,0,0,.15);color:var(--ink3);
-  text-align:center;user-select:none;
-  overflow:hidden;padding:4px;flex-shrink:0;
-}
+/* מושב */
+.seat{width:64px;height:64px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-direction:column;cursor:pointer;transition:all var(--t);position:relative;border:2px dashed rgba(0,0,0,.15);color:var(--ink3);text-align:center;user-select:none;overflow:hidden;padding:4px;flex-shrink:0;}
 [data-theme="dark"] .seat{border-color:rgba(255,255,255,.12);}
 .seat:hover:not(.occupied){border-color:var(--ac);border-style:solid;background:var(--abg);color:var(--ac);}
-.seat .seat-plus{font-size:16px;font-weight:300;color:var(--ink3);}
+.seat .seat-plus{font-size:16px;font-weight:300;}
 .seat:hover:not(.occupied) .seat-plus{color:var(--ac);}
 .seat.occupied{border-style:solid;cursor:pointer;}
 .seat.occupied.male{background:rgba(59,130,246,.11);border-color:rgba(59,130,246,.35);color:#2563eb;}
 .seat.occupied.female{background:rgba(236,72,153,.11);border-color:rgba(236,72,153,.35);color:#be185d;}
 [data-theme="dark"] .seat.occupied.male{color:#60a5fa;}
 [data-theme="dark"] .seat.occupied.female{color:#f472b6;}
-.seat.drop-over{border-color:var(--ac) !important;border-style:solid !important;background:var(--abg) !important;transform:scale(1.1);}
-.seat.sel-target{border-color:var(--ac) !important;border-style:solid !important;box-shadow:0 0 0 3px var(--abg);}
-.seat.sel-student{border-color:var(--ac) !important;border-style:solid !important;box-shadow:0 0 0 3px var(--abg);}
+.seat.drop-over{border-color:var(--ac)!important;border-style:solid!important;background:var(--abg)!important;transform:scale(1.1);}
+.seat.sel-target{border-color:var(--ac)!important;border-style:solid!important;box-shadow:0 0 0 3px var(--abg);}
+.seat.sel-student{border-color:var(--ac)!important;border-style:solid!important;box-shadow:0 0 0 3px var(--abg);}
 .seat-placeholder{width:64px;height:64px;flex-shrink:0;visibility:hidden;}
 .seat-fn{font-size:12px;font-weight:800;line-height:1.2;display:block;text-align:center;}
-.seat-ln{font-size:10px;font-weight:600;opacity:.75;line-height:1.1;display:block;text-align:center;max-width:58px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.seat-ln{font-size:10px;font-weight:600;opacity:.75;line-height:1.1;display:block;text-align:center;max-width:60px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
 
-/* ── הנחיה ── */
-#sel-hint{
-  width:100%;max-width:900px;margin-bottom:8px;
-  padding:7px 12px;border-radius:var(--rs);
-  background:var(--abg);border:1px solid var(--abd);
-  font-size:11px;color:var(--ac);font-weight:600;display:none;text-align:center;
-}
-#sel-hint.visible{display:block;}
-
-/* ── לשונית הגדרות ── */
+/* הגדרות */
 .settings-wrap{flex:1;overflow-y:auto;padding:24px;}
-.settings-inner{max-width:680px;margin:0 auto;}
-.settings-section{
-  background:var(--bg2);border:1px solid var(--bd);border-radius:var(--r);
-  padding:18px 20px;margin-bottom:14px;
-}
+.settings-inner{max-width:700px;margin:0 auto;}
+.settings-section{background:var(--bg2);border:1px solid var(--bd);border-radius:var(--r);padding:18px 20px;margin-bottom:14px;}
 .settings-title{font-size:13px;font-weight:800;margin-bottom:12px;color:var(--ink);}
 .s-check{display:flex;align-items:center;gap:8px;margin-bottom:9px;cursor:pointer;font-size:13px;}
 .s-check input{accent-color:var(--ac);}
 
-/* ── מודאל ── */
-.modal-bg{
-  position:fixed;inset:0;background:rgba(0,0,0,.5);
-  display:none;align-items:center;justify-content:center;z-index:500;
-}
+/* room editor */
+.room-editor{display:grid;grid-template-columns:60px 1fr 60px;grid-template-rows:50px 1fr 50px;gap:4px;max-width:340px;margin:0 auto;}
+.re-center{background:rgba(0,0,0,.03);border-radius:var(--rs);display:flex;align-items:center;justify-content:center;font-size:11px;color:var(--ink3);font-weight:600;}
+.re-wall{border-radius:var(--rs);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;border:2px solid transparent;transition:all var(--t);padding:4px;}
+.re-wall:hover{filter:brightness(1.1);}
+.re-wall.w-board{background:#e2e8f0;color:#475569;border-color:#cbd5e1;cursor:default;}
+.re-wall.w-none{background:var(--bd);color:var(--ink3);border-color:var(--bd);}
+.re-wall.w-small{background:rgba(59,130,246,.15);color:#2563eb;border-color:rgba(59,130,246,.3);}
+.re-wall.w-lobby{background:rgba(255,122,47,.15);color:#c05621;border-color:rgba(255,122,47,.3);}
+.re-wall.w-yard{background:rgba(34,197,94,.15);color:#15803d;border-color:rgba(34,197,94,.3);}
+.re-corner{background:transparent;}
+.wall-legend{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px;font-size:11px;}
+.wl-item{display:flex;align-items:center;gap:4px;}
+.wl-dot{width:10px;height:10px;border-radius:3px;}
+
+/* מודאל */
+.modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.5);display:none;align-items:center;justify-content:center;z-index:500;}
 .modal-bg.open{display:flex;}
-.modal{
-  background:var(--bg2);border-radius:var(--r);padding:22px;
-  max-width:380px;width:90%;box-shadow:var(--shl);
-}
+.modal{background:var(--bg2);border-radius:var(--r);padding:22px;max-width:480px;width:95%;box-shadow:var(--shl);max-height:90vh;overflow-y:auto;}
 .modal-title{font-size:15px;font-weight:800;margin-bottom:14px;}
-.fi{
-  width:100%;padding:8px 11px;border:1px solid var(--bd);border-radius:var(--rs);
-  background:var(--bg);color:var(--ink);font-family:'Heebo',sans-serif;font-size:13px;
-  margin-bottom:10px;
-}
+.fi{width:100%;padding:8px 11px;border:1px solid var(--bd);border-radius:var(--rs);background:var(--bg);color:var(--ink);font-family:'Heebo',sans-serif;font-size:13px;margin-bottom:10px;}
 .fi:focus{outline:none;border-color:var(--ac);}
-.radio-row{display:flex;gap:14px;margin-bottom:12px;flex-wrap:wrap;}
+.field-lbl{font-size:12px;font-weight:700;color:var(--ink2);margin-bottom:5px;display:block;}
+.radio-row{display:flex;gap:14px;margin-bottom:12px;}
 .radio-row label{display:flex;align-items:center;gap:5px;cursor:pointer;font-size:13px;}
 .radio-row input[type=radio]{accent-color:var(--ac);}
-.btn-row{display:flex;gap:8px;justify-content:flex-end;margin-top:6px;}
+.btn-row{display:flex;gap:8px;justify-content:flex-end;margin-top:8px;}
 .btn-ok{padding:7px 18px;border-radius:var(--rs);border:none;cursor:pointer;font-family:'Heebo',sans-serif;font-size:13px;font-weight:700;background:var(--ac);color:#fff;}
 .btn-cancel{padding:7px 18px;border-radius:var(--rs);border:1px solid var(--bd);cursor:pointer;font-family:'Heebo',sans-serif;font-size:13px;font-weight:700;background:var(--bg);color:var(--ink2);}
-.field-lbl{font-size:12px;font-weight:700;color:var(--ink2);margin-bottom:4px;display:block;}
-.level-row{display:flex;gap:8px;margin-bottom:12px;}
-.level-row label{
-  flex:1;text-align:center;padding:6px 4px;border:2px solid var(--bd);border-radius:var(--rs);
-  cursor:pointer;font-size:12px;font-weight:700;transition:all var(--t);
-}
-.level-row input[type=radio]{display:none;}
-.level-row input:checked + label{border-color:var(--ac);background:var(--abg);color:var(--ac);}
 
-/* ── תפריט הקשר ── */
-.ctx-menu{
-  position:fixed;background:var(--bg2);border:1px solid var(--bd);
-  border-radius:var(--rs);box-shadow:var(--shl);z-index:400;
-  overflow:hidden;min-width:170px;display:none;
-}
+/* level picker */
+.level-row{display:flex;gap:6px;margin-bottom:12px;}
+.level-row>div{flex:1;}
+.level-row input[type=radio]{display:none;}
+.level-row label{display:block;text-align:center;padding:6px 4px;border:2px solid var(--bd);border-radius:var(--rs);cursor:pointer;font-size:12px;font-weight:700;transition:all var(--t);}
+.level-row input:checked+label{border-color:var(--ac);background:var(--abg);color:var(--ac);}
+
+/* prefs */
+.pref-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:12px;}
+.pref-card{border:2px solid var(--bd);border-radius:var(--rs);padding:8px 10px;cursor:pointer;transition:all var(--t);}
+.pref-card:hover{border-color:var(--ac);}
+.pref-card input[type=checkbox]{display:none;}
+.pref-card.checked{border-color:var(--ac);background:var(--abg);}
+.pref-card-label{font-size:12px;font-weight:700;display:flex;align-items:center;gap:6px;color:var(--ink);}
+.pref-card-desc{font-size:10px;color:var(--ink3);margin-top:2px;}
+
+/* away-from */
+.away-list{max-height:130px;overflow-y:auto;border:1px solid var(--bd);border-radius:var(--rs);margin-bottom:12px;}
+.away-item{padding:6px 10px;display:flex;align-items:center;gap:8px;font-size:12px;cursor:pointer;transition:background var(--t);}
+.away-item:hover{background:var(--bd);}
+.away-item input{accent-color:var(--ac);}
+
+/* ייבוא */
+.import-tabs{display:flex;gap:0;margin-bottom:12px;border:1px solid var(--bd);border-radius:var(--rs);overflow:hidden;}
+.itab{flex:1;padding:7px;text-align:center;cursor:pointer;font-size:12px;font-weight:700;background:var(--bg);color:var(--ink2);border:none;font-family:'Heebo',sans-serif;transition:all var(--t);}
+.itab.active{background:var(--ac);color:#fff;}
+.drop-zone{border:2px dashed var(--bd);border-radius:var(--rs);padding:24px;text-align:center;color:var(--ink3);font-size:12px;cursor:pointer;transition:all var(--t);margin-bottom:10px;}
+.drop-zone:hover,.drop-zone.drag-over{border-color:var(--ac);color:var(--ac);background:var(--abg);}
+.drop-zone input[type=file]{display:none;}
+.preview-table{width:100%;border-collapse:collapse;font-size:12px;margin-bottom:8px;}
+.preview-table th{padding:5px 8px;background:var(--bd);font-weight:700;text-align:right;}
+.preview-table td{padding:5px 8px;border-bottom:1px solid var(--bd);}
+.preview-table tr:last-child td{border-bottom:none;}
+.gender-tog{padding:2px 8px;border-radius:var(--rx);border:1px solid var(--bd);cursor:pointer;font-size:11px;font-weight:700;background:var(--bg);font-family:'Heebo',sans-serif;}
+.gender-tog.m{background:rgba(59,130,246,.1);border-color:rgba(59,130,246,.3);color:#2563eb;}
+.gender-tog.f{background:rgba(236,72,153,.1);border-color:rgba(236,72,153,.3);color:#be185d;}
+
+/* context menu */
+.ctx-menu{position:fixed;background:var(--bg2);border:1px solid var(--bd);border-radius:var(--rs);box-shadow:var(--shl);z-index:400;overflow:hidden;min-width:170px;display:none;}
 .ctx-menu.open{display:block;animation:ctxIn .1s ease;}
 @keyframes ctxIn{from{opacity:0;transform:scale(.96)}to{opacity:1;transform:none}}
-.ctx-item{
-  padding:9px 15px;cursor:pointer;font-size:13px;font-weight:500;
-  display:flex;align-items:center;gap:8px;transition:background var(--t);
-}
+.ctx-item{padding:9px 15px;cursor:pointer;font-size:13px;font-weight:500;display:flex;align-items:center;gap:8px;transition:background var(--t);}
 .ctx-item:hover{background:var(--bd);}
 .ctx-item.red{color:var(--re);}
 .ctx-sep{height:1px;background:var(--bd);margin:3px 0;}
 
-/* ── מקרא ── */
 .legend{display:flex;gap:12px;flex-wrap:wrap;font-size:11px;color:var(--ink3);}
 .legend-item{display:flex;align-items:center;gap:4px;}
 .ldot{width:10px;height:10px;border-radius:50%;}
-
-/* ── empty state ── */
 .empty-state{text-align:center;padding:28px 12px;color:var(--ink3);}
 .empty-state h3{font-size:14px;margin-bottom:5px;color:var(--ink2);}
 .empty-state p{font-size:11px;line-height:1.5;}
-
-@media(max-width:600px){
-  .side-panel{width:185px;}
-  .seat,.chip{width:54px;height:54px;}
-  .hdr-logo{font-size:14px;}
-}
+@media(max-width:600px){.side-panel{width:185px;}.seat,.chip{width:54px;height:54px;}}
 </style>
 </head>
 <body>
 
-<!-- ── כותרת ── -->
 <header class="app-hdr">
   <span class="hdr-logo">🪑 מקומות ישיבה</span>
   <div class="hdr-tabs">
@@ -297,107 +243,127 @@ body{font-family:'Heebo',sans-serif;background:var(--bg);color:var(--ink);font-s
   <button class="hbtn" onclick="toggleTheme()" title="בהיר/כהה" style="padding:6px 9px;">🌙</button>
 </header>
 
-<!-- ── גוף ── -->
 <div class="app-body">
 
-  <!-- ════ לשונית סידור ════ -->
-  <div class="tab-content active" id="tab-arrange">
+<!-- ════ לשונית סידור ════ -->
+<div class="tab-content active" id="tab-arrange">
 
-    <!-- ── פאנל צד ── -->
-    <div class="side-panel">
-      <!-- בחירת כיתה + ניהול -->
-      <div class="cls-row">
-        <select class="grp-sel" id="grp-sel" onchange="loadGroup(this.value)">
-          <option value="">— בחר כיתה —</option>
-        </select>
-        <button class="icon-btn" onclick="openAddClass()" title="כיתה חדשה">＋</button>
-        <button class="icon-btn" onclick="openRenameClass()" title="שנה שם" id="rename-cls-btn">✏</button>
-        <button class="icon-btn" onclick="deleteClass()" title="מחק כיתה" id="del-cls-btn" style="color:var(--re)">🗑</button>
-      </div>
-
-      <div class="side-hdr">
-        <span class="side-title">⏳ ממתינים לשיבוץ</span>
-        <span class="side-count" id="wait-count">0</span>
-      </div>
-      <div class="side-stats" id="side-stats"></div>
-      <div class="overflow-warn" id="overflow-warn" style="display:none"></div>
-      <div class="waiting-body" id="wait-body">
-        <div class="waiting-grid" id="wait-grid"></div>
-      </div>
-      <div class="side-actions">
-        <button class="sa-btn" onclick="openAddStudent()">+ הוסף</button>
-        <button class="sa-btn danger" id="del-btn" onclick="deleteSelStudent()" disabled>🗑 מחק</button>
-      </div>
+  <div class="side-panel">
+    <div class="cls-row">
+      <select class="grp-sel" id="grp-sel" onchange="loadGroup(this.value)"></select>
+      <button class="icon-btn" onclick="openAddClass()" title="כיתה חדשה">＋</button>
+      <button class="icon-btn" onclick="openRenameClass()" id="rename-cls-btn" title="שנה שם">✏</button>
+      <button class="icon-btn" onclick="deleteClass()" id="del-cls-btn" title="מחק" style="color:var(--re)">🗑</button>
     </div>
-
-    <!-- ── אזור כיתה ── -->
-    <div class="class-wrap">
-      <div class="class-toolbar">
-        <button class="hbtn" onclick="doUndo()" id="undo-btn" disabled title="בטל (Ctrl+Z)" style="font-size:15px;padding:6px 11px;">↩</button>
-        <button class="hbtn" onclick="doRedo()" id="redo-btn" disabled title="חזור (Ctrl+Y)" style="font-size:15px;padding:6px 11px;">↪</button>
-        <div style="width:1px;height:22px;background:var(--bd);margin:0 2px;"></div>
-        <span class="tb-label">פריסה:</span>
-        <select class="layout-sel" id="layout-sel" onchange="applyLayout(this.value)">
-          <option value="generic">מבנה כיתה רגיל</option>
-        </select>
-        <button class="hbtn" onclick="addRow()">+ שורה</button>
-        <button class="hbtn" onclick="addCol()">+ עמודה</button>
-        <button class="hbtn" onclick="clearAssign()" style="color:var(--re)">🧹 נקה</button>
-        <div style="flex:1"></div>
-        <div class="legend">
-          <div class="legend-item"><div class="ldot" style="background:rgba(59,130,246,.5)"></div>בן</div>
-          <div class="legend-item"><div class="ldot" style="background:rgba(236,72,153,.5)"></div>בת</div>
-          <div class="legend-item">📌 נעוץ</div>
-          <div class="legend-item">⚠️ הערה</div>
-        </div>
-      </div>
-
-      <div class="class-stats" id="class-stats"></div>
-      <div id="sel-hint"></div>
-
-      <div class="class-card">
-        <div class="board-lbl">◼ לוח / קדמת הכיתה ◼</div>
-        <div class="class-rows" id="class-rows"></div>
-      </div>
+    <div class="import-row">
+      <button class="import-btn" onclick="openImport()">📥 ייבוא מאלפון / קובץ</button>
+    </div>
+    <div class="side-hdr">
+      <span class="side-title">⏳ ממתינים לשיבוץ</span>
+      <span class="side-count" id="wait-count">0</span>
+    </div>
+    <div class="side-stats" id="side-stats"></div>
+    <div class="overflow-warn" id="overflow-warn" style="display:none"></div>
+    <div class="waiting-body" id="wait-body">
+      <div class="waiting-grid" id="wait-grid"></div>
+    </div>
+    <div class="side-actions">
+      <button class="sa-btn" onclick="openAddStudent()">+ הוסף</button>
+      <button class="sa-btn danger" id="del-btn" onclick="deleteSelStudent()" disabled>🗑 מחק</button>
     </div>
   </div>
 
-  <!-- ════ לשונית הגדרות ════ -->
-  <div class="tab-content" id="tab-settings">
-    <div class="settings-wrap">
-      <div class="settings-inner">
-        <h2 style="font-size:19px;font-weight:800;margin-bottom:18px;">⚙️ הגדרות</h2>
-
-        <div class="settings-section">
-          <div class="settings-title">קריטריוני AI לסידור מקומות</div>
-          <label class="s-check"><input type="checkbox" id="ai-gender" checked onchange="saveSettings()"> הפרדת מין — בנים ובנות לסירוגין</label>
-          <label class="s-check"><input type="checkbox" id="ai-mix" checked onchange="saveSettings()"> ערבוב רמות — שיבוץ חזק לצד חלש</label>
+  <div class="class-wrap">
+    <div class="class-toolbar">
+      <button class="hbtn" onclick="doUndo()" id="undo-btn" disabled title="בטל Ctrl+Z" style="font-size:15px;padding:6px 11px;">↩</button>
+      <button class="hbtn" onclick="doRedo()" id="redo-btn" disabled title="חזור Ctrl+Y" style="font-size:15px;padding:6px 11px;">↪</button>
+      <div style="width:1px;height:22px;background:var(--bd);margin:0 2px;"></div>
+      <span class="tb-label">פריסה:</span>
+      <select class="layout-sel" id="layout-sel" onchange="applyLayout(this.value)">
+        <option value="">— בחר —</option>
+        <option value="5x8">כיתה רגילה (5×8)</option>
+        <option value="4x6">כיתה קטנה (4×6)</option>
+        <option value="6x10">כיתה גדולה (6×10)</option>
+        <option value="ushape">צורת U</option>
+        <option value="outdoor">חצר (3×10)</option>
+      </select>
+      <button class="hbtn" onclick="addRow()">+ שורה</button>
+      <button class="hbtn" onclick="addCol()">+ עמודה</button>
+      <button class="hbtn" onclick="clearAssign()" style="color:var(--re)">🧹 נקה</button>
+      <div style="flex:1"></div>
+      <div class="legend">
+        <div class="legend-item"><div class="ldot" style="background:rgba(59,130,246,.5)"></div>בן</div>
+        <div class="legend-item"><div class="ldot" style="background:rgba(236,72,153,.5)"></div>בת</div>
+        <div class="legend-item">📌 נעוץ</div><div class="legend-item">⚠️ הערה</div>
+      </div>
+    </div>
+    <div class="class-stats" id="class-stats"></div>
+    <div id="sel-hint"></div>
+    <div class="room-outer">
+      <div class="wall-strip wall-h w-board" id="wall-top">◼ לוח / קדמת הכיתה ◼</div>
+      <div class="room-mid">
+        <div class="wall-strip wall-v" id="wall-right" style="margin-left:4px;"></div>
+        <div class="class-card">
+          <div class="class-rows" id="class-rows"></div>
         </div>
+        <div class="wall-strip wall-v" id="wall-left" style="margin-right:4px;"></div>
+      </div>
+      <div class="wall-strip wall-h" id="wall-bottom" style="margin-top:0;"></div>
+    </div>
+  </div>
+</div>
 
-        <div class="settings-section">
-          <div class="settings-title">תצוגה</div>
-          <label class="s-check"><input type="checkbox" id="show-warn" checked onchange="saveSettings();renderClass()"> הצג אזהרות מיקום</label>
-          <label class="s-check"><input type="checkbox" id="show-level" onchange="saveSettings();renderClass()"> הצג רמה במושב</label>
+<!-- ════ לשונית הגדרות ════ -->
+<div class="tab-content" id="tab-settings">
+  <div class="settings-wrap">
+    <div class="settings-inner">
+      <h2 style="font-size:19px;font-weight:800;margin-bottom:18px;">⚙️ הגדרות</h2>
+
+      <div class="settings-section">
+        <div class="settings-title">🏫 הגדרת קירות החדר</div>
+        <p style="font-size:12px;color:var(--ink3);margin-bottom:14px;">לחץ על קיר כדי להגדיר את סוג הפתח/חלון שלו</p>
+        <div class="room-editor" id="room-editor"></div>
+        <div class="wall-legend">
+          <div class="wl-item"><div class="wl-dot" style="background:#94a3b8"></div>קיר רגיל</div>
+          <div class="wl-item"><div class="wl-dot" style="background:rgba(59,130,246,.5)"></div>חלון קטן</div>
+          <div class="wl-item"><div class="wl-dot" style="background:rgba(255,122,47,.5)"></div>חלון ללובי</div>
+          <div class="wl-item"><div class="wl-dot" style="background:rgba(34,197,94,.5)"></div>חלון לחצר</div>
         </div>
+      </div>
 
-        <div class="settings-section">
-          <div class="settings-title">ייצוא / איפוס</div>
-          <div style="display:flex;gap:8px;flex-wrap:wrap;">
-            <button class="hbtn" onclick="exportSeating()">📄 ייצא סידור</button>
-            <button class="hbtn" onclick="resetAll()" style="color:var(--re)">🗑 איפוס מלא</button>
-          </div>
+      <div class="settings-section">
+        <div class="settings-title">🤖 קריטריוני AI</div>
+        <label class="s-check"><input type="checkbox" id="ai-gender" checked onchange="saveSettings()"> הפרדת מין — בנים ובנות לסירוגין לפי עמודות</label>
+        <label class="s-check"><input type="checkbox" id="ai-mix" checked onchange="saveSettings()"> ערבוב רמות — שיבוץ חזק לצד חלש</label>
+        <label class="s-check"><input type="checkbox" id="ai-prefs" checked onchange="saveSettings()"> כבד אפיוני תלמידים (קרוב/לבד/גבוה/רחוק מ)</label>
+        <label class="s-check"><input type="checkbox" id="ai-window" checked onchange="saveSettings()"> הרחק מסיחי דעת (חלון ללובי/חצר) תלמידים בעייתיים</label>
+      </div>
+
+      <div class="settings-section">
+        <div class="settings-title">👁 תצוגה</div>
+        <label class="s-check"><input type="checkbox" id="show-warn" checked onchange="saveSettings();renderClass()"> הצג אזהרות מיקום</label>
+        <label class="s-check"><input type="checkbox" id="show-level" onchange="saveSettings();renderClass()"> הצג רמה במושב</label>
+        <label class="s-check"><input type="checkbox" id="show-prefs" checked onchange="saveSettings();renderWait()"> הצג נקודות אפיון על כרטיסי המתנה</label>
+      </div>
+
+      <div class="settings-section">
+        <div class="settings-title">ייצוא / איפוס</div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;">
+          <button class="hbtn" onclick="exportSeating()">📄 ייצא סידור (טקסט)</button>
+          <button class="hbtn" onclick="resetAll()" style="color:var(--re)">🗑 איפוס מלא</button>
         </div>
       </div>
     </div>
   </div>
 </div>
+</div>
 
-<!-- ── מודאל הוספת כיתה ── -->
+<!-- ── מודאל: הוספת כיתה ── -->
 <div class="modal-bg" id="modal-add-cls">
   <div class="modal">
     <div class="modal-title">כיתה חדשה</div>
     <span class="field-lbl">שם הכיתה</span>
-    <input class="fi" id="add-cls-name" type="text" placeholder="לדוג׳ ז׳2" onkeydown="if(event.key==='Enter')confirmAddClass()">
+    <input class="fi" id="add-cls-name" placeholder="לדוג׳ ז׳2" onkeydown="if(event.key==='Enter')confirmAddClass()">
     <div class="btn-row">
       <button class="btn-cancel" onclick="closeModal('modal-add-cls')">ביטול</button>
       <button class="btn-ok" onclick="confirmAddClass()">צור</button>
@@ -405,12 +371,11 @@ body{font-family:'Heebo',sans-serif;background:var(--bg);color:var(--ink);font-s
   </div>
 </div>
 
-<!-- ── מודאל שינוי שם כיתה ── -->
+<!-- ── מודאל: שינוי שם כיתה ── -->
 <div class="modal-bg" id="modal-rename-cls">
   <div class="modal">
     <div class="modal-title">שינוי שם כיתה</div>
-    <span class="field-lbl">שם חדש</span>
-    <input class="fi" id="rename-cls-name" type="text" onkeydown="if(event.key==='Enter')confirmRenameClass()">
+    <input class="fi" id="rename-cls-name" onkeydown="if(event.key==='Enter')confirmRenameClass()">
     <div class="btn-row">
       <button class="btn-cancel" onclick="closeModal('modal-rename-cls')">ביטול</button>
       <button class="btn-ok" onclick="confirmRenameClass()">שמור</button>
@@ -418,22 +383,24 @@ body{font-family:'Heebo',sans-serif;background:var(--bg);color:var(--ink);font-s
   </div>
 </div>
 
-<!-- ── מודאל הוספת תלמיד ── -->
+<!-- ── מודאל: הוסף תלמיד ── -->
 <div class="modal-bg" id="modal-add">
   <div class="modal">
     <div class="modal-title">הוסף תלמיד/ה</div>
     <span class="field-lbl">שם מלא</span>
-    <input class="fi" id="add-name" type="text" placeholder="שם פרטי ושם משפחה" onkeydown="if(event.key==='Enter')confirmAdd()">
+    <input class="fi" id="add-name" placeholder="שם פרטי שם משפחה" onkeydown="if(event.key==='Enter')confirmAdd()">
     <div class="radio-row">
       <label><input type="radio" name="add-gender" value="m" checked> בן</label>
       <label><input type="radio" name="add-gender" value="f"> בת</label>
     </div>
-    <span class="field-lbl">רמה (לסידור AI)</span>
+    <span class="field-lbl">רמה</span>
     <div class="level-row">
       <div><input type="radio" name="add-level" value="1" id="al1"><label for="al1">חלש</label></div>
       <div><input type="radio" name="add-level" value="2" id="al2" checked><label for="al2">בינוני</label></div>
       <div><input type="radio" name="add-level" value="3" id="al3"><label for="al3">חזק</label></div>
     </div>
+    <span class="field-lbl">אפיון ישיבה</span>
+    <div class="pref-grid" id="add-pref-grid"></div>
     <div class="btn-row">
       <button class="btn-cancel" onclick="closeModal('modal-add')">ביטול</button>
       <button class="btn-ok" onclick="confirmAdd()">הוסף</button>
@@ -441,22 +408,26 @@ body{font-family:'Heebo',sans-serif;background:var(--bg);color:var(--ink);font-s
   </div>
 </div>
 
-<!-- ── מודאל עריכת תלמיד ── -->
+<!-- ── מודאל: ערוך תלמיד ── -->
 <div class="modal-bg" id="modal-edit">
   <div class="modal">
     <div class="modal-title">✏ ערוך תלמיד/ה</div>
     <span class="field-lbl">שם מלא</span>
-    <input class="fi" id="edit-name" type="text" placeholder="שם מלא" onkeydown="if(event.key==='Enter')confirmEdit()">
+    <input class="fi" id="edit-name" onkeydown="if(event.key==='Enter')confirmEdit()">
     <div class="radio-row">
       <label><input type="radio" name="edit-gender" value="m"> בן</label>
       <label><input type="radio" name="edit-gender" value="f"> בת</label>
     </div>
-    <span class="field-lbl">רמה (לסידור AI)</span>
+    <span class="field-lbl">רמה</span>
     <div class="level-row">
       <div><input type="radio" name="edit-level" value="1" id="el1"><label for="el1">חלש</label></div>
       <div><input type="radio" name="edit-level" value="2" id="el2"><label for="el2">בינוני</label></div>
       <div><input type="radio" name="edit-level" value="3" id="el3"><label for="el3">חזק</label></div>
     </div>
+    <span class="field-lbl">אפיון ישיבה</span>
+    <div class="pref-grid" id="edit-pref-grid"></div>
+    <span class="field-lbl" id="away-lbl" style="display:none">רחוק מ... (בחר תלמידים)</span>
+    <div class="away-list" id="away-list" style="display:none"></div>
     <div class="btn-row">
       <button class="btn-cancel" onclick="closeModal('modal-edit')">ביטול</button>
       <button class="btn-ok" onclick="confirmEdit()">שמור</button>
@@ -464,824 +435,971 @@ body{font-family:'Heebo',sans-serif;background:var(--bg);color:var(--ink);font-s
   </div>
 </div>
 
+<!-- ── מודאל: ייבוא ── -->
+<div class="modal-bg" id="modal-import">
+  <div class="modal">
+    <div class="modal-title">📥 ייבוא תלמידים</div>
+    <div class="import-tabs">
+      <button class="itab active" id="itab-file" onclick="switchImportTab('file')">קובץ Excel / CSV</button>
+      <button class="itab" id="itab-text" onclick="switchImportTab('text')">הדבקת טקסט</button>
+    </div>
+    <div id="import-file-area">
+      <div class="drop-zone" id="drop-zone" onclick="document.getElementById('file-input').click()" ondragover="onImportDragOver(event)" ondrop="onImportDrop(event)" ondragleave="document.getElementById('drop-zone').classList.remove('drag-over')">
+        <input type="file" id="file-input" accept=".xlsx,.csv,.txt" onchange="onFileSelected(event)">
+        <div style="font-size:24px;margin-bottom:6px;">📂</div>
+        <div style="font-weight:700;">גרור קובץ לכאן או לחץ לבחירה</div>
+        <div style="margin-top:4px;font-size:11px;">תומך ב-.xlsx (אלפון), .csv, .txt</div>
+      </div>
+    </div>
+    <div id="import-text-area" style="display:none">
+      <span class="field-lbl">הדבק רשימת שמות (שורה אחת לתלמיד):</span>
+      <textarea class="fi" id="import-textarea" rows="6" placeholder="שם פרטי שם משפחה&#10;שם פרטי שם משפחה, נ&#10;..."></textarea>
+      <div style="font-size:11px;color:var(--ink3);margin-bottom:8px;">פורמט: שם בלבד (מין ברירת מחדל: בן) | שם, נ/ז</div>
+      <button class="btn-ok" style="width:100%;margin-bottom:10px;" onclick="parseTextImport()">עבד טקסט</button>
+    </div>
+    <div id="import-preview" style="display:none">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">
+        <span style="font-size:12px;font-weight:700;" id="import-count-lbl"></span>
+        <label style="font-size:11px;cursor:pointer;"><input type="checkbox" id="import-all" checked onchange="toggleImportAll(this.checked)"> בחר הכל</label>
+      </div>
+      <div style="max-height:260px;overflow-y:auto;border:1px solid var(--bd);border-radius:var(--rs);margin-bottom:10px;">
+        <table class="preview-table" id="preview-table"><thead><tr><th></th><th>שם</th><th>מין</th></tr></thead><tbody id="preview-body"></tbody></table>
+      </div>
+      <div style="display:flex;gap:8px;">
+        <button class="btn-cancel" onclick="closeModal('modal-import')">ביטול</button>
+        <button class="btn-ok" style="flex:1" onclick="confirmImport()">ייבא תלמידים</button>
+      </div>
+    </div>
+    <div class="btn-row" id="import-cancel-row">
+      <button class="btn-cancel" onclick="closeModal('modal-import')">ביטול</button>
+    </div>
+  </div>
+</div>
+
 <!-- ── תפריט הקשר ── -->
 <div id="ctx" class="ctx-menu">
-  <div class="ctx-item" id="ctx-pin"        onclick="ctxPin()">📌 נעץ/שחרר</div>
-  <div class="ctx-item" id="ctx-unassign"   onclick="ctxUnassign()">↩ החזר להמתנה</div>
-  <div class="ctx-item" id="ctx-edit-stu"   onclick="ctxEditStu()">✏ ערוך תלמיד</div>
+  <div class="ctx-item" id="ctx-pin"       onclick="ctxPin()">📌 נעץ/שחרר</div>
+  <div class="ctx-item" id="ctx-unassign"  onclick="ctxUnassign()">↩ החזר להמתנה</div>
+  <div class="ctx-item" id="ctx-edit-stu"  onclick="ctxEditStu()">✏ ערוך תלמיד</div>
   <div class="ctx-sep"></div>
-  <div class="ctx-item red" id="ctx-del-seat"   onclick="ctxDelSeat()">✕ מחק מקום ישיבה</div>
-  <div class="ctx-item red" id="ctx-del-row"    onclick="ctxDelRow()">✕ מחק שורה שלמה</div>
-  <div class="ctx-item red" id="ctx-del-stu"    onclick="ctxDelStu()">🗑 מחק תלמיד</div>
+  <div class="ctx-item red" id="ctx-del-seat" onclick="ctxDelSeat()">✕ מחק מקום ישיבה</div>
+  <div class="ctx-item red" id="ctx-del-row"  onclick="ctxDelRow()">✕ מחק שורה שלמה</div>
+  <div class="ctx-item red" id="ctx-del-stu"  onclick="ctxDelStu()">🗑 מחק תלמיד</div>
 </div>
 
 <script>
-// ════════════════════════════════════════════════════════════
-// מצב גלובלי — עצמאי לחלוטין
-// ════════════════════════════════════════════════════════════
-
+// ════════════════════════════════════════════════════════
+// מצב גלובלי
+// ════════════════════════════════════════════════════════
 let ST = {
   gid: null,
-  classes: {},       // {[cid]: {name, students: [{name, gender, level}]}}
+  classes: {},     // {[cid]: {name, students: [{uid,name,gender,level,prefs:{front,alone,tall,away:false,awayFrom:[]}}]}}
   nextCid: 1,
   classroom: null,
-  sessions: {},      // {[cid]: {assignments: {[seatId]: idx}, pinned: []}}
-  settings: { aiGender:true, aiMix:true, showWarn:true, showLevel:false }
+  sessions: {},    // {[cid]: {assignments:{[seatId]:idx}, pinned:[]}}
+  settings: {aiGender:true,aiMix:true,aiPrefs:true,aiWindow:true,showWarn:true,showLevel:false,showPrefs:true},
+  room: {walls:{top:'board',bottom:null,left:null,right:null}}
 };
-
-let _undo=[], _redo=[];
+let _undo=[],_redo=[];
 const MAX_UNDO=50;
+let _selChip=null,_selSeat=null,_selDel=null,_ctx=null;
+let _dragIdx=null,_dragFrom=null,_editIdx=null;
+let _importRows=[];
 
-let _selChip=null, _selSeat=null, _selDel=null, _ctx=null;
-let _dragIdx=null, _dragFrom=null, _editIdx=null;
+const WALL_CYCLE=[null,'small','lobby','yard'];
+const WALL_LABELS={null:'קיר רגיל',small:'חלון קטן',lobby:'חלון ללובי',yard:'חלון לחצר'};
+const WALL_CLASS={null:'w-none',small:'w-small',lobby:'w-lobby',yard:'w-yard',board:'w-board'};
+const PREF_DEFS=[
+  {key:'front', icon:'🔭', label:'צריך לשבת קרוב ללוח',   desc:'ישובץ בשורות הראשונות'},
+  {key:'alone', icon:'🏝', label:'צריך לשבת לבד',          desc:'ללא שכן ישיר'},
+  {key:'tall',  icon:'📏', label:'גבוה — לא יחסום אחרים', desc:'ישובץ בשורות אחרונות'},
+  {key:'away',  icon:'↔',  label:'שמור מרחק מ...',         desc:'בחר תלמידים להרחקה'},
+];
 
-// ════════════════════════════════════════════════════════════
+function mkuid(){return Math.random().toString(36).slice(2,9);}
+
+// ════════════════════════════════════════════════════════
 // אתחול
-// ════════════════════════════════════════════════════════════
-
-function init() {
+// ════════════════════════════════════════════════════════
+function init(){
   loadState();
   fillGroupSel();
   applySettingsUI();
+  renderRoomEditor();
   applyTheme();
-
-  document.addEventListener('keydown', e => {
-    if ((e.ctrlKey||e.metaKey) && e.key==='z' && !e.shiftKey) { e.preventDefault(); doUndo(); }
-    if ((e.ctrlKey||e.metaKey) && (e.key==='y'||(e.shiftKey&&e.key==='z'))) { e.preventDefault(); doRedo(); }
-    if (e.key==='Escape') { clearSel(); hideCtx(); }
+  document.addEventListener('keydown',e=>{
+    if((e.ctrlKey||e.metaKey)&&e.key==='z'&&!e.shiftKey){e.preventDefault();doUndo();}
+    if((e.ctrlKey||e.metaKey)&&(e.key==='y'||(e.shiftKey&&e.key==='z'))){e.preventDefault();doRedo();}
+    if(e.key==='Escape'){clearSel();hideCtx();}
   });
-  document.addEventListener('click', e => {
-    if (!document.getElementById('ctx').contains(e.target)) hideCtx();
-  });
-
-  if (ST.gid && ST.classes[ST.gid]) {
-    document.getElementById('grp-sel').value = ST.gid;
-    loadGroup(ST.gid);
-  } else {
-    const first = Object.keys(ST.classes)[0];
-    if (first) { document.getElementById('grp-sel').value=first; loadGroup(first); }
-    else renderEmpty();
-  }
+  document.addEventListener('click',e=>{if(!document.getElementById('ctx').contains(e.target))hideCtx();});
+  if(ST.gid&&ST.classes[ST.gid]){document.getElementById('grp-sel').value=ST.gid;loadGroup(ST.gid);}
+  else{const f=Object.keys(ST.classes)[0];if(f){document.getElementById('grp-sel').value=f;loadGroup(f);}else renderEmpty();}
 }
 
-function loadState() {
-  try {
-    const d = JSON.parse(localStorage.getItem('sg_seating_v1')||'{}');
-    ST.gid       = d.gid||null;
-    ST.classes   = d.classes||{};
-    ST.nextCid   = d.nextCid||1;
-    ST.classroom = d.classroom||makeGenericClass();
-    ST.sessions  = d.sessions||{};
-    ST.settings  = {...ST.settings,...(d.settings||{})};
-  } catch(e) { ST.classroom=makeGenericClass(); }
+function loadState(){
+  try{
+    const d=JSON.parse(localStorage.getItem('sg_seating_v1')||'{}');
+    ST.gid=d.gid||null;ST.classes=d.classes||{};ST.nextCid=d.nextCid||1;
+    ST.classroom=d.classroom||makeLayout('5x8');
+    ST.sessions=d.sessions||{};
+    ST.settings={...ST.settings,...(d.settings||{})};
+    ST.room=d.room||{walls:{top:'board',bottom:null,left:null,right:null}};
+  }catch(e){ST.classroom=makeLayout('5x8');}
 }
-
-function saveState() { localStorage.setItem('sg_seating_v1',JSON.stringify(ST)); }
-
-function renderEmpty() {
-  document.getElementById('class-rows').innerHTML=
-    '<div class="empty-state"><h3>אין כיתות</h3><p>לחץ ＋ כדי להוסיף כיתה חדשה</p></div>';
-  document.getElementById('wait-grid').innerHTML=
-    '<div class="empty-state"><p>צור כיתה ראשונה</p></div>';
+function saveState(){localStorage.setItem('sg_seating_v1',JSON.stringify(ST));}
+function renderEmpty(){
+  document.getElementById('class-rows').innerHTML='<div class="empty-state"><h3>אין כיתות</h3><p>לחץ ＋ ליצירת כיתה</p></div>';
+  document.getElementById('wait-grid').innerHTML='<div class="empty-state"><p>צור כיתה ראשונה</p></div>';
   renderStats();
 }
 
-// ════════════════════════════════════════════════════════════
+// ════════════════════════════════════════════════════════
 // ניהול כיתות
-// ════════════════════════════════════════════════════════════
-
-function openAddClass() {
+// ════════════════════════════════════════════════════════
+function openAddClass(){
   document.getElementById('add-cls-name').value='';
   document.getElementById('modal-add-cls').classList.add('open');
   setTimeout(()=>document.getElementById('add-cls-name').focus(),80);
 }
-
-function confirmAddClass() {
+function confirmAddClass(){
   const name=document.getElementById('add-cls-name').value.trim();
-  if(!name){alert('הכנס שם לכיתה.');return;}
+  if(!name)return;
   const cid=String(ST.nextCid++);
   ST.classes[cid]={name,students:[]};
-  saveState();
-  fillGroupSel();
-  closeModal('modal-add-cls');
-  document.getElementById('grp-sel').value=cid;
-  loadGroup(cid);
+  saveState();fillGroupSel();closeModal('modal-add-cls');
+  document.getElementById('grp-sel').value=cid;loadGroup(cid);
 }
-
-function openRenameClass() {
+function openRenameClass(){
   if(!ST.gid){alert('בחר כיתה תחילה.');return;}
   document.getElementById('rename-cls-name').value=ST.classes[ST.gid]?.name||'';
   document.getElementById('modal-rename-cls').classList.add('open');
   setTimeout(()=>document.getElementById('rename-cls-name').focus(),80);
 }
-
-function confirmRenameClass() {
-  if(!ST.gid) return;
+function confirmRenameClass(){
+  if(!ST.gid)return;
   const name=document.getElementById('rename-cls-name').value.trim();
-  if(!name){alert('הכנס שם.');return;}
-  ST.classes[ST.gid].name=name;
-  saveState(); fillGroupSel();
-  document.getElementById('grp-sel').value=ST.gid;
-  closeModal('modal-rename-cls');
+  if(!name)return;
+  ST.classes[ST.gid].name=name;saveState();fillGroupSel();
+  document.getElementById('grp-sel').value=ST.gid;closeModal('modal-rename-cls');
 }
-
-function deleteClass() {
+function deleteClass(){
   if(!ST.gid){alert('בחר כיתה תחילה.');return;}
-  if(!confirm(`למחוק את הכיתה "${ST.classes[ST.gid]?.name}"?\nכל התלמידים והשיבוצים יימחקו.`)) return;
-  delete ST.classes[ST.gid];
-  delete ST.sessions[ST.gid];
-  ST.gid=null; saveState(); fillGroupSel();
-  const first=Object.keys(ST.classes)[0];
-  if(first){document.getElementById('grp-sel').value=first;loadGroup(first);}
+  if(!confirm(`למחוק את הכיתה "${ST.classes[ST.gid]?.name}"?`))return;
+  delete ST.classes[ST.gid];delete ST.sessions[ST.gid];
+  ST.gid=null;saveState();fillGroupSel();
+  const f=Object.keys(ST.classes)[0];
+  if(f){document.getElementById('grp-sel').value=f;loadGroup(f);}
   else{document.getElementById('grp-sel').value='';renderEmpty();}
 }
 
-// ════════════════════════════════════════════════════════════
-// פריסת כיתה
-// ════════════════════════════════════════════════════════════
-
-function makeGenericClass() {
-  const seats=[]; let n=1;
-  for(let r=0;r<5;r++) for(let c=0;c<8;c++) seats.push({id:`s${n++}`,row:r,col:c});
-  return {name:'מבנה כיתה רגיל',seats,next:n};
-}
-
-function applyLayout(val) {
-  if(val==='generic'){
-    if(!confirm('לטעון מחדש את מבנה הכיתה הרגיל?\nהשיבוצים הנוכחיים יישמרו.')) return;
-    pushUndo(); ST.classroom=makeGenericClass(); saveState(); renderClass();
+// ════════════════════════════════════════════════════════
+// פריסות
+// ════════════════════════════════════════════════════════
+function makeLayout(type){
+  const seats=[];let n=1;
+  if(type==='5x8'){for(let r=0;r<5;r++)for(let c=0;c<8;c++)seats.push({id:`s${n++}`,row:r,col:c});}
+  else if(type==='4x6'){for(let r=0;r<4;r++)for(let c=0;c<6;c++)seats.push({id:`s${n++}`,row:r,col:c});}
+  else if(type==='6x10'){for(let r=0;r<6;r++)for(let c=0;c<10;c++)seats.push({id:`s${n++}`,row:r,col:c});}
+  else if(type==='ushape'){
+    const rows=5,cols=8;
+    for(let c=0;c<cols;c++)seats.push({id:`s${n++}`,row:0,col:c});       // שורה ראשונה
+    for(let r=1;r<rows-1;r++){seats.push({id:`s${n++}`,row:r,col:0});seats.push({id:`s${n++}`,row:r,col:1});seats.push({id:`s${n++}`,row:r,col:cols-2});seats.push({id:`s${n++}`,row:r,col:cols-1});}
+    for(let c=0;c<cols;c++)seats.push({id:`s${n++}`,row:rows-1,col:c}); // שורה אחרונה
   }
+  else if(type==='outdoor'){for(let r=0;r<3;r++)for(let c=0;c<10;c++)seats.push({id:`s${n++}`,row:r,col:c});}
+  else{for(let r=0;r<5;r++)for(let c=0;c<8;c++)seats.push({id:`s${n++}`,row:r,col:c});}
+  return{name:type,seats,next:n};
 }
 
-function dims() {
+function applyLayout(val){
+  if(!val)return;
+  if(!confirm('לטעון פריסה חדשה? השיבוצים יישמרו.'))return;
+  pushUndo();ST.classroom=makeLayout(val);saveState();renderClass();
+  document.getElementById('layout-sel').value='';
+}
+
+function dims(){
   let mR=0,mC=0;
   for(const s of ST.classroom.seats){if(s.row>mR)mR=s.row;if(s.col>mC)mC=s.col;}
   return{mR,mC};
 }
+function seatMap(){const m={};for(const s of ST.classroom.seats)m[`${s.row},${s.col}`]=s;return m;}
 
-function seatMap() {
-  const m={};
-  for(const s of ST.classroom.seats) m[`${s.row},${s.col}`]=s;
-  return m;
+function addRow(){
+  pushUndo();const{mR,mC}=dims();const nr=mR+1,n=ST.classroom.next;
+  for(let c=0;c<=mC;c++)ST.classroom.seats.push({id:`s${n+c}`,row:nr,col:c});
+  ST.classroom.next+=mC+1;saveState();renderClass();
 }
-
-function addRow() {
-  pushUndo();
-  const{mR,mC}=dims(); const nr=mR+1,n=ST.classroom.next;
-  for(let c=0;c<=mC;c++) ST.classroom.seats.push({id:`s${n+c}`,row:nr,col:c});
-  ST.classroom.next+=mC+1; saveState(); renderClass();
+function addCol(){
+  pushUndo();const{mR,mC}=dims();const nc=mC+1,n=ST.classroom.next;
+  for(let r=0;r<=mR;r++)ST.classroom.seats.push({id:`s${n+r}`,row:r,col:nc});
+  ST.classroom.next+=mR+1;saveState();renderClass();
 }
-
-function addCol() {
-  pushUndo();
-  const{mR,mC}=dims(); const nc=mC+1,n=ST.classroom.next;
-  for(let r=0;r<=mR;r++) ST.classroom.seats.push({id:`s${n+r}`,row:r,col:nc});
-  ST.classroom.next+=mR+1; saveState(); renderClass();
-}
-
-function delSeat(id) {
-  pushUndo();
-  ST.classroom.seats=ST.classroom.seats.filter(s=>s.id!==id);
-  delete curSess().assignments[id];
-  saveState(); renderClass(); renderWait();
-}
-
-function delRow(row) {
-  pushUndo();
-  const toDelete=ST.classroom.seats.filter(s=>s.row===row).map(s=>s.id);
+function delSeat(id){pushUndo();ST.classroom.seats=ST.classroom.seats.filter(s=>s.id!==id);delete curSess().assignments[id];saveState();renderClass();renderWait();}
+function delRow(row){
+  pushUndo();const toDelete=ST.classroom.seats.filter(s=>s.row===row).map(s=>s.id);
   ST.classroom.seats=ST.classroom.seats.filter(s=>s.row!==row);
-  for(const s of ST.classroom.seats) if(s.row>row) s.row--;
-  const sess=curSess();
-  toDelete.forEach(id=>delete sess.assignments[id]);
-  saveState(); renderClass(); renderWait();
+  for(const s of ST.classroom.seats)if(s.row>row)s.row--;
+  toDelete.forEach(id=>delete curSess().assignments[id]);
+  saveState();renderClass();renderWait();
 }
 
-// ════════════════════════════════════════════════════════════
+// ════════════════════════════════════════════════════════
 // Session
-// ════════════════════════════════════════════════════════════
-
-function curSess() {
-  if(!ST.gid) return{assignments:{},pinned:[]};
-  if(!ST.sessions[ST.gid]) ST.sessions[ST.gid]={assignments:{},pinned:[]};
+// ════════════════════════════════════════════════════════
+function curSess(){
+  if(!ST.gid)return{assignments:{},pinned:[]};
+  if(!ST.sessions[ST.gid])ST.sessions[ST.gid]={assignments:{},pinned:[]};
   return ST.sessions[ST.gid];
 }
-
-function clearAssign() {
-  if(!confirm('לנקות את כל השיבוצים?\nהתלמידים יחזרו לאזור ההמתנה.')) return;
-  pushUndo(); const sess=curSess();
-  sess.assignments={}; sess.pinned=[];
-  saveState(); renderClass(); renderWait();
+function clearAssign(){
+  if(!confirm('לנקות כל השיבוצים?'))return;
+  pushUndo();const sess=curSess();sess.assignments={};sess.pinned=[];
+  saveState();renderClass();renderWait();
 }
 
-// ════════════════════════════════════════════════════════════
+// ════════════════════════════════════════════════════════
 // תלמידים
-// ════════════════════════════════════════════════════════════
+// ════════════════════════════════════════════════════════
+function getStudents(){return(ST.gid&&ST.classes[ST.gid]?.students)||[];}
+function waitingIdxs(){const sess=curSess();const a=new Set(Object.values(sess.assignments));return getStudents().map((_,i)=>i).filter(i=>!a.has(i));}
 
-function getStudents() { return(ST.gid&&ST.classes[ST.gid]?.students)||[]; }
-
-function waitingIdxs() {
-  const sess=curSess();
-  const assigned=new Set(Object.values(sess.assignments));
-  return getStudents().map((_,i)=>i).filter(i=>!assigned.has(i));
+function shortName(idx,students){
+  const s=students[idx];if(!s)return'?';
+  const p=s.name.trim().split(/\s+/);const fn=p[0],ln=p.slice(1).join(' ');
+  if(students.filter(x=>x.name.trim().split(/\s+/)[0]===fn).length===1)return fn;
+  const li=ln?ln[0]+'.':'';const mid=li?`${fn} ${li}`:fn;
+  const same=students.filter(x=>{const pp=x.name.trim().split(/\s+/);const l=pp.slice(1).join(' ');return`${pp[0]}${l?' '+l[0]+'.':''}` ===mid;});
+  return same.length===1?mid:s.name;
 }
 
-function shortName(idx,students) {
-  const s=students[idx]; if(!s) return'?';
-  const p=s.name.trim().split(/\s+/);
-  const fn=p[0], ln=p.slice(1).join(' ');
-  if(students.filter(x=>x.name.trim().split(/\s+/)[0]===fn).length===1) return fn;
-  const li=ln?ln[0]+'.':'';
-  const mid=li?`${fn} ${li}`:fn;
-  const sameM=students.filter(x=>{
-    const pp=x.name.trim().split(/\s+/);
-    const lii=pp.slice(1).join(' ');
-    return`${pp[0]}${lii?' '+lii[0]+'.':''}` === mid;
-  });
-  return sameM.length===1?mid:s.name;
-}
-
-function seatStats() {
-  const totalSeats=ST.classroom.seats.length;
-  const totalStudents=getStudents().length;
-  const pairs=Math.floor(totalSeats/2);
-  const assigned=Object.keys(curSess().assignments).length;
-  const alone=Math.max(0,totalSeats-totalStudents);
-  const overflow=totalStudents-totalSeats;
+function seatStats(){
+  const totalSeats=ST.classroom.seats.length,totalStudents=getStudents().length;
+  const pairs=Math.floor(totalSeats/2),assigned=Object.keys(curSess().assignments).length;
+  const alone=Math.max(0,totalSeats-totalStudents),overflow=totalStudents-totalSeats;
   return{totalSeats,totalStudents,pairs,assigned,alone,overflow};
 }
 
-// ציון לפי רמה (1-3) → 0-100
-function stuScore(idx) {
-  const s=getStudents()[idx];
-  if(!s) return 50;
-  return((Number(s.level)||2)-1)*50; // 1→0, 2→50, 3→100
-}
+function stuScore(idx){const s=getStudents()[idx];if(!s)return 50;return((Number(s.level)||2)-1)*50;}
 
-// ════════════════════════════════════════════════════════════
+// ════════════════════════════════════════════════════════
 // אזהרות
-// ════════════════════════════════════════════════════════════
+// ════════════════════════════════════════════════════════
+function buildWarnings(){
+  if(!ST.settings.showWarn)return{};
+  const sess=curSess(),students=getStudents(),warnings={};
+  const{mR,mC}=dims(),sm=seatMap();
 
-function buildWarnings() {
-  if(!ST.settings.showWarn) return{};
-  const sess=curSess(); const students=getStudents();
-  const warnings={}; const{mR,mC}=dims(); const sm=seatMap();
+  // 3+ אותו מין ברצף
   for(let r=0;r<=mR;r++){
-    const rowSeats=[];
-    for(let c=0;c<=mC;c++){
-      const seat=sm[`${r},${c}`]; if(!seat) continue;
-      rowSeats.push({seat,idx:sess.assignments[seat.id],gender:sess.assignments[seat.id]!=null?students[sess.assignments[seat.id]]?.gender:null});
-    }
+    const row=[];
+    for(let c=0;c<=mC;c++){const seat=sm[`${r},${c}`];if(!seat)continue;const i=sess.assignments[seat.id];row.push({seat,g:i!=null?students[i]?.gender:null});}
     let run=1;
-    for(let i=1;i<rowSeats.length;i++){
-      const g=rowSeats[i].gender,pg=rowSeats[i-1].gender;
-      if(g&&pg&&g===pg){run++;if(run>=3){if(!warnings[rowSeats[i].seat.id])warnings[rowSeats[i].seat.id]=[];warnings[rowSeats[i].seat.id].push('3+ באותו מין ברצף');}}
-      else run=1;
+    for(let i=1;i<row.length;i++){
+      const g=row[i].g,pg=row[i-1].g;
+      if(g&&pg&&g===pg){run++;if(run>=3){(warnings[row[i].seat.id]=warnings[row[i].seat.id]||[]).push('3+ באותו מין ברצף');}}else run=1;
     }
   }
-  if(mR>=3){
-    const highLevel=new Set(students.map((s,i)=>({i,l:Number(s.level)||2})).filter(x=>x.l===3).map(x=>x.i));
-    for(const seat of ST.classroom.seats){
-      const idx=sess.assignments[seat.id]; if(idx==null) continue;
-      if(highLevel.has(idx)&&seat.row>=mR-1){if(!warnings[seat.id])warnings[seat.id]=[];warnings[seat.id].push('תלמיד חזק בשורות אחרונות');}
+  // אפיוני תלמידים
+  for(const seat of ST.classroom.seats){
+    const idx=sess.assignments[seat.id];if(idx==null)continue;
+    const stu=students[idx];if(!stu)continue;
+    const p=stu.prefs||{};
+    const w=(warnings[seat.id]=warnings[seat.id]||[]);
+    if(p.front&&seat.row>1)w.push('צריך לשבת קרוב ללוח');
+    if(p.tall&&seat.row<mR-1)w.push('גבוה — כדאי בשורות אחרונות');
+    if(p.alone){
+      const neighbor=isNeighbor(seat,sess,sm);
+      if(neighbor)w.push('צריך לשבת לבד — יש שכן');
+    }
+    if(p.away&&p.awayFrom?.length){
+      for(const uid of p.awayFrom){
+        const oi=students.findIndex(s=>s.uid===uid);if(oi<0)continue;
+        const oSeatId=Object.keys(sess.assignments).find(k=>sess.assignments[k]===oi);if(!oSeatId)continue;
+        const oSeat=ST.classroom.seats.find(s=>s.id===oSeatId);if(!oSeat)continue;
+        if(Math.abs(oSeat.row-seat.row)<=1&&Math.abs(oSeat.col-seat.col)<=2)w.push(`קרוב מדי ל${students[oi].name.split(' ')[0]}`);
+      }
     }
   }
   return warnings;
 }
 
-// ════════════════════════════════════════════════════════════
-// AI סידור
-// ════════════════════════════════════════════════════════════
-
-function aiArrange() {
-  const students=getStudents();
-  if(!students.length){alert('אין תלמידים בכיתה זו.');return;}
-  const sess=curSess(); pushUndo();
-  const pinnedEntries={},pinnedSeatIds=new Set(),pinnedIdxs=new Set(sess.pinned);
-  for(const[sid,idx] of Object.entries(sess.assignments)){if(pinnedIdxs.has(idx)){pinnedEntries[sid]=idx;pinnedSeatIds.add(sid);}}
-  const freeIdxs=students.map((_,i)=>i).filter(i=>!pinnedIdxs.has(i));
-  const freeSeats=ST.classroom.seats.filter(s=>!pinnedSeatIds.has(s.id)).sort((a,b)=>a.row-b.row||a.col-b.col);
-  if(!freeIdxs.length){alert('כל התלמידים נעוצים.');_undo.pop();updateUndoBtns();return;}
-  const cfg=ST.settings;
-  const scored=freeIdxs.map(i=>({i,sc:stuScore(i),g:students[i]?.gender||'m'}));
-  let arranged=[];
-  if(cfg.aiGender){
-    const males=cfg.aiMix?mixScore(scored.filter(x=>x.g==='m')):scored.filter(x=>x.g==='m');
-    const females=cfg.aiMix?mixScore(scored.filter(x=>x.g==='f')):scored.filter(x=>x.g==='f');
-    const bySeat=[];
-    for(const seat of freeSeats){
-      const wantMale=(seat.col%2===0);
-      const pool=wantMale?males.filter(x=>!bySeat.includes(x.i)):females.filter(x=>!bySeat.includes(x.i));
-      const fallback=scored.filter(x=>!bySeat.includes(x.i));
-      const pick=pool.length?pool[0]:fallback[0];
-      if(pick) bySeat.push(pick.i);
-    }
-    scored.forEach(x=>{if(!bySeat.includes(x.i))bySeat.push(x.i);});
-    arranged=bySeat.map(i=>scored.find(x=>x.i===i)||{i});
-  } else {
-    arranged=cfg.aiMix?mixScore(scored):scored;
-  }
-  sess.assignments={...pinnedEntries};
-  freeSeats.forEach((seat,k)=>{if(k<arranged.length)sess.assignments[seat.id]=arranged[k].i;});
-  saveState(); renderClass(); renderWait();
+function isNeighbor(seat,sess,sm){
+  const adj=[[0,1],[0,-1],[1,0],[-1,0]];
+  for(const[dr,dc]of adj){const n=sm[`${seat.row+dr},${seat.col+dc}`];if(n&&sess.assignments[n.id]!=null)return true;}
+  return false;
 }
 
-function mixScore(arr) {
-  if(!arr.length) return[];
+// ════════════════════════════════════════════════════════
+// AI סידור
+// ════════════════════════════════════════════════════════
+function aiArrange(){
+  const students=getStudents();
+  if(!students.length){alert('אין תלמידים בכיתה זו.');return;}
+  const sess=curSess();pushUndo();
+  const pinnedEntries={},pinnedSeatIds=new Set(),pinnedIdxs=new Set(sess.pinned);
+  for(const[sid,idx]of Object.entries(sess.assignments))if(pinnedIdxs.has(idx)){pinnedEntries[sid]=idx;pinnedSeatIds.add(sid);}
+  const freeIdxs=students.map((_,i)=>i).filter(i=>!pinnedIdxs.has(i));
+  let freeSeats=ST.classroom.seats.filter(s=>!pinnedSeatIds.has(s.id)).sort((a,b)=>a.row-b.row||a.col-b.col);
+  if(!freeIdxs.length){alert('כל התלמידים נעוצים.');_undo.pop();updateUndoBtns();return;}
+  const cfg=ST.settings;
+  const{mR}=dims();
+
+  // בנה רשימת מועמדים עם ציון
+  let pool=freeIdxs.map(i=>({i,sc:stuScore(i),g:students[i]?.gender||'m',p:students[i]?.prefs||{}}));
+
+  // הפרד לפי אפיון
+  const frontPool=cfg.aiPrefs?pool.filter(x=>x.p.front):[];
+  const tallPool=cfg.aiPrefs?pool.filter(x=>x.p.tall):[];
+  const alonePool=cfg.aiPrefs?pool.filter(x=>x.p.alone&&!x.p.front&&!x.p.tall):[];
+  const normalPool=pool.filter(x=>!frontPool.includes(x)&&!tallPool.includes(x)&&!alonePool.includes(x));
+
+  // מושבים לפי אזורים
+  const frontSeats=freeSeats.filter(s=>s.row<=1);
+  const backSeats=freeSeats.filter(s=>s.row>=mR-1);
+  const midSeats=freeSeats.filter(s=>s.row>1&&s.row<mR-1);
+
+  // "alone" seats = מושבים שאין להם שכן ישיר (קצה שורה)
+  const aloneSeats=freeSeats.filter(s=>!hasAdjacentSeat(s));
+
+  let assigned={};
+
+  // שבץ front תחילה בשורות ראשונות
+  assignGroup(frontPool,frontSeats,assigned,students,cfg);
+  // שבץ tall בשורות אחרונות
+  assignGroup(tallPool,backSeats,assigned,students,cfg);
+  // שבץ alone במושבים בודדים
+  assignGroup(alonePool,aloneSeats.filter(s=>!Object.keys(assigned).includes(s.id)),assigned,students,cfg);
+
+  // שאר בכל המושבים הפנויים
+  const usedSeats=new Set(Object.keys(assigned));
+  const remainingSeats=freeSeats.filter(s=>!usedSeats.has(s.id));
+  assignGroup(normalPool.filter(x=>!Object.values(assigned).includes(x.i)),remainingSeats,assigned,students,cfg);
+
+  // אפיוני "רחוק מ" — נסה להחליף צמדים בעיתיים
+  if(cfg.aiPrefs)fixAwayFrom(assigned,students,freeSeats);
+
+  sess.assignments={...pinnedEntries,...assigned};
+  saveState();renderClass();renderWait();
+}
+
+function assignGroup(pool,seats,assigned,students,cfg){
+  if(!pool.length||!seats.length)return;
+  let arranged=[];
+  if(cfg.aiGender){
+    const males=cfg.aiMix?mixScore(pool.filter(x=>x.g==='m')):pool.filter(x=>x.g==='m');
+    const females=cfg.aiMix?mixScore(pool.filter(x=>x.g==='f')):pool.filter(x=>x.g==='f');
+    const placed=[];
+    for(const seat of seats){
+      const wantMale=(seat.col%2===0);
+      const src=wantMale?males.filter(x=>!placed.includes(x.i)):females.filter(x=>!placed.includes(x.i));
+      const fb=pool.filter(x=>!placed.includes(x.i));
+      const pick=src.length?src[0]:fb[0];
+      if(pick)placed.push(pick.i);
+    }
+    pool.forEach(x=>{if(!placed.includes(x.i))placed.push(x.i);});
+    arranged=placed.map(i=>({i}));
+  }else{
+    arranged=cfg.aiMix?mixScore(pool):pool;
+  }
+  seats.forEach((seat,k)=>{if(k<arranged.length&&assigned[seat.id]==null)assigned[seat.id]=arranged[k].i;});
+}
+
+function fixAwayFrom(assigned,students,seats){
+  const revAssign={};for(const[sid,i]of Object.entries(assigned))revAssign[i]=sid;
+  for(const[sid,idx]of Object.entries(assigned)){
+    const stu=students[idx];if(!stu?.prefs?.away||!stu.prefs.awayFrom?.length)continue;
+    const seat=seats.find(s=>s.id===sid);if(!seat)continue;
+    for(const uid of stu.prefs.awayFrom){
+      const oi=students.findIndex(s=>s.uid===uid);if(oi<0)continue;
+      const oSid=revAssign[oi];if(!oSid)continue;
+      const oSeat=seats.find(s=>s.id===oSid);if(!oSeat)continue;
+      if(Math.abs(oSeat.row-seat.row)<=1&&Math.abs(oSeat.col-seat.col)<=2){
+        // מצא מושב רחוק להחלפה
+        const farSeat=seats.find(s=>s.id!==sid&&s.id!==oSid&&assigned[s.id]!=null&&
+          Math.abs(s.row-seat.row)>2&&
+          !students[assigned[s.id]]?.prefs?.front&&!students[assigned[s.id]]?.prefs?.tall);
+        if(farSeat){const tmp=assigned[farSeat.id];assigned[farSeat.id]=assigned[oSid];assigned[oSid]=tmp;revAssign[assigned[farSeat.id]]=farSeat.id;revAssign[assigned[oSid]]=oSid;}
+      }
+    }
+  }
+}
+
+function hasAdjacentSeat(seat){
+  const sm=seatMap();
+  return[[0,1],[0,-1]].some(([dr,dc])=>sm[`${seat.row+dr},${seat.col+dc}`]);
+}
+
+function mixScore(arr){
+  if(!arr.length)return[];
   const s=[...arr].sort((a,b)=>b.sc-a.sc);
   const out=[];let lo=s.length-1,hi=0;
   while(hi<=lo){out.push(s[hi++]);if(hi<=lo)out.push(s[lo--]);}
   return out;
 }
 
-// ════════════════════════════════════════════════════════════
-// undo / redo
-// ════════════════════════════════════════════════════════════
-
-function pushUndo() {
+// ════════════════════════════════════════════════════════
+// undo/redo
+// ════════════════════════════════════════════════════════
+function pushUndo(){
   _undo.push(JSON.stringify({cl:ST.classroom,se:ST.sessions,cls:ST.classes}));
-  if(_undo.length>MAX_UNDO) _undo.shift();
-  _redo=[]; updateUndoBtns();
+  if(_undo.length>MAX_UNDO)_undo.shift();
+  _redo=[];updateUndoBtns();
 }
-
-function doUndo() {
-  if(!_undo.length) return;
+function doUndo(){
+  if(!_undo.length)return;
   _redo.push(JSON.stringify({cl:ST.classroom,se:ST.sessions,cls:ST.classes}));
-  const d=JSON.parse(_undo.pop());
-  ST.classroom=d.cl; ST.sessions=d.se; ST.classes=d.cls;
-  saveState(); fillGroupSel(); renderClass(); renderWait(); updateUndoBtns();
+  const d=JSON.parse(_undo.pop());ST.classroom=d.cl;ST.sessions=d.se;ST.classes=d.cls;
+  saveState();fillGroupSel();renderClass();renderWait();updateUndoBtns();
 }
-
-function doRedo() {
-  if(!_redo.length) return;
+function doRedo(){
+  if(!_redo.length)return;
   _undo.push(JSON.stringify({cl:ST.classroom,se:ST.sessions,cls:ST.classes}));
-  const d=JSON.parse(_redo.pop());
-  ST.classroom=d.cl; ST.sessions=d.se; ST.classes=d.cls;
-  saveState(); fillGroupSel(); renderClass(); renderWait(); updateUndoBtns();
+  const d=JSON.parse(_redo.pop());ST.classroom=d.cl;ST.sessions=d.se;ST.classes=d.cls;
+  saveState();fillGroupSel();renderClass();renderWait();updateUndoBtns();
 }
-
-function updateUndoBtns() {
+function updateUndoBtns(){
   document.getElementById('undo-btn').disabled=!_undo.length;
   document.getElementById('redo-btn').disabled=!_redo.length;
 }
 
-// ════════════════════════════════════════════════════════════
+// ════════════════════════════════════════════════════════
 // רינדור כיתה
-// ════════════════════════════════════════════════════════════
-
-function renderClass() {
+// ════════════════════════════════════════════════════════
+function renderClass(){
   const el=document.getElementById('class-rows');
-  const students=getStudents();
-  const sess=curSess();
-  const warnings=buildWarnings();
-  const sm=seatMap();
-
-  if(!ST.classroom.seats.length){
-    el.innerHTML='<div class="empty-state"><h3>אין מקומות ישיבה</h3><p>לחץ "+ שורה" כדי להוסיף</p></div>';
-    renderStats(); return;
-  }
-
-  const{mR,mC}=dims();
-  el.innerHTML='';
-
+  const students=getStudents(),sess=curSess(),warnings=buildWarnings(),sm=seatMap();
+  if(!ST.classroom.seats.length){el.innerHTML='<div class="empty-state"><h3>אין מקומות ישיבה</h3><p>לחץ "+ שורה"</p></div>';renderStats();return;}
+  const{mR,mC}=dims();el.innerHTML='';
   for(let r=0;r<=mR;r++){
-    const rowDiv=document.createElement('div');
-    rowDiv.className='class-row';
+    const rowDiv=document.createElement('div');rowDiv.className='class-row';
     for(let c=0;c<=mC;c++){
-      if(c>0&&c%2===0){const gap=document.createElement('div');gap.className='pair-gap';rowDiv.appendChild(gap);}
+      if(c>0&&c%2===0){const g=document.createElement('div');g.className='pair-gap';rowDiv.appendChild(g);}
       const seat=sm[`${r},${c}`];
       if(!seat){const ph=document.createElement('div');ph.className='seat-placeholder';rowDiv.appendChild(ph);continue;}
-      const idx=sess.assignments[seat.id];
-      const stu=idx!=null?students[idx]:null;
-      const pinned=idx!=null&&sess.pinned.includes(idx);
-      const warn=warnings[seat.id];
-      const div=document.createElement('div');
-      div.className='seat';
-      div.dataset.sid=seat.id;
-      div.dataset.row=r;
+      const idx=sess.assignments[seat.id];const stu=idx!=null?students[idx]:null;
+      const pinned=idx!=null&&sess.pinned.includes(idx);const warn=warnings[seat.id];
+      const div=document.createElement('div');div.className='seat';div.dataset.sid=seat.id;div.dataset.row=r;
       if(stu){
         div.classList.add('occupied',stu.gender==='f'?'female':'male');
         if(pinned){const pb=document.createElement('div');pb.className='pin-badge';pb.textContent='📌';div.appendChild(pb);}
-        if(warn?.length&&ST.settings.showWarn){
-          const wb=document.createElement('div');wb.className='warn-badge';wb.textContent='⚠';
-          wb.title=warn.join('\n');wb.onclick=e=>{e.stopPropagation();alert(warn.join('\n'));};
-          div.appendChild(wb);
-        }
+        if(warn?.length&&ST.settings.showWarn){const wb=document.createElement('div');wb.className='warn-badge';wb.textContent='⚠';wb.title=warn.join('\n');wb.onclick=e=>{e.stopPropagation();alert(warn.join('\n'));};div.appendChild(wb);}
         const parts=stu.name.trim().split(/\s+/);
-        const fnEl=document.createElement('span');fnEl.className='seat-fn';fnEl.textContent=parts[0];div.appendChild(fnEl);
-        if(parts.length>1){const lnEl=document.createElement('span');lnEl.className='seat-ln';lnEl.textContent=parts.slice(1).join(' ');div.appendChild(lnEl);}
-        if(ST.settings.showLevel){
-          const lvl=['','חלש','בינ','חזק'][Number(stu.level)||2];
-          const lEl=document.createElement('span');lEl.className='seat-ln';lEl.textContent=lvl;div.appendChild(lEl);
-        }
-      } else {
-        const plus=document.createElement('span');plus.className='seat-plus';plus.textContent='+';div.appendChild(plus);
-      }
-      if(_selSeat===seat.id) div.classList.add('sel-target');
-      if(_selChip?.src==='seat'&&_selChip?.seatId===seat.id) div.classList.add('sel-student');
-      div.onclick     =e=>onSeatClick(seat.id,e);
-      div.ondblclick  =e=>{ e.preventDefault(); onSeatDbl(seat.id); };
+        const fn=document.createElement('span');fn.className='seat-fn';fn.textContent=parts[0];div.appendChild(fn);
+        if(parts.length>1){const ln=document.createElement('span');ln.className='seat-ln';ln.textContent=parts.slice(1).join(' ');div.appendChild(ln);}
+        if(ST.settings.showLevel){const lv=document.createElement('span');lv.className='seat-ln';lv.textContent=['','חלש','בינ','חזק'][Number(stu.level)||2];div.appendChild(lv);}
+      }else{const plus=document.createElement('span');plus.className='seat-plus';plus.textContent='+';div.appendChild(plus);}
+      if(_selSeat===seat.id)div.classList.add('sel-target');
+      if(_selChip?.src==='seat'&&_selChip?.seatId===seat.id)div.classList.add('sel-student');
+      div.onclick=e=>onSeatClick(seat.id,e);
+      div.ondblclick=e=>{e.preventDefault();onSeatDbl(seat.id);};
       div.oncontextmenu=e=>onSeatCtx(seat.id,r,e);
-      if(stu){ div.draggable=true; div.ondragstart=e=>onSeatDragStart(seat.id,idx,e); }
-      div.ondragover =e=>{ e.preventDefault(); div.classList.add('drop-over'); };
+      if(stu){div.draggable=true;div.ondragstart=e=>onSeatDragStart(seat.id,idx,e);}
+      div.ondragover=e=>{e.preventDefault();div.classList.add('drop-over');};
       div.ondragleave=()=>div.classList.remove('drop-over');
-      div.ondrop     =e=>{ e.preventDefault(); div.classList.remove('drop-over'); onDropSeat(seat.id); };
-      div._lp=null;
-      div.ontouchstart=()=>{div._lp=setTimeout(()=>togglePin(sess,idx,seat.id),600);};
-      div.ontouchend  =()=>clearTimeout(div._lp);
+      div.ondrop=e=>{e.preventDefault();div.classList.remove('drop-over');onDropSeat(seat.id);};
+      div._lp=null;div.ontouchstart=()=>{div._lp=setTimeout(()=>togglePin(sess,idx),600);};div.ontouchend=()=>clearTimeout(div._lp);
       rowDiv.appendChild(div);
     }
     el.appendChild(rowDiv);
   }
-  renderStats();
-  updateSelHint();
+  renderStats();updateSelHint();renderWalls();
 }
 
-// ════════════════════════════════════════════════════════════
-// סטטיסטיקות
-// ════════════════════════════════════════════════════════════
+// ════════════════════════════════════════════════════════
+// קירות
+// ════════════════════════════════════════════════════════
+const WALL_TEXT={null:'',small:'חלון קטן',lobby:'חלון ללובי',yard:'חלון לחצר',board:'◼ לוח ◼'};
+function renderWalls(){
+  const w=ST.room.walls;
+  const set=(id,val)=>{
+    const el=document.getElementById(id);if(!el)return;
+    el.className=`wall-strip ${id.includes('wall-top')||id.includes('wall-bottom')?'wall-h':'wall-v'} ${WALL_CLASS[val]||'w-none'}`;
+    el.textContent=WALL_TEXT[val]||'';
+    el.title=WALL_LABELS[val]||'קיר רגיל';
+  };
+  set('wall-top','board');
+  set('wall-bottom',w.bottom);
+  set('wall-right',w.right);
+  set('wall-left',w.left);
+}
 
-function renderStats() {
+function renderRoomEditor(){
+  const el=document.getElementById('room-editor');if(!el)return;
+  const w=ST.room.walls;
+  el.innerHTML='';
+  const corner=()=>{const d=document.createElement('div');d.className='re-corner';return d;};
+  const makeWall=(side,val,cls)=>{
+    const d=document.createElement('div');
+    d.className=`re-wall ${cls}`;
+    d.textContent=val==='board'?'◼ לוח':WALL_LABELS[val]||'קיר רגיל';
+    if(val!=='board')d.onclick=()=>cycleWall(side);
+    return d;
+  };
+  el.appendChild(corner());
+  el.appendChild(makeWall('top',w.top,'w-board'));
+  el.appendChild(corner());
+  el.appendChild(makeWall('right',w.right,WALL_CLASS[w.right]||'w-none'));
+  const center=document.createElement('div');center.className='re-center';center.textContent='כיתה';el.appendChild(center);
+  el.appendChild(makeWall('left',w.left,WALL_CLASS[w.left]||'w-none'));
+  el.appendChild(corner());
+  el.appendChild(makeWall('bottom',w.bottom,WALL_CLASS[w.bottom]||'w-none'));
+  el.appendChild(corner());
+}
+
+function cycleWall(side){
+  const cur=ST.room.walls[side];
+  const idx=WALL_CYCLE.indexOf(cur);
+  ST.room.walls[side]=WALL_CYCLE[(idx+1)%WALL_CYCLE.length];
+  saveState();renderRoomEditor();renderWalls();
+}
+
+// ════════════════════════════════════════════════════════
+// סטטיסטיקות
+// ════════════════════════════════════════════════════════
+function renderStats(){
   const st=seatStats();
   const sideEl=document.getElementById('side-stats');
-  if(sideEl) sideEl.innerHTML=
-    `<b>${st.pairs}</b> שולחנות &nbsp;·&nbsp; <b>${st.totalSeats}</b> מושבים`+
-    (st.totalStudents&&st.alone>0?` &nbsp;·&nbsp; <b>${st.alone}</b> יכולים לשבת לבד`:'');
+  if(sideEl)sideEl.innerHTML=`<b>${st.pairs}</b> שולחנות &nbsp;·&nbsp; <b>${st.totalSeats}</b> מושבים`+(st.totalStudents&&st.alone>0?` &nbsp;·&nbsp; <b>${st.alone}</b> יכולים לשבת לבד`:'');
   const owEl=document.getElementById('overflow-warn');
-  if(owEl){
-    if(st.overflow>0){owEl.style.display='';owEl.textContent=`⚠️ ${st.overflow} תלמידים ללא מקום!`;}
-    else owEl.style.display='none';
-  }
+  if(owEl){if(st.overflow>0){owEl.style.display='';owEl.textContent=`⚠️ ${st.overflow} תלמידים ללא מקום!`;}else owEl.style.display='none';}
   const clEl=document.getElementById('class-stats');
   if(clEl){
-    let html=`<span class="stat-chip">${st.pairs} שולחנות</span>`;
-    html+=`<span class="stat-chip">${st.totalSeats} מושבים</span>`;
-    html+=`<span class="stat-chip">${st.totalStudents} תלמידים</span>`;
-    if(st.overflow>0) html+=`<span class="stat-chip warn">⚠️ חסרים ${st.overflow} מקומות!</span>`;
-    else if(st.totalStudents>0&&st.alone>0) html+=`<span class="stat-chip ok">${st.alone} יכולים לשבת לבד</span>`;
+    let html=`<span class="stat-chip">${st.pairs} שולחנות</span><span class="stat-chip">${st.totalSeats} מושבים</span><span class="stat-chip">${st.totalStudents} תלמידים</span>`;
+    if(st.overflow>0)html+=`<span class="stat-chip warn">⚠️ חסרים ${st.overflow} מקומות!</span>`;
+    else if(st.totalStudents>0&&st.alone>0)html+=`<span class="stat-chip ok">${st.alone} יכולים לשבת לבד</span>`;
     clEl.innerHTML=html;
   }
 }
 
-// ════════════════════════════════════════════════════════════
-// רינדור ממתינים
-// ════════════════════════════════════════════════════════════
-
-function renderWait() {
+// ════════════════════════════════════════════════════════
+// ממתינים
+// ════════════════════════════════════════════════════════
+function renderWait(){
   const grid=document.getElementById('wait-grid');
   const cnt=document.getElementById('wait-count');
-  const students=getStudents();
-  const waiting=waitingIdxs();
-  cnt.textContent=`${waiting.length}/${students.length}`;
-  renderStats();
-  if(!students.length){grid.innerHTML='<div class="empty-state"><p>הוסף תלמידים לכיתה</p></div>';return;}
+  const students=getStudents(),waiting=waitingIdxs();
+  cnt.textContent=`${waiting.length}/${students.length}`;renderStats();
+  if(!students.length){grid.innerHTML='<div class="empty-state"><p>הוסף תלמידים</p></div>';return;}
   if(!waiting.length){grid.innerHTML='<div style="text-align:center;padding:16px;font-size:12px;color:var(--ink3);">✓ כולם שובצו</div>';return;}
   grid.innerHTML='';
   for(const idx of waiting){
     const s=students[idx];
     const chip=document.createElement('div');
     chip.className=`chip ${s.gender==='f'?'female':'male'}`;
-    chip.dataset.idx=idx;
-    chip.textContent=shortName(idx,students);
-    chip.title=`${s.name} (לחיצה כפולה לעריכה)`;
-    chip.draggable=true;
-    if(_selChip?.src==='wait'&&_selChip?.idx===idx) chip.classList.add('sel');
-    if(_selDel===idx) chip.classList.add('sel');
-    chip.onclick      =()=>onChipClick(idx);
-    chip.ondblclick   =e=>{ e.preventDefault(); e.stopPropagation(); openEditStudent(idx); };
-    chip.ondragstart  =e=>onChipDragStart(idx,e,chip);
-    chip.oncontextmenu=e=>{ e.preventDefault(); onChipCtx(idx,e); };
+    chip.dataset.idx=idx;chip.textContent=shortName(idx,students);
+    chip.title=s.name;chip.draggable=true;
+    if(_selChip?.src==='wait'&&_selChip?.idx===idx)chip.classList.add('sel');
+    if(_selDel===idx)chip.classList.add('sel');
+    chip.onclick=()=>onChipClick(idx);
+    chip.ondblclick=e=>{e.preventDefault();e.stopPropagation();openEditStudent(idx);};
+    chip.ondragstart=e=>onChipDragStart(idx,e,chip);
+    chip.oncontextmenu=e=>{e.preventDefault();onChipCtx(idx,e);};
+    // נקודות אפיון
+    if(ST.settings.showPrefs){
+      const p=s.prefs||{};
+      const dots=document.createElement('div');dots.className='pref-dots';
+      if(p.front){const d=document.createElement('div');d.className='pdot pdot-front';d.title='קרוב ללוח';dots.appendChild(d);}
+      if(p.alone){const d=document.createElement('div');d.className='pdot pdot-alone';d.title='לבד';dots.appendChild(d);}
+      if(p.tall){const d=document.createElement('div');d.className='pdot pdot-tall';d.title='גבוה';dots.appendChild(d);}
+      if(p.away){const d=document.createElement('div');d.className='pdot pdot-away';d.title='רחוק מ...';dots.appendChild(d);}
+      if(dots.children.length)chip.appendChild(dots);
+    }
     grid.appendChild(chip);
   }
 }
 
-// ════════════════════════════════════════════════════════════
-// אינטראקציות לחיצה
-// ════════════════════════════════════════════════════════════
-
-function onChipClick(idx) {
-  if(_selSeat){ assignTo(_selSeat,idx); clearSel(); return; }
-  if(_selChip?.src==='wait'&&_selChip?.idx===idx){ clearSel(); return; }
-  _selChip={src:'wait',idx}; _selSeat=null; _selDel=null;
+// ════════════════════════════════════════════════════════
+// אינטראקציות
+// ════════════════════════════════════════════════════════
+function onChipClick(idx){
+  if(_selSeat){assignTo(_selSeat,idx);clearSel();return;}
+  if(_selChip?.src==='wait'&&_selChip?.idx===idx){clearSel();return;}
+  _selChip={src:'wait',idx};_selSeat=null;_selDel=null;
   document.getElementById('del-btn').disabled=true;
-  renderWait(); renderClass();
+  renderWait();renderClass();
 }
-
-function onSeatClick(seatId,e) {
-  e.stopPropagation();
-  const sess=curSess();
-  const idx=sess.assignments[seatId];
+function onSeatClick(seatId,e){
+  e.stopPropagation();const sess=curSess();const idx=sess.assignments[seatId];
   if(_selChip){
-    if(_selChip.src==='seat'){
-      if(_selChip.seatId===seatId){clearSel();return;}
-      swapSeats(_selChip.seatId,seatId);
-    } else {
-      assignTo(seatId,_selChip.idx);
-    }
-    clearSel(); return;
+    if(_selChip.src==='seat'){if(_selChip.seatId===seatId){clearSel();return;}swapSeats(_selChip.seatId,seatId);}
+    else assignTo(seatId,_selChip.idx);
+    clearSel();return;
   }
   if(_selSeat===seatId){clearSel();return;}
-  if(idx!=null){_selChip={src:'seat',idx,seatId}; _selSeat=null;}
-  else{_selSeat=seatId; _selChip=null;}
-  renderClass(); renderWait(); updateSelHint();
+  if(idx!=null){_selChip={src:'seat',idx,seatId};_selSeat=null;}
+  else{_selSeat=seatId;_selChip=null;}
+  renderClass();renderWait();updateSelHint();
 }
-
-function onSeatDbl(seatId) {
+function onSeatDbl(seatId){
   const sess=curSess();
-  if(sess.assignments[seatId]!=null){
-    pushUndo(); delete sess.assignments[seatId];
-    clearSel(); saveState(); renderClass(); renderWait();
-  }
+  if(sess.assignments[seatId]!=null){pushUndo();delete sess.assignments[seatId];clearSel();saveState();renderClass();renderWait();}
 }
-
-function assignTo(seatId,idx) {
-  pushUndo(); const sess=curSess();
-  for(const[sid,i] of Object.entries(sess.assignments)) if(i===idx){delete sess.assignments[sid];break;}
-  delete sess.assignments[seatId];
-  sess.assignments[seatId]=idx;
-  saveState(); renderClass(); renderWait();
+function assignTo(seatId,idx){
+  pushUndo();const sess=curSess();
+  for(const[sid,i]of Object.entries(sess.assignments))if(i===idx){delete sess.assignments[sid];break;}
+  delete sess.assignments[seatId];sess.assignments[seatId]=idx;
+  saveState();renderClass();renderWait();
 }
-
-function swapSeats(a,b) {
-  pushUndo(); const sess=curSess();
+function swapSeats(a,b){
+  pushUndo();const sess=curSess();
   const ai=sess.assignments[a],bi=sess.assignments[b];
-  if(bi!=null) sess.assignments[a]=bi; else delete sess.assignments[a];
-  if(ai!=null) sess.assignments[b]=ai; else delete sess.assignments[b];
-  saveState(); renderClass(); renderWait();
+  if(bi!=null)sess.assignments[a]=bi;else delete sess.assignments[a];
+  if(ai!=null)sess.assignments[b]=ai;else delete sess.assignments[b];
+  saveState();renderClass();renderWait();
 }
-
-function clearSel() {
-  _selChip=null; _selSeat=null;
-  renderClass(); renderWait(); updateSelHint();
-}
-
-function updateSelHint() {
+function clearSel(){_selChip=null;_selSeat=null;renderClass();renderWait();updateSelHint();}
+function updateSelHint(){
   const h=document.getElementById('sel-hint');
-  if(_selChip){
-    const name=getStudents()[_selChip.idx]?.name||'';
-    h.textContent=`נבחר: ${name} — לחץ על מקום לשיבוץ (או תלמיד אחר להחלפה) | Esc לביטול`;
-    h.classList.add('visible');
-  } else if(_selSeat){
-    h.textContent='מקום נבחר — לחץ על תלמיד לשיבוץ | Esc לביטול';
-    h.classList.add('visible');
-  } else {
-    h.classList.remove('visible');
-  }
+  if(_selChip){h.textContent=`נבחר: ${getStudents()[_selChip.idx]?.name||''} — לחץ על מקום לשיבוץ (או תלמיד אחר להחלפה) | Esc ביטול`;h.classList.add('visible');}
+  else if(_selSeat){h.textContent='מקום נבחר — לחץ על תלמיד לשיבוץ | Esc ביטול';h.classList.add('visible');}
+  else h.classList.remove('visible');
 }
 
-// ════════════════════════════════════════════════════════════
 // גרירה
-// ════════════════════════════════════════════════════════════
-
-function onChipDragStart(idx,e,chip) {
-  _dragIdx=idx; _dragFrom=null;
-  e.dataTransfer.setData('text/plain',String(idx));
-  e.dataTransfer.effectAllowed='move';
-  chip.classList.add('dragging');
-  setTimeout(()=>chip.classList.remove('dragging'),0);
-}
-
-function onSeatDragStart(seatId,idx,e) {
-  _dragIdx=idx; _dragFrom=seatId;
-  e.dataTransfer.setData('text/plain',String(idx));
-  e.dataTransfer.effectAllowed='move';
-}
-
-function onDropSeat(seatId) {
-  if(_dragIdx==null) return;
-  assignTo(seatId,_dragIdx);
-  _dragIdx=null; _dragFrom=null; clearSel();
-}
-
+function onChipDragStart(idx,e,chip){_dragIdx=idx;_dragFrom=null;e.dataTransfer.setData('text/plain',String(idx));e.dataTransfer.effectAllowed='move';chip.classList.add('dragging');setTimeout(()=>chip.classList.remove('dragging'),0);}
+function onSeatDragStart(seatId,idx,e){_dragIdx=idx;_dragFrom=seatId;e.dataTransfer.setData('text/plain',String(idx));e.dataTransfer.effectAllowed='move';}
+function onDropSeat(seatId){if(_dragIdx==null)return;assignTo(seatId,_dragIdx);_dragIdx=null;_dragFrom=null;clearSel();}
 document.addEventListener('DOMContentLoaded',()=>{
   const wb=document.getElementById('wait-body');
   wb.ondragover=e=>e.preventDefault();
-  wb.ondrop=e=>{ e.preventDefault(); if(_dragFrom) onSeatDbl(_dragFrom); _dragIdx=null; _dragFrom=null; };
+  wb.ondrop=e=>{e.preventDefault();if(_dragFrom)onSeatDbl(_dragFrom);_dragIdx=null;_dragFrom=null;};
 });
 
-// ════════════════════════════════════════════════════════════
+// ════════════════════════════════════════════════════════
 // תפריט הקשר
-// ════════════════════════════════════════════════════════════
-
-function onSeatCtx(seatId,row,e) {
-  e.preventDefault(); e.stopPropagation();
-  const sess=curSess(); const idx=sess.assignments[seatId];
+// ════════════════════════════════════════════════════════
+function onSeatCtx(seatId,row,e){
+  e.preventDefault();e.stopPropagation();
+  const sess=curSess();const idx=sess.assignments[seatId];
   _ctx={type:'seat',seatId,idx,row};
-  document.getElementById('ctx-pin').style.display       = idx!=null?'':'none';
-  document.getElementById('ctx-unassign').style.display  = idx!=null?'':'none';
-  document.getElementById('ctx-edit-stu').style.display  = idx!=null?'':'none';
-  document.getElementById('ctx-del-seat').style.display  = '';
-  document.getElementById('ctx-del-row').style.display   = '';
-  document.getElementById('ctx-del-stu').style.display   = 'none';
-  if(idx!=null){
-    const isPinned=sess.pinned.includes(idx);
-    document.getElementById('ctx-pin').innerHTML=isPinned?'📍 שחרר נעיצה':'📌 נעץ תלמיד';
-  }
+  const has=idx!=null;
+  document.getElementById('ctx-pin').style.display=has?'':'none';
+  document.getElementById('ctx-unassign').style.display=has?'':'none';
+  document.getElementById('ctx-edit-stu').style.display=has?'':'none';
+  document.getElementById('ctx-del-stu').style.display='none';
+  if(has){const ip=sess.pinned.includes(idx);document.getElementById('ctx-pin').innerHTML=ip?'📍 שחרר נעיצה':'📌 נעץ תלמיד';}
   showCtx(e.clientX,e.clientY);
 }
-
-function onChipCtx(idx,e) {
+function onChipCtx(idx,e){
   _ctx={type:'chip',idx};
-  document.getElementById('ctx-pin').style.display       = 'none';
-  document.getElementById('ctx-unassign').style.display  = 'none';
-  document.getElementById('ctx-edit-stu').style.display  = '';
-  document.getElementById('ctx-del-seat').style.display  = 'none';
-  document.getElementById('ctx-del-row').style.display   = 'none';
-  document.getElementById('ctx-del-stu').style.display   = '';
+  document.getElementById('ctx-pin').style.display='none';
+  document.getElementById('ctx-unassign').style.display='none';
+  document.getElementById('ctx-edit-stu').style.display='';
+  document.getElementById('ctx-del-seat').style.display='none';
+  document.getElementById('ctx-del-row').style.display='none';
+  document.getElementById('ctx-del-stu').style.display='';
   showCtx(e.clientX,e.clientY);
 }
-
-function ctxPin()      { if(!_ctx||_ctx.idx==null) return; togglePin(curSess(),_ctx.idx,_ctx.seatId); hideCtx(); }
-function ctxUnassign() { if(_ctx) onSeatDbl(_ctx.seatId); hideCtx(); }
-function ctxDelSeat()  { if(_ctx?.seatId) delSeat(_ctx.seatId); hideCtx(); }
-function ctxDelRow()   { if(_ctx?.row!=null) delRow(_ctx.row); hideCtx(); }
-function ctxEditStu()  { if(_ctx?.idx!=null) openEditStudent(_ctx.idx); hideCtx(); }
-function ctxDelStu()   { if(_ctx?.idx==null) return; _selDel=_ctx.idx; document.getElementById('del-btn').disabled=false; hideCtx(); deleteSelStudent(); }
-
-function togglePin(sess,idx,seatId) {
-  if(idx==null) return;
-  const i=sess.pinned.indexOf(idx);
-  if(i===-1) sess.pinned.push(idx); else sess.pinned.splice(i,1);
-  saveState(); renderClass();
+function ctxPin(){if(!_ctx||_ctx.idx==null)return;togglePin(curSess(),_ctx.idx);hideCtx();}
+function ctxUnassign(){if(_ctx)onSeatDbl(_ctx.seatId);hideCtx();}
+function ctxDelSeat(){if(_ctx?.seatId)delSeat(_ctx.seatId);hideCtx();}
+function ctxDelRow(){if(_ctx?.row!=null)delRow(_ctx.row);hideCtx();}
+function ctxEditStu(){if(_ctx?.idx!=null)openEditStudent(_ctx.idx);hideCtx();}
+function ctxDelStu(){if(_ctx?.idx==null)return;_selDel=_ctx.idx;document.getElementById('del-btn').disabled=false;hideCtx();deleteSelStudent();}
+function togglePin(sess,idx){if(idx==null)return;const i=sess.pinned.indexOf(idx);if(i===-1)sess.pinned.push(idx);else sess.pinned.splice(i,1);saveState();renderClass();}
+function showCtx(x,y){
+  const m=document.getElementById('ctx');m.style.left=x+'px';m.style.top=y+'px';m.classList.add('open');
+  requestAnimationFrame(()=>{const r=m.getBoundingClientRect();if(r.right>window.innerWidth)m.style.left=(x-r.width)+'px';if(r.bottom>window.innerHeight)m.style.top=(y-r.height)+'px';});
 }
+function hideCtx(){document.getElementById('ctx').classList.remove('open');_ctx=null;}
 
-function showCtx(x,y) {
-  const m=document.getElementById('ctx');
-  m.style.left=x+'px'; m.style.top=y+'px'; m.classList.add('open');
-  requestAnimationFrame(()=>{
-    const r=m.getBoundingClientRect();
-    if(r.right>window.innerWidth) m.style.left=(x-r.width)+'px';
-    if(r.bottom>window.innerHeight) m.style.top=(y-r.height)+'px';
+// ════════════════════════════════════════════════════════
+// ניהול תלמידים
+// ════════════════════════════════════════════════════════
+function buildPrefGrid(containerId,prefs){
+  const el=document.getElementById(containerId);el.innerHTML='';
+  for(const pd of PREF_DEFS){
+    const card=document.createElement('div');
+    card.className='pref-card'+(prefs[pd.key]?' checked':'');
+    card.dataset.key=pd.key;
+    card.innerHTML=`<div class="pref-card-label">${pd.icon} ${pd.label}</div><div class="pref-card-desc">${pd.desc}</div>`;
+    card.onclick=()=>{card.classList.toggle('checked');if(containerId==='edit-pref-grid')updateAwayList();};
+    el.appendChild(card);
+  }
+}
+function readPrefs(containerId){
+  const prefs={front:false,alone:false,tall:false,away:false,awayFrom:[]};
+  document.querySelectorAll(`#${containerId} .pref-card`).forEach(c=>{
+    if(c.classList.contains('checked'))prefs[c.dataset.key]=true;
   });
+  return prefs;
 }
-function hideCtx() { document.getElementById('ctx').classList.remove('open'); _ctx=null; }
 
-// ════════════════════════════════════════════════════════════
-// ניהול תלמידים — הוסף / ערוך / מחק
-// ════════════════════════════════════════════════════════════
-
-function openAddStudent() {
+function openAddStudent(){
   if(!ST.gid){alert('בחר כיתה תחילה.');return;}
   document.getElementById('add-name').value='';
   document.querySelector('input[name="add-gender"][value="m"]').checked=true;
   document.querySelector('input[name="add-level"][value="2"]').checked=true;
+  buildPrefGrid('add-pref-grid',{});
   document.getElementById('modal-add').classList.add('open');
   setTimeout(()=>document.getElementById('add-name').focus(),80);
 }
-
-function confirmAdd() {
+function confirmAdd(){
   const name=document.getElementById('add-name').value.trim();
   if(!name){alert('אנא הכנס שם.');return;}
   const gender=document.querySelector('input[name="add-gender"]:checked')?.value||'m';
   const level=Number(document.querySelector('input[name="add-level"]:checked')?.value||2);
+  const prefs=readPrefs('add-pref-grid');
   pushUndo();
-  ST.classes[ST.gid].students.push({name,gender,level});
-  saveState(); closeModal('modal-add'); renderWait(); renderStats();
+  ST.classes[ST.gid].students.push({uid:mkuid(),name,gender,level,prefs});
+  saveState();closeModal('modal-add');renderWait();renderStats();
 }
 
-function openEditStudent(idx) {
-  const students=getStudents(); const s=students[idx]; if(!s) return;
+function openEditStudent(idx){
+  const students=getStudents();const s=students[idx];if(!s)return;
   _editIdx=idx;
   document.getElementById('edit-name').value=s.name;
-  const gv=s.gender==='f'?'f':'m';
-  document.querySelector(`input[name="edit-gender"][value="${gv}"]`).checked=true;
-  const lv=String(Number(s.level)||2);
-  document.querySelector(`input[name="edit-level"][value="${lv}"]`).checked=true;
+  document.querySelector(`input[name="edit-gender"][value="${s.gender==='f'?'f':'m'}"]`).checked=true;
+  document.querySelector(`input[name="edit-level"][value="${String(Number(s.level)||2)}"]`).checked=true;
+  const p=s.prefs||{};buildPrefGrid('edit-pref-grid',p);
+  buildAwayList(idx,p.awayFrom||[]);
+  updateAwayList();
   document.getElementById('modal-edit').classList.add('open');
   setTimeout(()=>document.getElementById('edit-name').focus(),80);
 }
-
-function confirmEdit() {
-  if(_editIdx===null) return;
+function buildAwayList(selfIdx,awayFrom){
+  const list=document.getElementById('away-list');list.innerHTML='';
+  const students=getStudents();
+  students.forEach((s,i)=>{
+    if(i===selfIdx)return;
+    const item=document.createElement('div');item.className='away-item';
+    const cb=document.createElement('input');cb.type='checkbox';cb.value=s.uid;
+    if(awayFrom.includes(s.uid))cb.checked=true;
+    const lbl=document.createElement('span');lbl.textContent=s.name;
+    item.appendChild(cb);item.appendChild(lbl);
+    item.onclick=e=>{if(e.target!==cb)cb.checked=!cb.checked;};
+    list.appendChild(item);
+  });
+}
+function updateAwayList(){
+  const awayCard=document.querySelector('#edit-pref-grid .pref-card[data-key="away"]');
+  const show=awayCard?.classList.contains('checked');
+  document.getElementById('away-lbl').style.display=show?'':'none';
+  document.getElementById('away-list').style.display=show?'':'none';
+}
+function confirmEdit(){
+  if(_editIdx===null)return;
   const name=document.getElementById('edit-name').value.trim();
   if(!name){alert('אנא הכנס שם.');return;}
   const gender=document.querySelector('input[name="edit-gender"]:checked')?.value||'m';
   const level=Number(document.querySelector('input[name="edit-level"]:checked')?.value||2);
+  const prefs=readPrefs('edit-pref-grid');
+  // awayFrom מתוך הרשימה
+  prefs.awayFrom=[];
+  document.querySelectorAll('#away-list input[type=checkbox]:checked').forEach(cb=>prefs.awayFrom.push(cb.value));
   const students=getStudents();
-  students[_editIdx].name=name;
-  students[_editIdx].gender=gender;
-  students[_editIdx].level=level;
-  saveState(); _editIdx=null;
-  closeModal('modal-edit'); renderClass(); renderWait();
+  students[_editIdx]={...students[_editIdx],name,gender,level,prefs};
+  saveState();_editIdx=null;closeModal('modal-edit');renderClass();renderWait();
 }
 
-function deleteSelStudent() {
-  if(_selDel==null) return;
-  const students=getStudents(); const s=students[_selDel];
-  if(!confirm(`למחוק את ${s?.name}?\nפעולה זו אינה ניתנת לביטול.`)) return;
+function deleteSelStudent(){
+  if(_selDel==null)return;
+  const students=getStudents();const s=students[_selDel];
+  if(!confirm(`למחוק את ${s?.name}?`))return;
   pushUndo();
   ST.classes[ST.gid].students.splice(_selDel,1);
-  const sess=curSess(); const newA={};
-  for(const[sid,i] of Object.entries(sess.assignments)){
-    if(i===_selDel) continue;
-    newA[sid]=i>_selDel?i-1:i;
-  }
+  const sess=curSess();const newA={};
+  for(const[sid,i]of Object.entries(sess.assignments)){if(i===_selDel)continue;newA[sid]=i>_selDel?i-1:i;}
   sess.assignments=newA;
   sess.pinned=sess.pinned.filter(i=>i!==_selDel).map(i=>i>_selDel?i-1:i);
-  _selDel=null;
-  document.getElementById('del-btn').disabled=true;
-  saveState(); renderClass(); renderWait();
+  _selDel=null;document.getElementById('del-btn').disabled=true;
+  saveState();renderClass();renderWait();
 }
 
-// ════════════════════════════════════════════════════════════
-// קבוצה
-// ════════════════════════════════════════════════════════════
+// ════════════════════════════════════════════════════════
+// ייבוא תלמידים
+// ════════════════════════════════════════════════════════
+function openImport(){
+  if(!ST.gid){alert('בחר כיתה תחילה.');return;}
+  _importRows=[];
+  document.getElementById('import-preview').style.display='none';
+  document.getElementById('import-cancel-row').style.display='';
+  document.getElementById('import-file-area').style.display='';
+  document.getElementById('import-text-area').style.display='none';
+  document.getElementById('import-textarea').value='';
+  switchImportTab('file');
+  document.getElementById('modal-import').classList.add('open');
+}
+function switchImportTab(tab){
+  document.getElementById('itab-file').classList.toggle('active',tab==='file');
+  document.getElementById('itab-text').classList.toggle('active',tab==='text');
+  document.getElementById('import-file-area').style.display=tab==='file'?'':'none';
+  document.getElementById('import-text-area').style.display=tab==='text'?'':'none';
+}
+function onImportDragOver(e){e.preventDefault();document.getElementById('drop-zone').classList.add('drag-over');}
+function onImportDrop(e){e.preventDefault();document.getElementById('drop-zone').classList.remove('drag-over');const f=e.dataTransfer.files[0];if(f)processImportFile(f);}
+function onFileSelected(e){const f=e.target.files[0];if(f)processImportFile(f);}
 
-function fillGroupSel() {
-  const sel=document.getElementById('grp-sel');
-  sel.innerHTML='<option value="">— בחר כיתה —</option>';
-  for(const cid in(ST.classes||{})){
-    const o=document.createElement('option');
-    o.value=cid; o.textContent=ST.classes[cid].name; sel.appendChild(o);
+function processImportFile(file){
+  const name=file.name.toLowerCase();
+  const reader=new FileReader();
+  if(name.endsWith('.xlsx')||name.endsWith('.xls')){
+    reader.onload=e=>{
+      try{
+        const wb=XLSX.read(e.target.result,{type:'array'});
+        const ws=wb.Sheets[wb.SheetNames[0]];
+        const data=XLSX.utils.sheet_to_json(ws,{header:1,defval:''});
+        parseAlphonData(data);
+      }catch(err){alert('שגיאה בקריאת הקובץ: '+err.message);}
+    };
+    reader.readAsArrayBuffer(file);
+  }else{
+    reader.onload=e=>parseCSVText(e.target.result);
+    reader.readAsText(file,'utf-8');
   }
-  const hasClass=Object.keys(ST.classes).length>0;
-  document.getElementById('rename-cls-btn').disabled=!hasClass;
-  document.getElementById('del-cls-btn').disabled=!hasClass;
 }
 
-function loadGroup(gid) {
-  ST.gid=gid||null; clearSel(); saveState();
-  renderClass(); renderWait();
+function parseAlphonData(data){
+  // מצא עמודות שם ומין
+  let nameCol=-1,genderCol=-1;
+  for(let r=0;r<Math.min(5,data.length);r++){
+    const row=data[r];
+    for(let c=0;c<row.length;c++){
+      const v=String(row[c]).trim();
+      if(v==='שם התלמיד'&&nameCol<0)nameCol=c;
+      if(v==='מין'&&genderCol<0)genderCol=c;
+    }
+    if(nameCol>=0&&genderCol>=0)break;
+  }
+  if(nameCol<0){alert('לא נמצאה עמודת "שם התלמיד" בקובץ.');return;}
+  const rows=[];
+  for(let r=0;r<data.length;r++){
+    const row=data[r];const rawName=String(row[nameCol]||'').trim();
+    if(!rawName||rawName==='שם התלמיד')continue;
+    // פורמט: "שם_משפחה שם_פרטי" → "שם_פרטי שם_משפחה"
+    const parts=rawName.split(/\s+/);
+    const displayName=parts.length>1?parts.slice(1).join(' ')+' '+parts[0]:rawName;
+    const rawGender=genderCol>=0?String(row[genderCol]||'').trim():'ז';
+    const gender=rawGender==='נ'?'f':'m';
+    rows.push({name:displayName,gender,include:true});
+  }
+  if(!rows.length){alert('לא נמצאו תלמידים בקובץ.');return;}
+  showImportPreview(rows);
 }
 
-// ════════════════════════════════════════════════════════════
+function parseCSVText(text){
+  const lines=text.split(/[\r\n]+/).filter(l=>l.trim());
+  const rows=[];
+  for(const line of lines){
+    const parts=line.split(',');
+    const name=parts[0].trim();if(!name)continue;
+    const gRaw=(parts[1]||'').trim().toLowerCase();
+    const gender=(gRaw==='נ'||gRaw==='f'||gRaw==='female')?'f':'m';
+    rows.push({name,gender,include:true});
+  }
+  if(!rows.length){alert('לא נמצאו שמות.');return;}
+  showImportPreview(rows);
+}
+
+function parseTextImport(){
+  const text=document.getElementById('import-textarea').value;
+  parseCSVText(text);
+}
+
+function showImportPreview(rows){
+  _importRows=rows;
+  const tbody=document.getElementById('preview-body');tbody.innerHTML='';
+  rows.forEach((row,i)=>{
+    const tr=document.createElement('tr');
+    tr.innerHTML=`
+      <td><input type="checkbox" ${row.include?'checked':''} onchange="_importRows[${i}].include=this.checked;updateImportCount()"></td>
+      <td><input style="border:none;background:transparent;font-family:'Heebo',sans-serif;font-size:12px;width:140px;" value="${row.name}" onchange="_importRows[${i}].name=this.value"></td>
+      <td><button class="gender-tog ${row.gender}" onclick="toggleImportGender(${i},this)">${row.gender==='f'?'נקבה':'זכר'}</button></td>
+    `;
+    tbody.appendChild(tr);
+  });
+  document.getElementById('import-cancel-row').style.display='none';
+  document.getElementById('import-preview').style.display='';
+  updateImportCount();
+}
+
+function toggleImportGender(i,btn){
+  _importRows[i].gender=_importRows[i].gender==='m'?'f':'m';
+  btn.textContent=_importRows[i].gender==='f'?'נקבה':'זכר';
+  btn.className='gender-tog '+_importRows[i].gender;
+}
+function toggleImportAll(checked){_importRows.forEach((r,i)=>{r.include=checked;document.querySelectorAll('#preview-body input[type=checkbox]')[i].checked=checked;});updateImportCount();}
+function updateImportCount(){const n=_importRows.filter(r=>r.include).length;document.getElementById('import-count-lbl').textContent=`${n} תלמידים נבחרו`;}
+
+function confirmImport(){
+  const toAdd=_importRows.filter(r=>r.include&&r.name.trim());
+  if(!toAdd.length){alert('לא נבחרו תלמידים.');return;}
+  pushUndo();
+  for(const r of toAdd)ST.classes[ST.gid].students.push({uid:mkuid(),name:r.name.trim(),gender:r.gender,level:2,prefs:{front:false,alone:false,tall:false,away:false,awayFrom:[]}});
+  saveState();closeModal('modal-import');renderWait();renderStats();
+}
+
+// ════════════════════════════════════════════════════════
+// קבוצה
+// ════════════════════════════════════════════════════════
+function fillGroupSel(){
+  const sel=document.getElementById('grp-sel');sel.innerHTML='<option value="">— בחר כיתה —</option>';
+  for(const cid in(ST.classes||{})){const o=document.createElement('option');o.value=cid;o.textContent=ST.classes[cid].name;sel.appendChild(o);}
+  const has=Object.keys(ST.classes).length>0;
+  document.getElementById('rename-cls-btn').disabled=!has;
+  document.getElementById('del-cls-btn').disabled=!has;
+}
+function loadGroup(gid){ST.gid=gid||null;clearSel();saveState();renderClass();renderWait();}
+
+// ════════════════════════════════════════════════════════
 // לשוניות
-// ════════════════════════════════════════════════════════════
-
-function switchTab(tab) {
+// ════════════════════════════════════════════════════════
+function switchTab(tab){
   ['arrange','settings'].forEach(t=>{
     document.getElementById(`tab-${t}`)?.classList.toggle('active',t===tab);
     document.getElementById(`htab-${t}`)?.classList.toggle('active',t===tab);
   });
-  document.getElementById('ai-btn').style.display = tab==='arrange'?'':'none';
+  document.getElementById('ai-btn').style.display=tab==='arrange'?'':'none';
+  if(tab==='settings')renderRoomEditor();
 }
 
-// ════════════════════════════════════════════════════════════
+// ════════════════════════════════════════════════════════
 // הגדרות
-// ════════════════════════════════════════════════════════════
-
-function applySettingsUI() {
+// ════════════════════════════════════════════════════════
+function applySettingsUI(){
   const s=ST.settings;
-  document.getElementById('ai-gender').checked=s.aiGender;
-  document.getElementById('ai-mix').checked=s.aiMix;
-  document.getElementById('show-warn').checked=s.showWarn;
-  document.getElementById('show-level').checked=s.showLevel;
+  ['ai-gender','ai-mix','ai-prefs','ai-window','show-warn','show-level','show-prefs'].forEach(id=>{
+    const el=document.getElementById(id);if(el)el.checked=s[id.replace(/-([a-z])/g,(_,c)=>c.toUpperCase())];
+  });
 }
-
-function saveSettings() {
+function saveSettings(){
   ST.settings={
     aiGender:document.getElementById('ai-gender').checked,
     aiMix:document.getElementById('ai-mix').checked,
+    aiPrefs:document.getElementById('ai-prefs').checked,
+    aiWindow:document.getElementById('ai-window').checked,
     showWarn:document.getElementById('show-warn').checked,
     showLevel:document.getElementById('show-level').checked,
+    showPrefs:document.getElementById('show-prefs').checked,
   };
   saveState();
 }
 
-// ════════════════════════════════════════════════════════════
+// ════════════════════════════════════════════════════════
 // ערכת נושא
-// ════════════════════════════════════════════════════════════
+// ════════════════════════════════════════════════════════
+function applyTheme(){const t=localStorage.getItem('sg_theme_seat')||'light';document.documentElement.setAttribute('data-theme',t);}
+function toggleTheme(){const was=document.documentElement.getAttribute('data-theme')==='dark';document.documentElement.setAttribute('data-theme',was?'light':'dark');localStorage.setItem('sg_theme_seat',was?'light':'dark');}
 
-function applyTheme() {
-  const t=localStorage.getItem('sg_theme_seat')||'light';
-  document.documentElement.setAttribute('data-theme',t);
-}
-
-function toggleTheme() {
-  const d=document.documentElement;
-  const was=d.getAttribute('data-theme')==='dark';
-  d.setAttribute('data-theme',was?'light':'dark');
-  localStorage.setItem('sg_theme_seat',was?'light':'dark');
-}
-
-// ════════════════════════════════════════════════════════════
+// ════════════════════════════════════════════════════════
 // ייצוא / איפוס
-// ════════════════════════════════════════════════════════════
-
-function exportSeating() {
-  const students=getStudents();const sess=curSess();const{mR,mC}=dims();const sm=seatMap();
-  let txt=`סידור מקומות ישיבה — ${ST.classes?.[ST.gid]?.name||''}\n`;
-  txt+=`תאריך: ${new Date().toLocaleDateString('he-IL')}\n\n`;
+// ════════════════════════════════════════════════════════
+function exportSeating(){
+  const students=getStudents(),sess=curSess(),{mR,mC}=dims(),sm=seatMap();
+  let txt=`סידור מקומות ישיבה — ${ST.classes?.[ST.gid]?.name||''}\nתאריך: ${new Date().toLocaleDateString('he-IL')}\n\n`;
   for(let r=0;r<=mR;r++){
-    txt+=`שורה ${r+1}: `;
     const cells=[];
     for(let c=0;c<=mC;c++){const s=sm[`${r},${c}`];if(!s)continue;const i=sess.assignments[s.id];cells.push(i!=null?(students[i]?.name||'?'):'[ ]');}
-    txt+=cells.join(' | ')+'\n';
+    txt+=`שורה ${r+1}: ${cells.join(' | ')}\n`;
   }
   const blob=new Blob([txt],{type:'text/plain;charset=utf-8'});
-  const url=URL.createObjectURL(blob);
-  const a=document.createElement('a');a.href=url;a.download=`seating-${Date.now()}.txt`;a.click();URL.revokeObjectURL(url);
+  const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download=`seating-${Date.now()}.txt`;a.click();URL.revokeObjectURL(url);
 }
+function resetAll(){if(!confirm('לאפס את כל הנתונים?'))return;localStorage.removeItem('sg_seating_v1');location.reload();}
+function closeModal(id){document.getElementById(id).classList.remove('open');}
 
-function resetAll() {
-  if(!confirm('לאפס את כל נתוני הסידור?\nפעולה זו אינה ניתנת לביטול.')) return;
-  localStorage.removeItem('sg_seating_v1'); location.reload();
-}
-
-function closeModal(id) { document.getElementById(id).classList.remove('open'); }
-
-// ════════════════════════════════════════════════════════════
-// הפעלה
-// ════════════════════════════════════════════════════════════
 document.addEventListener('DOMContentLoaded',init);
 </script>
 </body>
