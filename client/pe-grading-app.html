@@ -9688,16 +9688,19 @@ function getFilteredStudents(){
 }
 
 // חיפוש חי של תלמיד בטבלה
+let _srchTimer=null;
 function onStudentSearch(){
   const inp=document.getElementById('student-search');
   const clr=document.getElementById('student-search-clear');
   if(clr)clr.style.display=inp&&inp.value?'':'none';
-  renderTable();
+  clearTimeout(_srchTimer);
+  _srchTimer=setTimeout(renderTable,150);
 }
 function clearStudentSearch(){
   const inp=document.getElementById('student-search');
   if(inp){inp.value='';inp.focus();}
-  onStudentSearch();
+  clearTimeout(_srchTimer);
+  renderTable();
 }
 
 function sortedStudents(){
