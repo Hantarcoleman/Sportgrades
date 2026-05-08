@@ -96,6 +96,7 @@ body{font-family:'Heebo',sans-serif;background:var(--bg);color:var(--ink);font-s
 .pdot-away{background:#ef4444;}
 .pdot-row0{background:#7c3aed;}
 .pdot-rows12{background:#0891b2;}
+.pdot-near{background:#10b981;}
 
 .pin-badge,.warn-badge,.trash-badge{position:absolute;border-radius:50%;width:17px;height:17px;display:flex;align-items:center;justify-content:center;box-shadow:0 1px 3px rgba(0,0,0,.25);font-size:10px;line-height:1;}
 .pin-badge{top:-3px;right:-3px;background:var(--bg2);}
@@ -485,6 +486,8 @@ body{font-family:'Heebo',sans-serif;background:var(--bg);color:var(--ink);font-s
     <div class="pref-grid" id="edit-pref-grid"></div>
     <span class="field-lbl" id="away-lbl" style="display:none">רחוק מ... (בחר תלמידים)</span>
     <div class="away-list" id="away-list" style="display:none"></div>
+    <span class="field-lbl" id="near-lbl" style="display:none">ליד... (בחר תלמידים)</span>
+    <div class="away-list" id="near-list" style="display:none"></div>
     <div class="btn-row">
       <button class="btn-cancel" onclick="closeModal('modal-edit')">ביטול</button>
       <button class="btn-ok" onclick="confirmEdit()">שמור</button>
@@ -600,6 +603,7 @@ const PREF_DEFS=[
   {key:'alone',  icon:'🏝', label:'צריך לשבת לבד',           desc:'ללא שכן ישיר'},
   {key:'tall',   icon:'📏', label:'גבוה — לא יחסום אחרים',  desc:'ישובץ בשורות אחרונות'},
   {key:'away',   icon:'↔',  label:'שמור מרחק מ...',          desc:'בחר תלמידים להרחקה'},
+  {key:'near',   icon:'🤝', label:'רוצה לשבת ליד...',       desc:'בחר תלמידים לשיבוץ סמוך'},
 ];
 
 function mkuid(){return Math.random().toString(36).slice(2,9);}
@@ -843,6 +847,16 @@ function buildWarnings(){
       const neighbor=isNeighbor(seat,sess,sm);
       if(neighbor)w.push('צריך לשבת לבד — יש שכן');
     }
+    if(p.near&&p.nearTo?.length){
+      for(const uid of p.nearTo){
+        const oi=students.findIndex(s=>s.uid===uid);if(oi<0)continue;
+        const oSeatId=Object.keys(sess.assignments).find(k=>sess.assignments[k]===oi);if(!oSeatId)continue;
+        const oSeat=ST.classroom.seats.find(s=>s.id===oSeatId);if(!oSeat)continue;
+        const adjacent=oSeat.row===seat.row&&Math.abs(oSeat.col-seat.col)===1;
+        if(!adjacent)(warnings[seat.id]=warnings[seat.id]||[]).push(`רוצה לשבת ליד ${students[oi]?.name||''}`);
+        break;
+      }
+    }
     if(p.away&&p.awayFrom?.length){
       for(const uid of p.awayFrom){
         const oi=students.findIndex(s=>s.uid===uid);if(oi<0)continue;
@@ -988,6 +1002,8 @@ function aiArrange(){
 
   // אפיוני "רחוק מ" — נסה להחליף צמדים בעיתיים
   if(cfg.aiPrefs)fixAwayFrom(assigned,students,freeSeats);
+  // אפיוני "ליד" — נסה לקרב צמדים
+  if(cfg.aiPrefs)fixNearTo(assigned,students,freeSeats);
   // קבוצות הפרדה
   fixSeparationGroups(assigned,students,freeSeats);
 
@@ -1037,6 +1053,31 @@ function fixAwayFrom(assigned,students,seats){
   }
 }
 
+function fixNearTo(assigned,students,seats){
+  const rev={};for(const[sid,i]of Object.entries(assigned))rev[i]=sid;
+  for(const[sid,idx]of Object.entries(assigned)){
+    const stu=students[idx];if(!stu?.prefs?.near||!stu.prefs.nearTo?.length)continue;
+    const seat=seats.find(s=>s.id===sid);if(!seat)continue;
+    for(const uid of stu.prefs.nearTo){
+      const oi=students.findIndex(s=>s.uid===uid);if(oi<0)continue;
+      const oSid=rev[oi];if(!oSid)continue;
+      const oSeat=seats.find(s=>s.id===oSid);if(!oSeat)continue;
+      const adj=oSeat.row===seat.row&&Math.abs(oSeat.col-seat.col)===1;
+      if(adj)continue;
+      // מצא מושב סמוך לאחד מהם עם תלמיד שניתן להחליף
+      const adjSeats=seats.filter(s=>s.row===seat.row&&Math.abs(s.col-seat.col)===1&&s.id!==oSid);
+      for(const adj of adjSeats){
+        const adjOcc=assigned[adj.id];if(adjOcc==null)continue;
+        // אל תחליף תלמיד עם אפיון "חייב" שיקלקל אותו
+        const adjStu=students[adjOcc];if(adjStu?.prefs?.row0||adjStu?.prefs?.rows12||adjStu?.prefs?.front||adjStu?.prefs?.alone)continue;
+        // החלף — הבא את oSid לסמוך לsid
+        const tmp=assigned[oSid];assigned[adj.id]=tmp;assigned[oSid]=adjOcc;
+        rev[tmp]=adj.id;rev[adjOcc]=oSid;
+        break;
+      }
+    }
+  }
+}
 function fixSeparationGroups(assigned,students,seats){
   if(!ST.separationGroups?.length)return;
   const rev={};for(const[sid,i]of Object.entries(assigned))rev[i]=sid;
@@ -1272,6 +1313,7 @@ function renderWait(){
         if(p.alone){const d=document.createElement('div');d.className='pdot pdot-alone';dots.appendChild(d);}
         if(p.tall){const d=document.createElement('div');d.className='pdot pdot-tall';dots.appendChild(d);}
         if(p.away){const d=document.createElement('div');d.className='pdot pdot-away';dots.appendChild(d);}
+        if(p.near){const d=document.createElement('div');d.className='pdot pdot-near';dots.appendChild(d);}
         item.appendChild(dots);}
     }
     item.onclick=()=>onChipClick(idx);
@@ -1408,12 +1450,12 @@ function buildPrefGrid(containerId,prefs){
     card.className='pref-card'+(prefs[pd.key]?' checked':'');
     card.dataset.key=pd.key;
     card.innerHTML=`<div class="pref-card-label">${pd.icon} ${pd.label}</div><div class="pref-card-desc">${pd.desc}</div>`;
-    card.onclick=()=>{card.classList.toggle('checked');if(containerId==='edit-pref-grid')updateAwayList();};
+    card.onclick=()=>{card.classList.toggle('checked');if(containerId==='edit-pref-grid'){updateAwayList();updateNearList();}};
     el.appendChild(card);
   }
 }
 function readPrefs(containerId){
-  const prefs={row0:false,rows12:false,front:false,alone:false,tall:false,away:false,awayFrom:[]};
+  const prefs={row0:false,rows12:false,front:false,alone:false,tall:false,away:false,near:false,awayFrom:[],nearTo:[]};
   document.querySelectorAll(`#${containerId} .pref-card`).forEach(c=>{
     if(c.classList.contains('checked'))prefs[c.dataset.key]=true;
   });
@@ -1448,7 +1490,9 @@ function openEditStudent(idx){
   document.querySelector(`input[name="edit-level"][value="${String(Number(s.level)||2)}"]`).checked=true;
   const p=s.prefs||{};buildPrefGrid('edit-pref-grid',p);
   buildAwayList(idx,p.awayFrom||[]);
+  buildNearList(idx,p.nearTo||[]);
   updateAwayList();
+  updateNearList();
   document.getElementById('modal-edit').classList.add('open');
   setTimeout(()=>document.getElementById('edit-name').focus(),80);
 }
@@ -1472,6 +1516,26 @@ function updateAwayList(){
   document.getElementById('away-lbl').style.display=show?'':'none';
   document.getElementById('away-list').style.display=show?'':'none';
 }
+function buildNearList(selfIdx,nearTo){
+  const list=document.getElementById('near-list');list.innerHTML='';
+  const students=getStudents();
+  students.forEach((s,i)=>{
+    if(i===selfIdx)return;
+    const item=document.createElement('div');item.className='away-item';
+    const cb=document.createElement('input');cb.type='checkbox';cb.value=s.uid;
+    if(nearTo.includes(s.uid))cb.checked=true;
+    const lbl=document.createElement('span');lbl.textContent=s.name;
+    item.appendChild(cb);item.appendChild(lbl);
+    item.onclick=e=>{if(e.target!==cb)cb.checked=!cb.checked;};
+    list.appendChild(item);
+  });
+}
+function updateNearList(){
+  const nearCard=document.querySelector('#edit-pref-grid .pref-card[data-key="near"]');
+  const show=nearCard?.classList.contains('checked');
+  document.getElementById('near-lbl').style.display=show?'':'none';
+  document.getElementById('near-list').style.display=show?'':'none';
+}
 function confirmEdit(){
   if(_editIdx===null)return;
   const name=document.getElementById('edit-name').value.trim();
@@ -1482,6 +1546,8 @@ function confirmEdit(){
   // awayFrom מתוך הרשימה
   prefs.awayFrom=[];
   document.querySelectorAll('#away-list input[type=checkbox]:checked').forEach(cb=>prefs.awayFrom.push(cb.value));
+  prefs.nearTo=[];
+  document.querySelectorAll('#near-list input[type=checkbox]:checked').forEach(cb=>prefs.nearTo.push(cb.value));
   const students=getStudents();
   students[_editIdx]={...students[_editIdx],name,gender,level,prefs};
   saveState();_editIdx=null;closeModal('modal-edit');renderClass();renderWait();
