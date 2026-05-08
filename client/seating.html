@@ -97,6 +97,7 @@ body{font-family:'Heebo',sans-serif;background:var(--bg);color:var(--ink);font-s
 .pdot-row0{background:#7c3aed;}
 .pdot-rows12{background:#0891b2;}
 .pdot-near{background:#10b981;}
+.pdot-talk{background:#f97316;}
 
 .pin-badge,.warn-badge,.trash-badge{position:absolute;border-radius:50%;width:17px;height:17px;display:flex;align-items:center;justify-content:center;box-shadow:0 1px 3px rgba(0,0,0,.25);font-size:10px;line-height:1;}
 .pin-badge{top:-3px;right:-3px;background:var(--bg2);}
@@ -590,6 +591,7 @@ let ST = {
 let _undo=[],_redo=[];
 const MAX_UNDO=50;
 let _selChip=null,_selSeat=null,_selDel=null,_ctx=null;
+let _lastSatisfaction=null;
 let _dragIdx=null,_dragFrom=null,_editIdx=null;
 let _importRows=[];
 
@@ -604,6 +606,7 @@ const PREF_DEFS=[
   {key:'tall',   icon:'📏', label:'גבוה — לא יחסום אחרים',  desc:'ישובץ בשורות אחרונות'},
   {key:'away',   icon:'↔',  label:'שמור מרחק מ...',          desc:'בחר תלמידים להרחקה'},
   {key:'near',   icon:'🤝', label:'רוצה לשבת ליד...',       desc:'בחר תלמידים לשיבוץ סמוך'},
+  {key:'talk',   icon:'🗣', label:'מפריע / דברן',            desc:'לא יושב ליד דברנים אחרים'},
 ];
 
 function mkuid(){return Math.random().toString(36).slice(2,9);}
@@ -960,6 +963,33 @@ function aiArrange(){
   // בנה רשימת מועמדים עם ציון
   let pool=freeIdxs.map(i=>({i,sc:stuScore(i),g:students[i]?.gender||'m',p:students[i]?.prefs||{}}));
 
+  // VIP Match: שני תלמידים ברמה 3 שלפחות אחד ביקש לשבת ליד השני → שבץ יחד תחילה
+  const vipAssigned=new Set();
+  if(cfg.aiPrefs){
+    for(let a=0;a<pool.length;a++){
+      const sa=students[pool[a].i];
+      if(Number(sa?.level)!==3)continue;
+      for(let b=a+1;b<pool.length;b++){
+        const sb=students[pool[b].i];
+        if(Number(sb?.level)!==3)continue;
+        const aWantsB=sa.prefs?.near&&sa.prefs.nearTo?.includes(sb.uid);
+        const bWantsA=sb.prefs?.near&&sb.prefs.nearTo?.includes(sa.uid);
+        if(!(aWantsB||bWantsA))continue;
+        if(vipAssigned.has(pool[a].i)||vipAssigned.has(pool[b].i))continue;
+        // מצא זוג מושבים סמוכים פנויים
+        for(let k=0;k<freeSeats.length-1;k++){
+          const s1=freeSeats[k],s2=freeSeats[k+1];
+          if(assigned[s1.id]!=null||assigned[s2.id]!=null)continue;
+          if(s1.row!==s2.row||Math.abs(s1.col-s2.col)!==1)continue;
+          assigned[s1.id]=pool[a].i;assigned[s2.id]=pool[b].i;
+          vipAssigned.add(pool[a].i);vipAssigned.add(pool[b].i);break;
+        }
+      }
+    }
+  }
+  // הסר VIP מ-pool לפני חלוקת בריכות
+  pool=pool.filter(x=>!vipAssigned.has(x.i));
+
   // הפרד לפי אפיון
   const row0Pool=cfg.aiPrefs?pool.filter(x=>x.p.row0):[];
   const rows12Pool=cfg.aiPrefs?pool.filter(x=>x.p.rows12&&!x.p.row0):[];
@@ -1006,8 +1036,16 @@ function aiArrange(){
   if(cfg.aiPrefs)fixNearTo(assigned,students,freeSeats);
   // קבוצות הפרדה
   fixSeparationGroups(assigned,students,freeSeats);
+  // דברנים: הפרד דברנים זה מזה
+  if(cfg.aiPrefs)fixTalkative(assigned,students,freeSeats);
+  // אזור שקט: הרחק דברנים מתלמידים ברמה 3
+  if(cfg.aiPrefs)fixSilentZone(assigned,students,freeSeats);
 
-  sess.assignments={...pinnedEntries,...assigned};
+  // חשב ציון שביעות רצון
+  const allAssigned={...pinnedEntries,...assigned};
+  _lastSatisfaction=calcSatisfaction(allAssigned,students,freeSeats.concat(ST.classroom.seats.filter(s=>pinnedSeatIds.has(s.id))));
+
+  sess.assignments=allAssigned;
   saveState();renderClass();renderWait();
 }
 
@@ -1111,6 +1149,99 @@ function fixSeparationGroups(assigned,students,seats){
       }
     }
   }
+}
+
+function fixTalkative(assigned,students,seats){
+  // הפרד דברנים: אין שני דברנים בשכנות ישירה (שמאל/ימין)
+  const sm=seatMap();
+  let changed=true;
+  for(let pass=0;pass<6&&changed;pass++){
+    changed=false;
+    for(const[sid,idx]of Object.entries(assigned)){
+      const stu=students[idx];if(!stu?.prefs?.talk)continue;
+      const seat=seats.find(s=>s.id===sid);if(!seat)continue;
+      const adjIds=[[0,1],[0,-1]].map(([dr,dc])=>sm[`${seat.row+dr},${seat.col+dc}`]).filter(Boolean);
+      for(const adjId of adjIds){
+        const adjIdx=assigned[adjId];if(adjIdx==null)continue;
+        if(!students[adjIdx]?.prefs?.talk)continue;
+        // מצא מושב מרוחק עם תלמיד שניתן להחליף
+        const farSeat=seats.find(s=>{
+          const ci=assigned[s.id];
+          if(s.id===sid||s.id===adjId||ci==null)return false;
+          const cstu=students[ci];
+          if(cstu?.prefs?.talk||cstu?.prefs?.row0||cstu?.prefs?.rows12||cstu?.prefs?.front||cstu?.prefs?.alone)return false;
+          return Math.abs(s.row-seat.row)+Math.abs(s.col-seat.col)>2;
+        });
+        if(farSeat){
+          const rev={};for(const[s,i]of Object.entries(assigned))rev[i]=s;
+          const tmp=assigned[farSeat.id];
+          assigned[farSeat.id]=adjIdx;assigned[adjId]=tmp;
+          changed=true;break;
+        }
+      }
+    }
+  }
+}
+
+function fixSilentZone(assigned,students,seats){
+  // הרחק דברנים מתלמידים ברמה 3 (תלמידים חרוצים/חזקים)
+  const sm=seatMap();
+  for(const[sid,idx]of Object.entries(assigned)){
+    const stu=students[idx];if(!stu?.prefs?.talk)continue;
+    const seat=seats.find(s=>s.id===sid);if(!seat)continue;
+    const adjIds=[[0,1],[0,-1]].map(([dr,dc])=>sm[`${seat.row+dr},${seat.col+dc}`]).filter(Boolean);
+    const hasLevel3Neighbor=adjIds.some(adjId=>{
+      const ai=assigned[adjId];return ai!=null&&Number(students[ai]?.level)===3;
+    });
+    if(!hasLevel3Neighbor)continue;
+    // נסה להחליף את הדברן עם מושב רחוק שאין לו שכן ברמה 3
+    const farSeat=seats.find(s=>{
+      const ci=assigned[s.id];
+      if(s.id===sid||ci==null)return false;
+      const cstu=students[ci];
+      if(cstu?.prefs?.talk||cstu?.prefs?.row0||cstu?.prefs?.rows12||cstu?.prefs?.front||cstu?.prefs?.alone)return false;
+      if(Number(cstu?.level)===3)return false;
+      return Math.abs(s.row-seat.row)+Math.abs(s.col-seat.col)>2;
+    });
+    if(farSeat){
+      const tmp=assigned[farSeat.id];
+      assigned[farSeat.id]=idx;assigned[sid]=tmp;
+    }
+  }
+}
+
+function calcSatisfaction(assigned,students,seats){
+  // מחשב אחוז שביעות רצון: כמה אפיונים קשיחים/רכים מולאו
+  const sm=seatMap();
+  let total=0,met=0;
+  for(const[sid,idx]of Object.entries(assigned)){
+    const stu=students[idx];if(!stu)continue;
+    const p=stu.prefs||{};
+    const seat=seats.find(s=>s.id===sid);if(!seat)continue;
+    const adjIds=[[0,1],[0,-1]].map(([dr,dc])=>sm[`${seat.row+dr},${seat.col+dc}`]).filter(Boolean);
+    if(p.row0){total++;if(seat.row===0)met++;}
+    if(p.rows12){total++;if(seat.row<=1)met++;}
+    if(p.front){total++;if(seat.row<=1)met++;}
+    if(p.alone){
+      total++;
+      if(adjIds.every(adjId=>assigned[adjId]==null))met++;
+    }
+    if(p.talk){
+      total++;
+      if(adjIds.every(adjId=>{const ai=assigned[adjId];return ai==null||!students[ai]?.prefs?.talk;}))met++;
+    }
+    if(p.near&&p.nearTo?.length){
+      total++;
+      const nearMet=p.nearTo.some(uid=>{
+        const oi=students.findIndex(s=>s.uid===uid);
+        const oSid=Object.entries(assigned).find(([s,i])=>i===oi)?.[0];
+        return oSid&&adjIds.includes(oSid);
+      });
+      if(nearMet)met++;
+    }
+  }
+  if(!total)return 100;
+  return Math.round(met/total*100);
 }
 
 function hasAdjacentSeat(seat){
@@ -1277,6 +1408,7 @@ function renderStats(){
     let html=`<span class="stat-chip">${st.pairs} שולחנות</span><span class="stat-chip">${st.totalSeats} מושבים</span><span class="stat-chip">${st.totalStudents} תלמידים</span>`;
     if(st.overflow>0)html+=`<span class="stat-chip warn">⚠️ חסרים ${st.overflow} מקומות!</span>`;
     else if(st.totalStudents>0&&st.alone>0)html+=`<span class="stat-chip ok">${st.alone} יכולים לשבת לבד</span>`;
+    if(_lastSatisfaction!==null)html+=`<span class="stat-chip ${_lastSatisfaction>=80?'ok':_lastSatisfaction<60?'warn':''}">🎯 שביעות רצון: ${_lastSatisfaction}%</span>`;
     clEl.innerHTML=html;
   }
 }
@@ -1305,7 +1437,7 @@ function renderWait(){
     icon.textContent=s.gender==='f'?'👩':'👦';item.appendChild(icon);
     const nm=document.createElement('span');nm.className='wait-item-name';nm.textContent=s.name;item.appendChild(nm);
     if(ST.settings.showPrefs){
-      const p=s.prefs||{};const has=p.row0||p.rows12||p.front||p.alone||p.tall||p.away;
+      const p=s.prefs||{};const has=p.row0||p.rows12||p.front||p.alone||p.tall||p.away||p.talk;
       if(has){const dots=document.createElement('div');dots.className='wait-item-prefs';
         if(p.row0){const d=document.createElement('div');d.className='pdot pdot-row0';dots.appendChild(d);}
         if(p.rows12){const d=document.createElement('div');d.className='pdot pdot-rows12';dots.appendChild(d);}
@@ -1314,6 +1446,7 @@ function renderWait(){
         if(p.tall){const d=document.createElement('div');d.className='pdot pdot-tall';dots.appendChild(d);}
         if(p.away){const d=document.createElement('div');d.className='pdot pdot-away';dots.appendChild(d);}
         if(p.near){const d=document.createElement('div');d.className='pdot pdot-near';dots.appendChild(d);}
+        if(p.talk){const d=document.createElement('div');d.className='pdot pdot-talk';dots.appendChild(d);}
         item.appendChild(dots);}
     }
     item.onclick=()=>onChipClick(idx);
@@ -1455,7 +1588,7 @@ function buildPrefGrid(containerId,prefs){
   }
 }
 function readPrefs(containerId){
-  const prefs={row0:false,rows12:false,front:false,alone:false,tall:false,away:false,near:false,awayFrom:[],nearTo:[]};
+  const prefs={row0:false,rows12:false,front:false,alone:false,tall:false,away:false,near:false,talk:false,awayFrom:[],nearTo:[]};
   document.querySelectorAll(`#${containerId} .pref-card`).forEach(c=>{
     if(c.classList.contains('checked'))prefs[c.dataset.key]=true;
   });
