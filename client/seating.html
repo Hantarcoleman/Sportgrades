@@ -3,14 +3,14 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>סידור מקומות ישיבה — SportGrade</title>
+<title>סידור מקומות ישיבה</title>
 <link href="https://fonts.googleapis.com/css2?family=Heebo:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
 <style>
 :root{
   --bg:#f5f7fa;--bg2:#fff;--sf:#fff;
   --ink:#1a1d27;--ink2:#5a6072;--ink3:#9197a8;
   --bd:rgba(0,0,0,.09);
-  --ac:#ff7a2f;--abg:rgba(255,122,47,.08);--abd:rgba(255,122,47,.25);
+  --ac:#3b82f6;--abg:rgba(59,130,246,.08);--abd:rgba(59,130,246,.25);
   --gn:#22c55e;--re:#ef4444;--ye:#f59e0b;--bl:#3b82f6;--pk:#ec4899;
   --r:12px;--rs:8px;--rx:30px;
   --sh:0 2px 12px rgba(0,0,0,.08);--shl:0 8px 40px rgba(0,0,0,.15);
@@ -32,7 +32,7 @@ body{font-family:'Heebo',sans-serif;background:var(--bg);color:var(--ink);font-s
   padding:0 14px;display:flex;align-items:center;gap:8px;
   position:sticky;top:0;z-index:100;box-shadow:var(--sh);
 }
-.hdr-logo{font-weight:800;font-size:16px;color:var(--ac);text-decoration:none;white-space:nowrap;}
+.hdr-logo{font-weight:800;font-size:17px;color:var(--ac);white-space:nowrap;}
 .hdr-tabs{display:flex;gap:3px;margin:0 8px;}
 .htab{
   padding:5px 14px;border-radius:var(--rx);border:none;cursor:pointer;
@@ -60,7 +60,7 @@ body{font-family:'Heebo',sans-serif;background:var(--bg);color:var(--ink);font-s
 
 /* ── פאנל צד ── */
 .side-panel{
-  width:220px;min-width:180px;background:var(--bg2);border-left:1px solid var(--bd);
+  width:225px;min-width:185px;background:var(--bg2);border-left:1px solid var(--bd);
   display:flex;flex-direction:column;overflow:hidden;flex-shrink:0;
 }
 .side-hdr{
@@ -69,11 +69,22 @@ body{font-family:'Heebo',sans-serif;background:var(--bg);color:var(--ink);font-s
 }
 .side-title{font-size:12px;font-weight:700;color:var(--ink);}
 .side-count{font-size:11px;color:var(--ink3);}
-.group-wrap{padding:8px 10px;border-bottom:1px solid var(--bd);}
+
+/* אזור כיתה בפאנל */
+.cls-row{
+  padding:7px 10px;border-bottom:1px solid var(--bd);
+  display:flex;align-items:center;gap:6px;
+}
 .grp-sel{
-  width:100%;padding:6px 8px;border:1px solid var(--bd);border-radius:var(--rs);
+  flex:1;padding:5px 7px;border:1px solid var(--bd);border-radius:var(--rs);
   background:var(--bg);color:var(--ink);font-family:'Heebo',sans-serif;font-size:12px;cursor:pointer;
 }
+.icon-btn{
+  padding:5px 7px;border-radius:var(--rs);border:1px solid var(--bd);cursor:pointer;
+  font-size:13px;background:var(--bg);transition:all var(--t);
+}
+.icon-btn:hover{background:var(--bd);}
+
 /* סטטיסטיקות פאנל */
 .side-stats{
   padding:6px 12px;border-bottom:1px solid var(--bd);
@@ -136,7 +147,7 @@ body{font-family:'Heebo',sans-serif;background:var(--bg);color:var(--ink);font-s
   padding:5px 9px;border-radius:var(--rs);border:1px solid var(--bd);
   background:var(--bg2);color:var(--ink);font-family:'Heebo',sans-serif;font-size:12px;cursor:pointer;
 }
-/* סטטיסטיקות כיתה (מתחת לטולבר) */
+/* סטטיסטיקות כיתה */
 .class-stats{
   width:100%;max-width:900px;margin-bottom:10px;
   display:flex;align-items:center;gap:10px;flex-wrap:wrap;
@@ -184,7 +195,6 @@ body{font-family:'Heebo',sans-serif;background:var(--bg);color:var(--ink);font-s
 .seat.sel-target{border-color:var(--ac) !important;border-style:solid !important;box-shadow:0 0 0 3px var(--abg);}
 .seat.sel-student{border-color:var(--ac) !important;border-style:solid !important;box-shadow:0 0 0 3px var(--abg);}
 .seat-placeholder{width:64px;height:64px;flex-shrink:0;visibility:hidden;}
-/* שמות בישיבה: שם פרטי + שם משפחה */
 .seat-fn{font-size:12px;font-weight:800;line-height:1.2;display:block;text-align:center;}
 .seat-ln{font-size:10px;font-weight:600;opacity:.75;line-height:1.1;display:block;text-align:center;max-width:58px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
 
@@ -225,12 +235,20 @@ body{font-family:'Heebo',sans-serif;background:var(--bg);color:var(--ink);font-s
   margin-bottom:10px;
 }
 .fi:focus{outline:none;border-color:var(--ac);}
-.radio-row{display:flex;gap:14px;margin-bottom:12px;}
+.radio-row{display:flex;gap:14px;margin-bottom:12px;flex-wrap:wrap;}
 .radio-row label{display:flex;align-items:center;gap:5px;cursor:pointer;font-size:13px;}
-.radio-row input{accent-color:var(--ac);}
+.radio-row input[type=radio]{accent-color:var(--ac);}
 .btn-row{display:flex;gap:8px;justify-content:flex-end;margin-top:6px;}
 .btn-ok{padding:7px 18px;border-radius:var(--rs);border:none;cursor:pointer;font-family:'Heebo',sans-serif;font-size:13px;font-weight:700;background:var(--ac);color:#fff;}
 .btn-cancel{padding:7px 18px;border-radius:var(--rs);border:1px solid var(--bd);cursor:pointer;font-family:'Heebo',sans-serif;font-size:13px;font-weight:700;background:var(--bg);color:var(--ink2);}
+.field-lbl{font-size:12px;font-weight:700;color:var(--ink2);margin-bottom:4px;display:block;}
+.level-row{display:flex;gap:8px;margin-bottom:12px;}
+.level-row label{
+  flex:1;text-align:center;padding:6px 4px;border:2px solid var(--bd);border-radius:var(--rs);
+  cursor:pointer;font-size:12px;font-weight:700;transition:all var(--t);
+}
+.level-row input[type=radio]{display:none;}
+.level-row input:checked + label{border-color:var(--ac);background:var(--abg);color:var(--ac);}
 
 /* ── תפריט הקשר ── */
 .ctx-menu{
@@ -269,14 +287,13 @@ body{font-family:'Heebo',sans-serif;background:var(--bg);color:var(--ink);font-s
 
 <!-- ── כותרת ── -->
 <header class="app-hdr">
-  <a href="pe-grading-app.html" class="hdr-logo">🏃 SportGrade</a>
+  <span class="hdr-logo">🪑 מקומות ישיבה</span>
   <div class="hdr-tabs">
-    <button class="htab active" onclick="switchTab('arrange')" id="htab-arrange">🪑 סידור</button>
+    <button class="htab active" onclick="switchTab('arrange')" id="htab-arrange">סידור</button>
     <button class="htab" onclick="switchTab('settings')" id="htab-settings">⚙️ הגדרות</button>
   </div>
   <div class="hdr-spacer"></div>
-  <!-- כפתורי בטל/חזור בכותרת (ישמרו מוסתרים, הכפתורים בטולבר הם הראשיים) -->
-  <button class="hbtn primary" onclick="aiArrange()" id="ai-btn">✨ סדר מחדש בעזרת AI</button>
+  <button class="hbtn primary" onclick="aiArrange()" id="ai-btn">✨ סדר AI</button>
   <button class="hbtn" onclick="toggleTheme()" title="בהיר/כהה" style="padding:6px 9px;">🌙</button>
 </header>
 
@@ -286,20 +303,23 @@ body{font-family:'Heebo',sans-serif;background:var(--bg);color:var(--ink);font-s
   <!-- ════ לשונית סידור ════ -->
   <div class="tab-content active" id="tab-arrange">
 
-    <!-- ── פאנל צד (ממתינים לשיבוץ) ── -->
+    <!-- ── פאנל צד ── -->
     <div class="side-panel">
-      <div class="group-wrap">
+      <!-- בחירת כיתה + ניהול -->
+      <div class="cls-row">
         <select class="grp-sel" id="grp-sel" onchange="loadGroup(this.value)">
-          <option value="">— בחר קבוצה —</option>
+          <option value="">— בחר כיתה —</option>
         </select>
+        <button class="icon-btn" onclick="openAddClass()" title="כיתה חדשה">＋</button>
+        <button class="icon-btn" onclick="openRenameClass()" title="שנה שם" id="rename-cls-btn">✏</button>
+        <button class="icon-btn" onclick="deleteClass()" title="מחק כיתה" id="del-cls-btn" style="color:var(--re)">🗑</button>
       </div>
+
       <div class="side-hdr">
         <span class="side-title">⏳ ממתינים לשיבוץ</span>
         <span class="side-count" id="wait-count">0</span>
       </div>
-      <!-- סטטיסטיקות (מושבים / שולחנות) -->
       <div class="side-stats" id="side-stats"></div>
-      <!-- אזהרת עודף תלמידים -->
       <div class="overflow-warn" id="overflow-warn" style="display:none"></div>
       <div class="waiting-body" id="wait-body">
         <div class="waiting-grid" id="wait-grid"></div>
@@ -312,13 +332,10 @@ body{font-family:'Heebo',sans-serif;background:var(--bg);color:var(--ink);font-s
 
     <!-- ── אזור כיתה ── -->
     <div class="class-wrap">
-      <!-- טולבר עם בטל/חזור בולטים -->
       <div class="class-toolbar">
-        <!-- בטל / חזור -->
         <button class="hbtn" onclick="doUndo()" id="undo-btn" disabled title="בטל (Ctrl+Z)" style="font-size:15px;padding:6px 11px;">↩</button>
         <button class="hbtn" onclick="doRedo()" id="redo-btn" disabled title="חזור (Ctrl+Y)" style="font-size:15px;padding:6px 11px;">↪</button>
         <div style="width:1px;height:22px;background:var(--bd);margin:0 2px;"></div>
-        <!-- פריסה -->
         <span class="tb-label">פריסה:</span>
         <select class="layout-sel" id="layout-sel" onchange="applyLayout(this.value)">
           <option value="generic">מבנה כיתה רגיל</option>
@@ -335,13 +352,9 @@ body{font-family:'Heebo',sans-serif;background:var(--bg);color:var(--ink);font-s
         </div>
       </div>
 
-      <!-- סטטיסטיקות כיתה -->
       <div class="class-stats" id="class-stats"></div>
-
-      <!-- הנחיה לסלקציה פעילה -->
       <div id="sel-hint"></div>
 
-      <!-- הכיתה -->
       <div class="class-card">
         <div class="board-lbl">◼ לוח / קדמת הכיתה ◼</div>
         <div class="class-rows" id="class-rows"></div>
@@ -359,13 +372,12 @@ body{font-family:'Heebo',sans-serif;background:var(--bg);color:var(--ink);font-s
           <div class="settings-title">קריטריוני AI לסידור מקומות</div>
           <label class="s-check"><input type="checkbox" id="ai-gender" checked onchange="saveSettings()"> הפרדת מין — בנים ובנות לסירוגין</label>
           <label class="s-check"><input type="checkbox" id="ai-mix" checked onchange="saveSettings()"> ערבוב רמות — שיבוץ חזק לצד חלש</label>
-          <label class="s-check"><input type="checkbox" id="ai-cls" onchange="saveSettings()"> ערבוב מקבילות — הפרד תלמידים מאותה כיתה</label>
         </div>
 
         <div class="settings-section">
           <div class="settings-title">תצוגה</div>
           <label class="s-check"><input type="checkbox" id="show-warn" checked onchange="saveSettings();renderClass()"> הצג אזהרות מיקום</label>
-          <label class="s-check"><input type="checkbox" id="show-score" onchange="saveSettings();renderClass()"> הצג ציון ממוצע</label>
+          <label class="s-check"><input type="checkbox" id="show-level" onchange="saveSettings();renderClass()"> הצג רמה במושב</label>
         </div>
 
         <div class="settings-section">
@@ -380,14 +392,47 @@ body{font-family:'Heebo',sans-serif;background:var(--bg);color:var(--ink);font-s
   </div>
 </div>
 
+<!-- ── מודאל הוספת כיתה ── -->
+<div class="modal-bg" id="modal-add-cls">
+  <div class="modal">
+    <div class="modal-title">כיתה חדשה</div>
+    <span class="field-lbl">שם הכיתה</span>
+    <input class="fi" id="add-cls-name" type="text" placeholder="לדוג׳ ז׳2" onkeydown="if(event.key==='Enter')confirmAddClass()">
+    <div class="btn-row">
+      <button class="btn-cancel" onclick="closeModal('modal-add-cls')">ביטול</button>
+      <button class="btn-ok" onclick="confirmAddClass()">צור</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── מודאל שינוי שם כיתה ── -->
+<div class="modal-bg" id="modal-rename-cls">
+  <div class="modal">
+    <div class="modal-title">שינוי שם כיתה</div>
+    <span class="field-lbl">שם חדש</span>
+    <input class="fi" id="rename-cls-name" type="text" onkeydown="if(event.key==='Enter')confirmRenameClass()">
+    <div class="btn-row">
+      <button class="btn-cancel" onclick="closeModal('modal-rename-cls')">ביטול</button>
+      <button class="btn-ok" onclick="confirmRenameClass()">שמור</button>
+    </div>
+  </div>
+</div>
+
 <!-- ── מודאל הוספת תלמיד ── -->
 <div class="modal-bg" id="modal-add">
   <div class="modal">
-    <div class="modal-title">הוסף תלמיד/ה לקבוצה</div>
-    <input class="fi" id="add-name" type="text" placeholder="שם מלא" onkeydown="if(event.key==='Enter')confirmAdd()">
+    <div class="modal-title">הוסף תלמיד/ה</div>
+    <span class="field-lbl">שם מלא</span>
+    <input class="fi" id="add-name" type="text" placeholder="שם פרטי ושם משפחה" onkeydown="if(event.key==='Enter')confirmAdd()">
     <div class="radio-row">
       <label><input type="radio" name="add-gender" value="m" checked> בן</label>
       <label><input type="radio" name="add-gender" value="f"> בת</label>
+    </div>
+    <span class="field-lbl">רמה (לסידור AI)</span>
+    <div class="level-row">
+      <div><input type="radio" name="add-level" value="1" id="al1"><label for="al1">חלש</label></div>
+      <div><input type="radio" name="add-level" value="2" id="al2" checked><label for="al2">בינוני</label></div>
+      <div><input type="radio" name="add-level" value="3" id="al3"><label for="al3">חזק</label></div>
     </div>
     <div class="btn-row">
       <button class="btn-cancel" onclick="closeModal('modal-add')">ביטול</button>
@@ -400,10 +445,17 @@ body{font-family:'Heebo',sans-serif;background:var(--bg);color:var(--ink);font-s
 <div class="modal-bg" id="modal-edit">
   <div class="modal">
     <div class="modal-title">✏ ערוך תלמיד/ה</div>
+    <span class="field-lbl">שם מלא</span>
     <input class="fi" id="edit-name" type="text" placeholder="שם מלא" onkeydown="if(event.key==='Enter')confirmEdit()">
     <div class="radio-row">
       <label><input type="radio" name="edit-gender" value="m"> בן</label>
       <label><input type="radio" name="edit-gender" value="f"> בת</label>
+    </div>
+    <span class="field-lbl">רמה (לסידור AI)</span>
+    <div class="level-row">
+      <div><input type="radio" name="edit-level" value="1" id="el1"><label for="el1">חלש</label></div>
+      <div><input type="radio" name="edit-level" value="2" id="el2"><label for="el2">בינוני</label></div>
+      <div><input type="radio" name="edit-level" value="3" id="el3"><label for="el3">חזק</label></div>
     </div>
     <div class="btn-row">
       <button class="btn-cancel" onclick="closeModal('modal-edit')">ביטול</button>
@@ -425,36 +477,30 @@ body{font-family:'Heebo',sans-serif;background:var(--bg);color:var(--ink);font-s
 
 <script>
 // ════════════════════════════════════════════════════════════
-// נתונים גלובליים
+// מצב גלובלי — עצמאי לחלוטין
 // ════════════════════════════════════════════════════════════
 
-let S = {};   // נתוני אפליקציה ראשית (sportgrade_v6)
 let ST = {
   gid: null,
+  classes: {},       // {[cid]: {name, students: [{name, gender, level}]}}
+  nextCid: 1,
   classroom: null,
-  sessions: {},
-  settings: { aiGender:true, aiMix:true, aiCls:false, showWarn:true, showScore:false }
+  sessions: {},      // {[cid]: {assignments: {[seatId]: idx}, pinned: []}}
+  settings: { aiGender:true, aiMix:true, showWarn:true, showLevel:false }
 };
 
-let _undo = [], _redo = [];
-const MAX_UNDO = 50;
+let _undo=[], _redo=[];
+const MAX_UNDO=50;
 
-// סלקציה
-let _selChip = null;   // {src:'wait'|'seat', idx, seatId?}
-let _selSeat = null;   // seatId
-let _selDel  = null;   // idx למחיקה
-let _ctx     = null;   // { type:'seat'|'chip', seatId?, idx?, row? }
-let _dragIdx = null;
-let _dragFrom= null;
-let _editIdx = null;   // idx לעריכה
+let _selChip=null, _selSeat=null, _selDel=null, _ctx=null;
+let _dragIdx=null, _dragFrom=null, _editIdx=null;
 
 // ════════════════════════════════════════════════════════════
 // אתחול
 // ════════════════════════════════════════════════════════════
 
 function init() {
-  loadMain();
-  loadSeating();
+  loadState();
   fillGroupSel();
   applySettingsUI();
   applyTheme();
@@ -468,32 +514,87 @@ function init() {
     if (!document.getElementById('ctx').contains(e.target)) hideCtx();
   });
 
-  const saved = ST.gid && S.groups?.[ST.gid];
-  if (saved) {
+  if (ST.gid && ST.classes[ST.gid]) {
     document.getElementById('grp-sel').value = ST.gid;
     loadGroup(ST.gid);
   } else {
-    const first = Object.keys(S.groups||{})[0];
+    const first = Object.keys(ST.classes)[0];
     if (first) { document.getElementById('grp-sel').value=first; loadGroup(first); }
+    else renderEmpty();
   }
 }
 
-function loadMain() {
-  try { S = JSON.parse(localStorage.getItem('sportgrade_v6')||'{}'); } catch(e) { S={}; }
-  if (!S.groups) S.groups = {};
-}
-
-function loadSeating() {
+function loadState() {
   try {
     const d = JSON.parse(localStorage.getItem('sg_seating_v1')||'{}');
-    ST.gid      = d.gid||null;
-    ST.classroom= d.classroom||makeGenericClass();
-    ST.sessions = d.sessions||{};
-    ST.settings = {...ST.settings,...(d.settings||{})};
+    ST.gid       = d.gid||null;
+    ST.classes   = d.classes||{};
+    ST.nextCid   = d.nextCid||1;
+    ST.classroom = d.classroom||makeGenericClass();
+    ST.sessions  = d.sessions||{};
+    ST.settings  = {...ST.settings,...(d.settings||{})};
   } catch(e) { ST.classroom=makeGenericClass(); }
 }
 
-function saveSeating() { localStorage.setItem('sg_seating_v1',JSON.stringify(ST)); }
+function saveState() { localStorage.setItem('sg_seating_v1',JSON.stringify(ST)); }
+
+function renderEmpty() {
+  document.getElementById('class-rows').innerHTML=
+    '<div class="empty-state"><h3>אין כיתות</h3><p>לחץ ＋ כדי להוסיף כיתה חדשה</p></div>';
+  document.getElementById('wait-grid').innerHTML=
+    '<div class="empty-state"><p>צור כיתה ראשונה</p></div>';
+  renderStats();
+}
+
+// ════════════════════════════════════════════════════════════
+// ניהול כיתות
+// ════════════════════════════════════════════════════════════
+
+function openAddClass() {
+  document.getElementById('add-cls-name').value='';
+  document.getElementById('modal-add-cls').classList.add('open');
+  setTimeout(()=>document.getElementById('add-cls-name').focus(),80);
+}
+
+function confirmAddClass() {
+  const name=document.getElementById('add-cls-name').value.trim();
+  if(!name){alert('הכנס שם לכיתה.');return;}
+  const cid=String(ST.nextCid++);
+  ST.classes[cid]={name,students:[]};
+  saveState();
+  fillGroupSel();
+  closeModal('modal-add-cls');
+  document.getElementById('grp-sel').value=cid;
+  loadGroup(cid);
+}
+
+function openRenameClass() {
+  if(!ST.gid){alert('בחר כיתה תחילה.');return;}
+  document.getElementById('rename-cls-name').value=ST.classes[ST.gid]?.name||'';
+  document.getElementById('modal-rename-cls').classList.add('open');
+  setTimeout(()=>document.getElementById('rename-cls-name').focus(),80);
+}
+
+function confirmRenameClass() {
+  if(!ST.gid) return;
+  const name=document.getElementById('rename-cls-name').value.trim();
+  if(!name){alert('הכנס שם.');return;}
+  ST.classes[ST.gid].name=name;
+  saveState(); fillGroupSel();
+  document.getElementById('grp-sel').value=ST.gid;
+  closeModal('modal-rename-cls');
+}
+
+function deleteClass() {
+  if(!ST.gid){alert('בחר כיתה תחילה.');return;}
+  if(!confirm(`למחוק את הכיתה "${ST.classes[ST.gid]?.name}"?\nכל התלמידים והשיבוצים יימחקו.`)) return;
+  delete ST.classes[ST.gid];
+  delete ST.sessions[ST.gid];
+  ST.gid=null; saveState(); fillGroupSel();
+  const first=Object.keys(ST.classes)[0];
+  if(first){document.getElementById('grp-sel').value=first;loadGroup(first);}
+  else{document.getElementById('grp-sel').value='';renderEmpty();}
+}
 
 // ════════════════════════════════════════════════════════════
 // פריסת כיתה
@@ -508,7 +609,7 @@ function makeGenericClass() {
 function applyLayout(val) {
   if(val==='generic'){
     if(!confirm('לטעון מחדש את מבנה הכיתה הרגיל?\nהשיבוצים הנוכחיים יישמרו.')) return;
-    pushUndo(); ST.classroom=makeGenericClass(); saveSeating(); renderClass();
+    pushUndo(); ST.classroom=makeGenericClass(); saveState(); renderClass();
   }
 }
 
@@ -528,21 +629,21 @@ function addRow() {
   pushUndo();
   const{mR,mC}=dims(); const nr=mR+1,n=ST.classroom.next;
   for(let c=0;c<=mC;c++) ST.classroom.seats.push({id:`s${n+c}`,row:nr,col:c});
-  ST.classroom.next+=mC+1; saveSeating(); renderClass();
+  ST.classroom.next+=mC+1; saveState(); renderClass();
 }
 
 function addCol() {
   pushUndo();
   const{mR,mC}=dims(); const nc=mC+1,n=ST.classroom.next;
   for(let r=0;r<=mR;r++) ST.classroom.seats.push({id:`s${n+r}`,row:r,col:nc});
-  ST.classroom.next+=mR+1; saveSeating(); renderClass();
+  ST.classroom.next+=mR+1; saveState(); renderClass();
 }
 
 function delSeat(id) {
   pushUndo();
   ST.classroom.seats=ST.classroom.seats.filter(s=>s.id!==id);
   delete curSess().assignments[id];
-  saveSeating(); renderClass(); renderWait();
+  saveState(); renderClass(); renderWait();
 }
 
 function delRow(row) {
@@ -552,7 +653,7 @@ function delRow(row) {
   for(const s of ST.classroom.seats) if(s.row>row) s.row--;
   const sess=curSess();
   toDelete.forEach(id=>delete sess.assignments[id]);
-  saveSeating(); renderClass(); renderWait();
+  saveState(); renderClass(); renderWait();
 }
 
 // ════════════════════════════════════════════════════════════
@@ -569,14 +670,14 @@ function clearAssign() {
   if(!confirm('לנקות את כל השיבוצים?\nהתלמידים יחזרו לאזור ההמתנה.')) return;
   pushUndo(); const sess=curSess();
   sess.assignments={}; sess.pinned=[];
-  saveSeating(); renderClass(); renderWait();
+  saveState(); renderClass(); renderWait();
 }
 
 // ════════════════════════════════════════════════════════════
 // תלמידים
 // ════════════════════════════════════════════════════════════
 
-function getStudents() { return(ST.gid&&S.groups?.[ST.gid]?.students)||[]; }
+function getStudents() { return(ST.gid&&ST.classes[ST.gid]?.students)||[]; }
 
 function waitingIdxs() {
   const sess=curSess();
@@ -584,7 +685,6 @@ function waitingIdxs() {
   return getStudents().map((_,i)=>i).filter(i=>!assigned.has(i));
 }
 
-// קיצור חכם לכרטיסי המתנה
 function shortName(idx,students) {
   const s=students[idx]; if(!s) return'?';
   const p=s.name.trim().split(/\s+/);
@@ -600,37 +700,21 @@ function shortName(idx,students) {
   return sameM.length===1?mid:s.name;
 }
 
-// סטטיסטיקות מושבים
 function seatStats() {
   const totalSeats=ST.classroom.seats.length;
   const totalStudents=getStudents().length;
   const pairs=Math.floor(totalSeats/2);
   const assigned=Object.keys(curSess().assignments).length;
-  const alone=Math.max(0,totalSeats-totalStudents); // מושבים פנויים = יכולים לשבת לבד
+  const alone=Math.max(0,totalSeats-totalStudents);
   const overflow=totalStudents-totalSeats;
   return{totalSeats,totalStudents,pairs,assigned,alone,overflow};
 }
 
-// ציון יחסי לתלמיד (0-100)
-function avgRank(idx) {
-  if(!ST.gid||!S.groups?.[ST.gid]) return 0;
-  const students=getStudents();
-  const results=S.groups[ST.gid].results||{};
-  const LIB=new Set(['run40','run400','run800','run1000','run1500','run2000','run3000','shuttle']);
-  let tot=0,cnt=0;
-  for(const tid in results){
-    const all=results[tid];
-    const vals=students.map((_,i)=>{const r=all[i];if(!r)return null;const v=r.a!=null?r.a:r.b;return(v!=null&&!isNaN(v))?Number(v):null;}).filter(v=>v!=null);
-    if(vals.length<2) continue;
-    const mine=all[idx]; if(!mine) continue;
-    const mv=mine.a!=null?mine.a:mine.b;
-    if(mv==null||isNaN(mv)) continue;
-    const mv2=Number(mv);
-    const isLib=LIB.has(tid);
-    const below=vals.filter(v=>isLib?(v>mv2):(v<mv2)).length;
-    tot+=(below/(vals.length-1))*100; cnt++;
-  }
-  return cnt>0?tot/cnt:50;
+// ציון לפי רמה (1-3) → 0-100
+function stuScore(idx) {
+  const s=getStudents()[idx];
+  if(!s) return 50;
+  return((Number(s.level)||2)-1)*50; // 1→0, 2→50, 3→100
 }
 
 // ════════════════════════════════════════════════════════════
@@ -643,17 +727,23 @@ function buildWarnings() {
   const warnings={}; const{mR,mC}=dims(); const sm=seatMap();
   for(let r=0;r<=mR;r++){
     const rowSeats=[];
-    for(let c=0;c<=mC;c++){const seat=sm[`${r},${c}`];if(!seat)continue;rowSeats.push({seat,idx:sess.assignments[seat.id],gender:sess.assignments[seat.id]!=null?students[sess.assignments[seat.id]]?.gender:null});}
+    for(let c=0;c<=mC;c++){
+      const seat=sm[`${r},${c}`]; if(!seat) continue;
+      rowSeats.push({seat,idx:sess.assignments[seat.id],gender:sess.assignments[seat.id]!=null?students[sess.assignments[seat.id]]?.gender:null});
+    }
     let run=1;
     for(let i=1;i<rowSeats.length;i++){
       const g=rowSeats[i].gender,pg=rowSeats[i-1].gender;
-      if(g&&pg&&g===pg){run++;if(run>=3){if(!warnings[rowSeats[i].seat.id])warnings[rowSeats[i].seat.id]=[];warnings[rowSeats[i].seat.id].push('3+ באותו מין ברצף');}}else run=1;
+      if(g&&pg&&g===pg){run++;if(run>=3){if(!warnings[rowSeats[i].seat.id])warnings[rowSeats[i].seat.id]=[];warnings[rowSeats[i].seat.id].push('3+ באותו מין ברצף');}}
+      else run=1;
     }
   }
   if(mR>=3){
-    const scores=students.map((_,i)=>({i,sc:avgRank(i)})).sort((a,b)=>b.sc-a.sc);
-    const top=new Set(scores.slice(0,Math.ceil(students.length/4)).map(x=>x.i));
-    for(const seat of ST.classroom.seats){const idx=sess.assignments[seat.id];if(idx==null)continue;if(top.has(idx)&&seat.row>=mR-1){if(!warnings[seat.id])warnings[seat.id]=[];warnings[seat.id].push('מצטיין/ת בשורות אחרונות');}}
+    const highLevel=new Set(students.map((s,i)=>({i,l:Number(s.level)||2})).filter(x=>x.l===3).map(x=>x.i));
+    for(const seat of ST.classroom.seats){
+      const idx=sess.assignments[seat.id]; if(idx==null) continue;
+      if(highLevel.has(idx)&&seat.row>=mR-1){if(!warnings[seat.id])warnings[seat.id]=[];warnings[seat.id].push('תלמיד חזק בשורות אחרונות');}
+    }
   }
   return warnings;
 }
@@ -664,7 +754,7 @@ function buildWarnings() {
 
 function aiArrange() {
   const students=getStudents();
-  if(!students.length){alert('אין תלמידים בקבוצה זו.');return;}
+  if(!students.length){alert('אין תלמידים בכיתה זו.');return;}
   const sess=curSess(); pushUndo();
   const pinnedEntries={},pinnedSeatIds=new Set(),pinnedIdxs=new Set(sess.pinned);
   for(const[sid,idx] of Object.entries(sess.assignments)){if(pinnedIdxs.has(idx)){pinnedEntries[sid]=idx;pinnedSeatIds.add(sid);}}
@@ -672,11 +762,11 @@ function aiArrange() {
   const freeSeats=ST.classroom.seats.filter(s=>!pinnedSeatIds.has(s.id)).sort((a,b)=>a.row-b.row||a.col-b.col);
   if(!freeIdxs.length){alert('כל התלמידים נעוצים.');_undo.pop();updateUndoBtns();return;}
   const cfg=ST.settings;
-  const scored=freeIdxs.map(i=>({i,sc:avgRank(i),g:students[i]?.gender||'m',cls:students[i]?.cls||''}));
+  const scored=freeIdxs.map(i=>({i,sc:stuScore(i),g:students[i]?.gender||'m'}));
   let arranged=[];
   if(cfg.aiGender){
-    const males=mixScore(scored.filter(x=>x.g==='m'));
-    const females=mixScore(scored.filter(x=>x.g==='f'));
+    const males=cfg.aiMix?mixScore(scored.filter(x=>x.g==='m')):scored.filter(x=>x.g==='m');
+    const females=cfg.aiMix?mixScore(scored.filter(x=>x.g==='f')):scored.filter(x=>x.g==='f');
     const bySeat=[];
     for(const seat of freeSeats){
       const wantMale=(seat.col%2===0);
@@ -692,7 +782,7 @@ function aiArrange() {
   }
   sess.assignments={...pinnedEntries};
   freeSeats.forEach((seat,k)=>{if(k<arranged.length)sess.assignments[seat.id]=arranged[k].i;});
-  saveSeating(); renderClass(); renderWait();
+  saveState(); renderClass(); renderWait();
 }
 
 function mixScore(arr) {
@@ -708,25 +798,25 @@ function mixScore(arr) {
 // ════════════════════════════════════════════════════════════
 
 function pushUndo() {
-  _undo.push(JSON.stringify({cl:ST.classroom,se:ST.sessions}));
+  _undo.push(JSON.stringify({cl:ST.classroom,se:ST.sessions,cls:ST.classes}));
   if(_undo.length>MAX_UNDO) _undo.shift();
   _redo=[]; updateUndoBtns();
 }
 
 function doUndo() {
   if(!_undo.length) return;
-  _redo.push(JSON.stringify({cl:ST.classroom,se:ST.sessions}));
+  _redo.push(JSON.stringify({cl:ST.classroom,se:ST.sessions,cls:ST.classes}));
   const d=JSON.parse(_undo.pop());
-  ST.classroom=d.cl; ST.sessions=d.se;
-  saveSeating(); renderClass(); renderWait(); updateUndoBtns();
+  ST.classroom=d.cl; ST.sessions=d.se; ST.classes=d.cls;
+  saveState(); fillGroupSel(); renderClass(); renderWait(); updateUndoBtns();
 }
 
 function doRedo() {
   if(!_redo.length) return;
-  _undo.push(JSON.stringify({cl:ST.classroom,se:ST.sessions}));
+  _undo.push(JSON.stringify({cl:ST.classroom,se:ST.sessions,cls:ST.classes}));
   const d=JSON.parse(_redo.pop());
-  ST.classroom=d.cl; ST.sessions=d.se;
-  saveSeating(); renderClass(); renderWait(); updateUndoBtns();
+  ST.classroom=d.cl; ST.sessions=d.se; ST.classes=d.cls;
+  saveState(); fillGroupSel(); renderClass(); renderWait(); updateUndoBtns();
 }
 
 function updateUndoBtns() {
@@ -756,56 +846,40 @@ function renderClass() {
   for(let r=0;r<=mR;r++){
     const rowDiv=document.createElement('div');
     rowDiv.className='class-row';
-
     for(let c=0;c<=mC;c++){
       if(c>0&&c%2===0){const gap=document.createElement('div');gap.className='pair-gap';rowDiv.appendChild(gap);}
-
       const seat=sm[`${r},${c}`];
       if(!seat){const ph=document.createElement('div');ph.className='seat-placeholder';rowDiv.appendChild(ph);continue;}
-
       const idx=sess.assignments[seat.id];
       const stu=idx!=null?students[idx]:null;
       const pinned=idx!=null&&sess.pinned.includes(idx);
       const warn=warnings[seat.id];
-      const hasWarn=warn&&warn.length>0;
-
       const div=document.createElement('div');
       div.className='seat';
       div.dataset.sid=seat.id;
       div.dataset.row=r;
-
       if(stu){
         div.classList.add('occupied',stu.gender==='f'?'female':'male');
-
-        // פינד
         if(pinned){const pb=document.createElement('div');pb.className='pin-badge';pb.textContent='📌';div.appendChild(pb);}
-
-        // אזהרה
-        if(hasWarn&&ST.settings.showWarn){
+        if(warn?.length&&ST.settings.showWarn){
           const wb=document.createElement('div');wb.className='warn-badge';wb.textContent='⚠';
           wb.title=warn.join('\n');wb.onclick=e=>{e.stopPropagation();alert(warn.join('\n'));};
           div.appendChild(wb);
         }
-
-        // שם: פרטי בשורה 1, משפחה בשורה 2
         const parts=stu.name.trim().split(/\s+/);
         const fnEl=document.createElement('span');fnEl.className='seat-fn';fnEl.textContent=parts[0];div.appendChild(fnEl);
-        if(parts.length>1){
-          const lnEl=document.createElement('span');lnEl.className='seat-ln';lnEl.textContent=parts.slice(1).join(' ');div.appendChild(lnEl);
-        }
-        if(ST.settings.showScore){
-          const scEl=document.createElement('span');scEl.className='seat-ln';scEl.textContent=`${Math.round(avgRank(idx))}%`;div.appendChild(scEl);
+        if(parts.length>1){const lnEl=document.createElement('span');lnEl.className='seat-ln';lnEl.textContent=parts.slice(1).join(' ');div.appendChild(lnEl);}
+        if(ST.settings.showLevel){
+          const lvl=['','חלש','בינ','חזק'][Number(stu.level)||2];
+          const lEl=document.createElement('span');lEl.className='seat-ln';lEl.textContent=lvl;div.appendChild(lEl);
         }
       } else {
         const plus=document.createElement('span');plus.className='seat-plus';plus.textContent='+';div.appendChild(plus);
       }
-
       if(_selSeat===seat.id) div.classList.add('sel-target');
       if(_selChip?.src==='seat'&&_selChip?.seatId===seat.id) div.classList.add('sel-student');
-
-      // אירועים
-      div.onclick    =e=>onSeatClick(seat.id,e);
-      div.ondblclick =e=>{ e.preventDefault(); onSeatDbl(seat.id); };
+      div.onclick     =e=>onSeatClick(seat.id,e);
+      div.ondblclick  =e=>{ e.preventDefault(); onSeatDbl(seat.id); };
       div.oncontextmenu=e=>onSeatCtx(seat.id,r,e);
       if(stu){ div.draggable=true; div.ondragstart=e=>onSeatDragStart(seat.id,idx,e); }
       div.ondragover =e=>{ e.preventDefault(); div.classList.add('drop-over'); };
@@ -814,51 +888,36 @@ function renderClass() {
       div._lp=null;
       div.ontouchstart=()=>{div._lp=setTimeout(()=>togglePin(sess,idx,seat.id),600);};
       div.ontouchend  =()=>clearTimeout(div._lp);
-
       rowDiv.appendChild(div);
     }
     el.appendChild(rowDiv);
   }
-
   renderStats();
   updateSelHint();
 }
 
 // ════════════════════════════════════════════════════════════
-// רינדור סטטיסטיקות
+// סטטיסטיקות
 // ════════════════════════════════════════════════════════════
 
 function renderStats() {
   const st=seatStats();
-
-  // פאנל צד
   const sideEl=document.getElementById('side-stats');
   if(sideEl) sideEl.innerHTML=
-    `<b>${st.pairs}</b> שולחנות &nbsp;·&nbsp; <b>${st.totalSeats}</b> מושבים` +
+    `<b>${st.pairs}</b> שולחנות &nbsp;·&nbsp; <b>${st.totalSeats}</b> מושבים`+
     (st.totalStudents&&st.alone>0?` &nbsp;·&nbsp; <b>${st.alone}</b> יכולים לשבת לבד`:'');
-
-  // אזהרת עודף
   const owEl=document.getElementById('overflow-warn');
   if(owEl){
-    if(st.overflow>0){
-      owEl.style.display='';
-      owEl.textContent=`⚠️ ${st.overflow} תלמידים ללא מקום!`;
-    } else {
-      owEl.style.display='none';
-    }
+    if(st.overflow>0){owEl.style.display='';owEl.textContent=`⚠️ ${st.overflow} תלמידים ללא מקום!`;}
+    else owEl.style.display='none';
   }
-
-  // סטטיסטיקות אזור הכיתה
   const clEl=document.getElementById('class-stats');
   if(clEl){
     let html=`<span class="stat-chip">${st.pairs} שולחנות</span>`;
     html+=`<span class="stat-chip">${st.totalSeats} מושבים</span>`;
     html+=`<span class="stat-chip">${st.totalStudents} תלמידים</span>`;
-    if(st.overflow>0){
-      html+=`<span class="stat-chip warn">⚠️ חסרים ${st.overflow} מקומות!</span>`;
-    } else if(st.totalStudents>0&&st.alone>0){
-      html+=`<span class="stat-chip ok">${st.alone} יכולים לשבת לבד</span>`;
-    }
+    if(st.overflow>0) html+=`<span class="stat-chip warn">⚠️ חסרים ${st.overflow} מקומות!</span>`;
+    else if(st.totalStudents>0&&st.alone>0) html+=`<span class="stat-chip ok">${st.alone} יכולים לשבת לבד</span>`;
     clEl.innerHTML=html;
   }
 }
@@ -872,13 +931,10 @@ function renderWait() {
   const cnt=document.getElementById('wait-count');
   const students=getStudents();
   const waiting=waitingIdxs();
-
   cnt.textContent=`${waiting.length}/${students.length}`;
   renderStats();
-
-  if(!students.length){grid.innerHTML='<div class="empty-state"><p>בחר קבוצה</p></div>';return;}
+  if(!students.length){grid.innerHTML='<div class="empty-state"><p>הוסף תלמידים לכיתה</p></div>';return;}
   if(!waiting.length){grid.innerHTML='<div style="text-align:center;padding:16px;font-size:12px;color:var(--ink3);">✓ כולם שובצו</div>';return;}
-
   grid.innerHTML='';
   for(const idx of waiting){
     const s=students[idx];
@@ -888,15 +944,12 @@ function renderWait() {
     chip.textContent=shortName(idx,students);
     chip.title=`${s.name} (לחיצה כפולה לעריכה)`;
     chip.draggable=true;
-
     if(_selChip?.src==='wait'&&_selChip?.idx===idx) chip.classList.add('sel');
     if(_selDel===idx) chip.classList.add('sel');
-
-    chip.onclick     =()=>onChipClick(idx);
-    chip.ondblclick  =e=>{ e.preventDefault(); e.stopPropagation(); openEditStudent(idx); };
-    chip.ondragstart =e=>onChipDragStart(idx,e,chip);
+    chip.onclick      =()=>onChipClick(idx);
+    chip.ondblclick   =e=>{ e.preventDefault(); e.stopPropagation(); openEditStudent(idx); };
+    chip.ondragstart  =e=>onChipDragStart(idx,e,chip);
     chip.oncontextmenu=e=>{ e.preventDefault(); onChipCtx(idx,e); };
-
     grid.appendChild(chip);
   }
 }
@@ -917,25 +970,18 @@ function onSeatClick(seatId,e) {
   e.stopPropagation();
   const sess=curSess();
   const idx=sess.assignments[seatId];
-
   if(_selChip){
     if(_selChip.src==='seat'){
       if(_selChip.seatId===seatId){clearSel();return;}
-      // לחיצה על תלמיד שיושב → לחיצה על תלמיד אחר שיושב = החלפה
       swapSeats(_selChip.seatId,seatId);
     } else {
       assignTo(seatId,_selChip.idx);
     }
     clearSel(); return;
   }
-
   if(_selSeat===seatId){clearSel();return;}
-
-  if(idx!=null){
-    _selChip={src:'seat',idx,seatId}; _selSeat=null;
-  } else {
-    _selSeat=seatId; _selChip=null;
-  }
+  if(idx!=null){_selChip={src:'seat',idx,seatId}; _selSeat=null;}
+  else{_selSeat=seatId; _selChip=null;}
   renderClass(); renderWait(); updateSelHint();
 }
 
@@ -943,7 +989,7 @@ function onSeatDbl(seatId) {
   const sess=curSess();
   if(sess.assignments[seatId]!=null){
     pushUndo(); delete sess.assignments[seatId];
-    clearSel(); saveSeating(); renderClass(); renderWait();
+    clearSel(); saveState(); renderClass(); renderWait();
   }
 }
 
@@ -952,7 +998,7 @@ function assignTo(seatId,idx) {
   for(const[sid,i] of Object.entries(sess.assignments)) if(i===idx){delete sess.assignments[sid];break;}
   delete sess.assignments[seatId];
   sess.assignments[seatId]=idx;
-  saveSeating(); renderClass(); renderWait();
+  saveState(); renderClass(); renderWait();
 }
 
 function swapSeats(a,b) {
@@ -960,7 +1006,7 @@ function swapSeats(a,b) {
   const ai=sess.assignments[a],bi=sess.assignments[b];
   if(bi!=null) sess.assignments[a]=bi; else delete sess.assignments[a];
   if(ai!=null) sess.assignments[b]=ai; else delete sess.assignments[b];
-  saveSeating(); renderClass(); renderWait();
+  saveState(); renderClass(); renderWait();
 }
 
 function clearSel() {
@@ -971,9 +1017,8 @@ function clearSel() {
 function updateSelHint() {
   const h=document.getElementById('sel-hint');
   if(_selChip){
-    const students=getStudents();
-    const name=_selChip.idx!=null?students[_selChip.idx]?.name:'';
-    h.textContent=`נבחר: ${name} — לחץ על מקום ישיבה לשיבוץ (או על תלמיד אחר להחלפה) | Esc לביטול`;
+    const name=getStudents()[_selChip.idx]?.name||'';
+    h.textContent=`נבחר: ${name} — לחץ על מקום לשיבוץ (או תלמיד אחר להחלפה) | Esc לביטול`;
     h.classList.add('visible');
   } else if(_selSeat){
     h.textContent='מקום נבחר — לחץ על תלמיד לשיבוץ | Esc לביטול';
@@ -1010,11 +1055,11 @@ function onDropSeat(seatId) {
 document.addEventListener('DOMContentLoaded',()=>{
   const wb=document.getElementById('wait-body');
   wb.ondragover=e=>e.preventDefault();
-  wb.ondrop=e=>{ e.preventDefault(); if(_dragFrom){onSeatDbl(_dragFrom);} _dragIdx=null; _dragFrom=null; };
+  wb.ondrop=e=>{ e.preventDefault(); if(_dragFrom) onSeatDbl(_dragFrom); _dragIdx=null; _dragFrom=null; };
 });
 
 // ════════════════════════════════════════════════════════════
-// תפריט הקשר — מושב
+// תפריט הקשר
 // ════════════════════════════════════════════════════════════
 
 function onSeatCtx(seatId,row,e) {
@@ -1034,7 +1079,6 @@ function onSeatCtx(seatId,row,e) {
   showCtx(e.clientX,e.clientY);
 }
 
-// תפריט הקשר — כרטיס המתנה
 function onChipCtx(idx,e) {
   _ctx={type:'chip',idx};
   document.getElementById('ctx-pin').style.display       = 'none';
@@ -1046,30 +1090,18 @@ function onChipCtx(idx,e) {
   showCtx(e.clientX,e.clientY);
 }
 
-function ctxPin() {
-  if(!_ctx||_ctx.idx==null) return;
-  togglePin(curSess(),_ctx.idx,_ctx.seatId); hideCtx();
-}
+function ctxPin()      { if(!_ctx||_ctx.idx==null) return; togglePin(curSess(),_ctx.idx,_ctx.seatId); hideCtx(); }
 function ctxUnassign() { if(_ctx) onSeatDbl(_ctx.seatId); hideCtx(); }
 function ctxDelSeat()  { if(_ctx?.seatId) delSeat(_ctx.seatId); hideCtx(); }
 function ctxDelRow()   { if(_ctx?.row!=null) delRow(_ctx.row); hideCtx(); }
-function ctxEditStu()  {
-  const idx=_ctx?.idx??_ctx?.idx;
-  if(_ctx?.type==='chip') openEditStudent(_ctx.idx);
-  else if(_ctx?.idx!=null) openEditStudent(_ctx.idx);
-  hideCtx();
-}
-function ctxDelStu()   {
-  if(_ctx?.idx==null) return;
-  _selDel=_ctx.idx; document.getElementById('del-btn').disabled=false;
-  hideCtx(); deleteSelStudent();
-}
+function ctxEditStu()  { if(_ctx?.idx!=null) openEditStudent(_ctx.idx); hideCtx(); }
+function ctxDelStu()   { if(_ctx?.idx==null) return; _selDel=_ctx.idx; document.getElementById('del-btn').disabled=false; hideCtx(); deleteSelStudent(); }
 
 function togglePin(sess,idx,seatId) {
   if(idx==null) return;
   const i=sess.pinned.indexOf(idx);
   if(i===-1) sess.pinned.push(idx); else sess.pinned.splice(i,1);
-  saveSeating(); renderClass();
+  saveState(); renderClass();
 }
 
 function showCtx(x,y) {
@@ -1088,9 +1120,10 @@ function hideCtx() { document.getElementById('ctx').classList.remove('open'); _c
 // ════════════════════════════════════════════════════════════
 
 function openAddStudent() {
-  if(!ST.gid){alert('בחר קבוצה תחילה.');return;}
+  if(!ST.gid){alert('בחר כיתה תחילה.');return;}
   document.getElementById('add-name').value='';
   document.querySelector('input[name="add-gender"][value="m"]').checked=true;
+  document.querySelector('input[name="add-level"][value="2"]').checked=true;
   document.getElementById('modal-add').classList.add('open');
   setTimeout(()=>document.getElementById('add-name').focus(),80);
 }
@@ -1099,10 +1132,10 @@ function confirmAdd() {
   const name=document.getElementById('add-name').value.trim();
   if(!name){alert('אנא הכנס שם.');return;}
   const gender=document.querySelector('input[name="add-gender"]:checked')?.value||'m';
+  const level=Number(document.querySelector('input[name="add-level"]:checked')?.value||2);
   pushUndo();
-  S.groups[ST.gid].students.push({name,gender,grade:'',cls:''});
-  localStorage.setItem('sportgrade_v6',JSON.stringify(S));
-  closeModal('modal-add'); renderWait(); renderStats();
+  ST.classes[ST.gid].students.push({name,gender,level});
+  saveState(); closeModal('modal-add'); renderWait(); renderStats();
 }
 
 function openEditStudent(idx) {
@@ -1111,6 +1144,8 @@ function openEditStudent(idx) {
   document.getElementById('edit-name').value=s.name;
   const gv=s.gender==='f'?'f':'m';
   document.querySelector(`input[name="edit-gender"][value="${gv}"]`).checked=true;
+  const lv=String(Number(s.level)||2);
+  document.querySelector(`input[name="edit-level"][value="${lv}"]`).checked=true;
   document.getElementById('modal-edit').classList.add('open');
   setTimeout(()=>document.getElementById('edit-name').focus(),80);
 }
@@ -1120,11 +1155,12 @@ function confirmEdit() {
   const name=document.getElementById('edit-name').value.trim();
   if(!name){alert('אנא הכנס שם.');return;}
   const gender=document.querySelector('input[name="edit-gender"]:checked')?.value||'m';
+  const level=Number(document.querySelector('input[name="edit-level"]:checked')?.value||2);
   const students=getStudents();
   students[_editIdx].name=name;
   students[_editIdx].gender=gender;
-  localStorage.setItem('sportgrade_v6',JSON.stringify(S));
-  _editIdx=null;
+  students[_editIdx].level=level;
+  saveState(); _editIdx=null;
   closeModal('modal-edit'); renderClass(); renderWait();
 }
 
@@ -1132,8 +1168,8 @@ function deleteSelStudent() {
   if(_selDel==null) return;
   const students=getStudents(); const s=students[_selDel];
   if(!confirm(`למחוק את ${s?.name}?\nפעולה זו אינה ניתנת לביטול.`)) return;
-  pushUndo(); const gid=ST.gid;
-  S.groups[gid].students.splice(_selDel,1);
+  pushUndo();
+  ST.classes[ST.gid].students.splice(_selDel,1);
   const sess=curSess(); const newA={};
   for(const[sid,i] of Object.entries(sess.assignments)){
     if(i===_selDel) continue;
@@ -1143,8 +1179,7 @@ function deleteSelStudent() {
   sess.pinned=sess.pinned.filter(i=>i!==_selDel).map(i=>i>_selDel?i-1:i);
   _selDel=null;
   document.getElementById('del-btn').disabled=true;
-  localStorage.setItem('sportgrade_v6',JSON.stringify(S));
-  saveSeating(); renderClass(); renderWait();
+  saveState(); renderClass(); renderWait();
 }
 
 // ════════════════════════════════════════════════════════════
@@ -1153,15 +1188,18 @@ function deleteSelStudent() {
 
 function fillGroupSel() {
   const sel=document.getElementById('grp-sel');
-  sel.innerHTML='<option value="">— בחר קבוצה —</option>';
-  for(const gid in(S.groups||{})){
+  sel.innerHTML='<option value="">— בחר כיתה —</option>';
+  for(const cid in(ST.classes||{})){
     const o=document.createElement('option');
-    o.value=gid; o.textContent=S.groups[gid].name; sel.appendChild(o);
+    o.value=cid; o.textContent=ST.classes[cid].name; sel.appendChild(o);
   }
+  const hasClass=Object.keys(ST.classes).length>0;
+  document.getElementById('rename-cls-btn').disabled=!hasClass;
+  document.getElementById('del-cls-btn').disabled=!hasClass;
 }
 
 function loadGroup(gid) {
-  ST.gid=gid||null; clearSel(); saveSeating();
+  ST.gid=gid||null; clearSel(); saveState();
   renderClass(); renderWait();
 }
 
@@ -1185,20 +1223,18 @@ function applySettingsUI() {
   const s=ST.settings;
   document.getElementById('ai-gender').checked=s.aiGender;
   document.getElementById('ai-mix').checked=s.aiMix;
-  document.getElementById('ai-cls').checked=s.aiCls;
   document.getElementById('show-warn').checked=s.showWarn;
-  document.getElementById('show-score').checked=s.showScore;
+  document.getElementById('show-level').checked=s.showLevel;
 }
 
 function saveSettings() {
   ST.settings={
     aiGender:document.getElementById('ai-gender').checked,
     aiMix:document.getElementById('ai-mix').checked,
-    aiCls:document.getElementById('ai-cls').checked,
     showWarn:document.getElementById('show-warn').checked,
-    showScore:document.getElementById('show-score').checked,
+    showLevel:document.getElementById('show-level').checked,
   };
-  saveSeating();
+  saveState();
 }
 
 // ════════════════════════════════════════════════════════════
@@ -1206,7 +1242,7 @@ function saveSettings() {
 // ════════════════════════════════════════════════════════════
 
 function applyTheme() {
-  const t=localStorage.getItem('sg_theme')||'light';
+  const t=localStorage.getItem('sg_theme_seat')||'light';
   document.documentElement.setAttribute('data-theme',t);
 }
 
@@ -1214,7 +1250,7 @@ function toggleTheme() {
   const d=document.documentElement;
   const was=d.getAttribute('data-theme')==='dark';
   d.setAttribute('data-theme',was?'light':'dark');
-  localStorage.setItem('sg_theme',was?'light':'dark');
+  localStorage.setItem('sg_theme_seat',was?'light':'dark');
 }
 
 // ════════════════════════════════════════════════════════════
@@ -1223,7 +1259,7 @@ function toggleTheme() {
 
 function exportSeating() {
   const students=getStudents();const sess=curSess();const{mR,mC}=dims();const sm=seatMap();
-  let txt=`סידור מקומות ישיבה — ${S.groups?.[ST.gid]?.name||''}\n`;
+  let txt=`סידור מקומות ישיבה — ${ST.classes?.[ST.gid]?.name||''}\n`;
   txt+=`תאריך: ${new Date().toLocaleDateString('he-IL')}\n\n`;
   for(let r=0;r<=mR;r++){
     txt+=`שורה ${r+1}: `;
