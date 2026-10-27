@@ -3149,6 +3149,15 @@ function _parseRoute(){
 async function restoreRoute(){
   function _done(){document.documentElement.removeAttribute('data-restoring');}
   let r=_parseRoute();
+  // A minimized test can outlive navigation to a different group/test.
+  // Restore its own saved context, resolving cloud IDs before local indexes.
+  try{
+    const live=JSON.parse(localStorage.getItem('sg_live_v1')||'null');
+    if(live?.version===2&&live.user===SG_USER?.id){
+      const gid=live.sbId?Object.keys(S.groups).find(id=>S.groups[id]._sbId===live.sbId):live.gid;
+      if(S.groups[gid])r={gid,test:live.test,semester:live.semester};
+    }
+  }catch(e){}
   if(!r){_done();return;}
   if(!S.groups||!S.groups[r.gid]){
     history.replaceState(null,'',location.pathname+location.search);
@@ -5072,10 +5081,12 @@ async function readMashovWorkbook(arrBuf){
 //   - matched: entries matched by idHash (already protected)
 //   - attached: entries matched by name (legacy student → hash attached now)
 //   - dropped: entries from master file that don't belong to this group (ignored)
-async function importMashovIntoGroup(arrBuf, gid){
+async function importMashovIntoGroup(arrBuf, gid, persist=true){
   const data=await readMashovWorkbook(arrBuf);
-  const g=S.groups[gid];
-  if(!g) throw new Error('קבוצה לא נמצאה');
+  const originalGroup=S.groups[gid];
+  if(!originalGroup) throw new Error('קבוצה לא נמצאה');
+  // Exports match against a copy: refreshing IDs/names must not mutate stored data.
+  const g=persist?originalGroup:{...originalGroup,students:(originalGroup.students||[]).map(s=>({...s}))};
   if(!Array.isArray(g.students)) g.students=[];
 
   // Build hash → idx map of current students
@@ -5112,7 +5123,7 @@ async function importMashovIntoGroup(arrBuf, gid){
       continue;
     }
     // Update local idMap only for matched students
-    setIdMapEntry(gid, e.idHash, { name:e.name, id:e.id });
+    if(persist)setIdMapEntry(gid, e.idHash, { name:e.name, id:e.id });
     matches.push({ entry:e, studentIdx });
   }
 
@@ -5147,7 +5158,7 @@ function _finalScoreForStudent(g, studentIdx, testId, semester){
 // belong to this group are silently dropped from the output (and never added to the app's data).
 async function exportMashov(arrBuf, originalFileName, gid, testId, semester){
   // 1) Match master against this group (no new students are added)
-  const summary=await importMashovIntoGroup(arrBuf, gid);
+  const summary=await importMashovIntoGroup(arrBuf, gid, false);
   const g=S.groups[gid];
   const data=summary.data;
   const struct=data.struct;
@@ -5193,6 +5204,8 @@ async function exportMashov(arrBuf, originalFileName, gid, testId, semester){
     ['','','','','','','',''],
     ["מס'",'ת.ז התלמיד','שם התלמיד','שכבה','כיתה','ציון מספרי','ציון מילולי','הערה חופשית'],
   ];
+  enrichedMatches.sort((a,b)=>String(a.entry.name||g.students[a.studentIdx].name||'')
+    .localeCompare(String(b.entry.name||g.students[b.studentIdx].name||''),'he'));
   enrichedMatches.forEach((m,i)=>{
     const s=g.students[m.studentIdx];
     newRows.push([
@@ -5217,10 +5230,7 @@ async function exportMashov(arrBuf, originalFileName, gid, testId, semester){
   const newWb=XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(newWb, newWs, 'ציונים');
 
-  // 4) Persist any newly-attached hashes to Supabase (and to localStorage)
-  saveState();
-
-  // 5) Download
+  // Download without modifying the group or triggering cloud synchronization.
   const out=XLSX.write(newWb, { bookType:'xlsx', type:'array' });
   const blob=new Blob([out], { type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
   const url=URL.createObjectURL(blob);
@@ -5677,6 +5687,10 @@ async function applyGroupUpdate(){
 }
 
 // ── EXPORT ──────────────────────────────────────────────────
+function exportStudents(g){
+  return g.students.map((s,idx)=>({s,idx}))
+    .sort((a,b)=>String(a.s.name||'').localeCompare(String(b.s.name||''),'he'));
+}
 function exportExcel(){
   const g=S.groups[CUR.gid];if(!g)return;
   const T=getTbl(CUR.test);const ct=customTest(CUR.test);
@@ -5684,12 +5698,12 @@ function exportExcel(){
   const unit=(T.unit||(ct&&ct.unit)||'ערך').replace('-','');
   const fmtDate=ts=>ts?new Date(ts).toLocaleDateString('he-IL',{day:'2-digit',month:'2-digit',year:'2-digit'}):'';
   const rows=[['#','שם','מין','כיתה',`תוצאה (${unit})`,'ציון','בונוס %','ציון לתעודה','תאריך בדיקה']];
-  g.students.forEach((s,idx)=>{
+  exportStudents(g).forEach(({s,idx},exportIdx)=>{
     const d=g[resKey()]?.[CUR.test]?.[idx]||{};
     const isFem=s.gender==='נ'||s.gender==='f';const dis=T.maleOnly&&isFem;
     const sA=dis?'':(d.a?(getScore(CUR.test,s.grade,s.gender,d.a)??''):'');
     const fin=sA!==''?Math.min(100,Math.round(sA*(1+(d.bonusA||0)/100))):'';
-    rows.push([idx+1,s.name,isFem?'נ':'ז',s.grade+s.cls,d.a||'',sA,d.bonusA||'',fin,fmtDate(d._ts)]);
+    rows.push([exportIdx+1,s.name,isFem?'נ':'ז',s.grade+s.cls,d.a||'',sA,d.bonusA||'',fin,fmtDate(d._ts)]);
   });
   const ws=XLSX.utils.aoa_to_sheet(rows);
   ws['!cols']=[4,22,6,8,14,8,10,12,12].map(w=>({wch:w}));
@@ -5709,7 +5723,7 @@ function exportFullExcel(){
   // Sheet 1: Summary — student × test final scores
   const summaryHeader=['שם','מין','כיתה',...allTests.map(t=>t.label),'ממוצע'];
   const summaryRows=[summaryHeader];
-  g.students.forEach((s,idx)=>{
+  exportStudents(g).forEach(({s,idx},exportIdx)=>{
     const isFem=s.gender==='נ'||s.gender==='f';
     const scores=[];
     const row=[s.name,isFem?'נ':'ז',s.grade+s.cls];
@@ -5741,7 +5755,7 @@ function exportFullExcel(){
     const header=['#','שם','מין','כיתה',`תוצאה א׳${u?' ('+u+')':''}`,`ציון א׳`,`תוצאה ב׳${u?' ('+u+')':''}`,`ציון ב׳`,'ציון סופי','תאריך'];
     const rows=[header];
     let hasData=false;
-    g.students.forEach((s,idx)=>{
+    exportStudents(g).forEach(({s,idx},exportIdx)=>{
       const isFem=s.gender==='נ'||s.gender==='f';
       if(T.maleOnly&&isFem) return;
       const da=g.results?.[id]?.[idx]||{};
@@ -5751,7 +5765,7 @@ function exportFullExcel(){
       const base=(sB!==''&&Number(sB)>=(Number(sA)||0))?sB:sA;
       const fin=base!==''?Math.min(100,Math.round(Number(base)*(1+(da.bonusA||0)/100)+(da.bonusB||0))):'';
       if(da.a||db.a) hasData=true;
-      rows.push([idx+1,s.name,isFem?'נ':'ז',s.grade+s.cls,da.a||'',sA,db.a||'',sB,fin,fmtDate(da._ts||db._ts)]);
+      rows.push([exportIdx+1,s.name,isFem?'נ':'ז',s.grade+s.cls,da.a||'',sA,db.a||'',sB,fin,fmtDate(da._ts||db._ts)]);
     });
     if(!hasData) return; // skip empty tests
     const ws=XLSX.utils.aoa_to_sheet(rows);
@@ -5823,7 +5837,7 @@ function exportPDF(){
   const today=new Date().toLocaleDateString('he-IL');
   const scores=[];
   let rows='';
-  g.students.forEach((s,idx)=>{
+  exportStudents(g).forEach(({s,idx},exportIdx)=>{
     const isFem=s.gender==='נ'||s.gender==='f';
     const dis=T.maleOnly&&isFem;
     const d=g[resKey()]?.[CUR.test]?.[idx]||{};
@@ -5832,7 +5846,7 @@ function exportPDF(){
     const fin=calcFinal(sA,d.bonusA||0,0);
     if(fin!==null) scores.push(fin);
     const col=_pdfScoreColor(fin);
-    rows+=`<tr><td>${idx+1}</td><td class="nm">${s.name}</td><td>${isFem?'נ':'ז'}</td><td>${s.grade}${s.cls}</td>`+
+    rows+=`<tr><td>${exportIdx+1}</td><td class="nm">${s.name}</td><td>${isFem?'נ':'ז'}</td><td>${s.grade}${s.cls}</td>`+
       `<td>${dis?'—':((d.a||'—')+(unit?' '+unit:''))}</td>`+
       `<td>${sA!==null?sA:'—'}</td>`+
       `<td style="color:${col};font-weight:700">${fin!==null?fin:'—'}</td></tr>`;
@@ -5859,7 +5873,7 @@ function exportFullPDF(){
     const T=getTbl(id);
     const unitStr=(T.unit||u||'').replace('-','');
     const scores=[];let rows='';
-    g.students.forEach((s,idx)=>{
+    exportStudents(g).forEach(({s,idx},exportIdx)=>{
       const isFem=s.gender==='נ'||s.gender==='f';
       const dis=T.maleOnly&&isFem;
       const d=g[resKey()]?.[id]?.[idx]||{};
@@ -5868,7 +5882,7 @@ function exportFullPDF(){
       const fin=calcFinal(sA,d.bonusA||0,0);
       if(fin!==null) scores.push(fin);
       const col=_pdfScoreColor(fin);
-      rows+=`<tr><td>${idx+1}</td><td class="nm">${s.name}</td><td>${isFem?'נ':'ז'}</td><td>${s.grade}${s.cls}</td>`+
+      rows+=`<tr><td>${exportIdx+1}</td><td class="nm">${s.name}</td><td>${isFem?'נ':'ז'}</td><td>${s.grade}${s.cls}</td>`+
         `<td>${dis?'—':((d.a||'—')+(unitStr?' '+unitStr:''))}</td>`+
         `<td>${sA!==null?sA:'—'}</td>`+
         `<td style="color:${col};font-weight:700">${fin!==null?fin:'—'}</td></tr>`;
@@ -7236,6 +7250,7 @@ const _SRL_CONFIG={
   crunches:{title:'מבחן כפיפות בטן',emoji:'💪',tapLabel:'כפיפה מוצלחת',unit:'כפיפות'},
 };
 function openSkipropeLive(testId='skiprope'){
+  SRL._semester=CUR.semester;
   const cfg=_SRL_CONFIG[testId]||_SRL_CONFIG.skiprope;
   const gid=CUR.gid;
   SRL.gid=gid;SRL.testId=testId;
@@ -7287,10 +7302,11 @@ function srlReset(){
 }
 
 function srlTap(){
+  if(SRL.running){srlTick();if(!SRL.running)return;}
   if(SRL.paused)return; // while paused, tap does nothing
   if(!SRL.running){
     // First tap: start
-    SRL.running=true;SRL.count=1;SRL.timeLeft=60;
+    SRL.running=true;SRL.count=1;SRL.timeLeft=60;SRL.remainingMs=60000;SRL.deadline=Date.now()+60000;
     document.getElementById('srl-count').textContent=SRL.count;
     const btn=document.getElementById('srl-tap-btn');
     btn.innerHTML=`+1<br>${SRL.tapLabel}`;
@@ -7321,12 +7337,13 @@ function srlMinus(){
 
 function srlTogglePause(){
   if(SRL.running){
+    srlTick();if(!SRL.running)return;
     clearInterval(SRL.interval);SRL.interval=null;
     SRL.running=false;SRL.paused=true;
     document.getElementById('srl-stop-btn').innerHTML='▶ המשך';
     document.getElementById('srl-tap-btn').innerHTML='▶<br>המשך';
   } else if(SRL.paused){
-    SRL.running=true;SRL.paused=false;
+    SRL.running=true;SRL.paused=false;SRL.deadline=Date.now()+(SRL.remainingMs??SRL.timeLeft*1000);
     document.getElementById('srl-stop-btn').innerHTML='⏸ עצור';
     document.getElementById('srl-tap-btn').innerHTML=`+1<br>${SRL.tapLabel}`;
     SRL.interval=setInterval(srlTick,1000);
@@ -7334,7 +7351,8 @@ function srlTogglePause(){
 }
 
 function srlTick(){
-  SRL.timeLeft--;
+  SRL.remainingMs=Math.max(0,SRL.deadline-Date.now());
+  SRL.timeLeft=Math.ceil(SRL.remainingMs/1000);
   const m=Math.floor(SRL.timeLeft/60);
   const sec=SRL.timeLeft%60;
   document.getElementById('srl-timer').textContent=`${m}:${String(sec).padStart(2,'0')}`;
@@ -7586,6 +7604,7 @@ function strClose(){ _confirmExitLive(_doStrClose); }
 let SR={testId:null,gid:null,running:false,startTime:0,splits:[],raf:null};
 
 function openSprintLive(testId){
+  SR._semester=CUR.semester;
   if(SR.raf){cancelAnimationFrame(SR.raf);SR.raf=null;}
   SR.testId=testId;SR.gid=CUR.gid;SR.running=false;SR.splits=[];
   const label=TEST_LIST.find(t=>t.id===testId)?.label||testId;
@@ -7633,7 +7652,7 @@ function spMainBtn(){
 
 function spStart(){
   SR.running=true;
-  SR.startTime=performance.now();
+  SR.startTime=Date.now();
   SR.splits=[];
   document.getElementById('sp-finish-btn').style.display='';
   document.getElementById('sp-split-count').textContent='0 מסיימים';
@@ -7645,7 +7664,7 @@ function spStart(){
 
 function spTick(){
   if(!SR.running)return;
-  const t=(performance.now()-SR.startTime)/1000;
+  const t=(Date.now()-SR.startTime)/1000;
   const s=Math.floor(t);
   const c=Math.floor((t-s)*100);
   document.getElementById('sp-timer').textContent=String(s).padStart(2,'0')+'.'+String(c).padStart(2,'0');
@@ -7655,7 +7674,7 @@ function spTick(){
 
 function spSplit(){
   if(!SR.running)return;
-  const rawMs=performance.now()-SR.startTime;
+  const rawMs=Date.now()-SR.startTime;
   SR.splits.push({rawMs,name:''});
   const i=SR.splits.length-1;
   const secs=rawMs/1000;
@@ -8020,10 +8039,11 @@ const TIMER_LS='sg_timer_history';
 function timerSupported(testId){return TIMER_TESTS.includes(testId)||(S.customTests&&S.customTests[testId]&&['שניות','שניות-','דקות-'].includes(S.customTests[testId].unit));}
 
 function openTimer(){
+  TMR._semester=CUR.semester;
   if(!timerSupported(CUR.test)){
     toast('טיימר זמין רק במבחני ריצה ופלנק');return;
   }
-  TMR.testId=CUR.test;
+  TMR.testId=CUR.test;TMR.gid=CUR.gid;
   const T=getTbl(CUR.test);const ct=customTest(CUR.test);
   TMR.lowerBetter=T.lb||(ct&&ct.lowerBetter)||false;
   const students=S.groups[CUR.gid]?.students||[];
@@ -8071,7 +8091,7 @@ function timerStart(){
   if(TMR.running)return;
   TMR.running=true;
   // If resuming (elapsed > 0), continue from where we stopped — don't clear splits
-  TMR.startTime=performance.now()-TMR.elapsed;
+  TMR.startTime=Date.now()-TMR.elapsed;
   if(TMR.elapsed===0){
     TMR.splits=[];TMR.stoppedOnce=false;
     document.getElementById('splits-body').innerHTML='';
@@ -8087,7 +8107,7 @@ function timerStart(){
 
 function timerTick(){
   if(!TMR.running)return;
-  TMR.elapsed=performance.now()-TMR.startTime;
+  TMR.elapsed=Date.now()-TMR.startTime;
   renderClock(TMR.elapsed);
   renderLiveScore(TMR.elapsed);
   TMR.raf=requestAnimationFrame(timerTick);
@@ -8119,6 +8139,7 @@ function renderLiveScore(ms){
 }
 
 function timerSplit(){
+  if(TMR.running)TMR.elapsed=Math.max(0,Date.now()-TMR.startTime);
   if(!TMR.running||TMR.splits.length>=40)return;
   const ms=TMR.elapsed;
   const prevMs=TMR.splits.length?TMR.splits[TMR.splits.length-1].cumMs:0;
@@ -8246,11 +8267,12 @@ function splitNameKeydown(e,idx){
 }
 
 function timerStop(silent){
+  if(TMR.running)TMR.elapsed=Math.max(0,Date.now()-TMR.startTime);
   if(!TMR.running&&!silent)return;
+  if(!silent)timerSplit();
   TMR.running=false;
   cancelAnimationFrame(TMR.raf);
   if(!silent){
-    timerSplit();
     const isFirstStop=!TMR.stoppedOnce;
     if(TMR.testId==='plank'&&isFirstStop){
       TMR.stoppedOnce=true;
@@ -8471,54 +8493,118 @@ function encodeBeepResult(level,shuttle){
 // LIVE TEST STATE PERSISTENCE
 // ═══════════════════════════════════════════════════════════
 const LIVE_LS_KEY='sg_live_v1';
-function saveLiveState(){
-  let p=null;
-  if(typeof BL!=='undefined'&&(BL.running||BL.paused)){
-    p={type:'beep',gid:BL.gid,elapsed:BL.elapsed,beepIdx:BL.beepIdx,
-      students:BL.students.map(s=>({idx:s.idx,state:s.state})),
-      eliminations:BL.eliminations};
-  }else if(typeof LR!=='undefined'&&LR.running){
-    p={type:'lr',gid:LR.gid,testId:LR.testId,elapsed:LR.elapsed,round:LR.round,
-      students:LR.students.map(s=>({idx:s.idx,state:s.state})),
-      finishers:LR.finishers};
-  }
-  try{if(p)localStorage.setItem(LIVE_LS_KEY,JSON.stringify(p));else localStorage.removeItem(LIVE_LS_KEY);}catch(e){}
+function liveEngines(){
+  return [
+    ['beep',BL,'bl-modal',openBeepLive,_doCloseBeepLive],
+    ['lr',LR,'lr-modal',openLongRunLive,_doCloseLongRunLive],
+    ['timer',TMR,'timer-modal',openTimer,_doCloseTimer],
+    ['sprint',SR,'sprint-live-modal',()=>openSprintLive(CUR.test),_doSpClose],
+    ['minute',SRL,'skiprope-live-modal',()=>openSkipropeLive(CUR.test),_doSrlClose],
+  ];
 }
+function saveLiveState(){
+  if(!SG_USER)return;
+  const active=liveEngines().find(([,e,id])=>document.getElementById(id)?.classList.contains('open'))
+    ||liveEngines().find(([,e])=>e.running||e.paused);
+  try{
+    if(!active){localStorage.removeItem(LIVE_LS_KEY);return;}
+    const [type,e,id]=active;
+    if(!e.running&&!e.paused&&!e._introTimer&&!e._introRemainingMs&&!e.elapsed
+      &&!(e.splits||[]).length&&!(e.finishers||[]).length&&!(e.eliminations||[]).length&&!e.count){
+      localStorage.removeItem(LIVE_LS_KEY);return;
+    }
+    const state={...e};
+    for(const k of ['raf','interval','beepTimeout','_introTimer'])delete state[k];
+    // Inputs can contain names typed since the last onchange event.
+    const controls=[...document.getElementById(id).querySelectorAll('input,select')]
+      .filter(el=>el.id).map(el=>({id:el.id,value:el.value}));
+    const gid=e.gid??CUR.gid;
+    const p={version:2,type,user:SG_USER.id,gid,sbId:S.groups[gid]?._sbId,
+      test:e.testId||(type==='beep'?'beep':CUR.test),semester:e._semester||CUR.semester,state,controls,
+      roster:(S.groups[gid]?.students||[]).map(s=>s.idHash||s.id||s.name)};
+    localStorage.setItem(LIVE_LS_KEY,JSON.stringify(p));
+  }catch(e){console.warn('Live state could not be saved',e);}
+}
+window.addEventListener('pagehide',saveLiveState);
 window.addEventListener('beforeunload',saveLiveState);
+document.addEventListener('visibilitychange',()=>{
+  if(document.hidden)saveLiveState();
+  else{
+    if(BL.running){blCurrentPos();blScheduleNextBeep();}
+    if(SRL.running)srlTick();
+  }
+});
 async function restoreLiveState(){
   let p;try{p=JSON.parse(localStorage.getItem(LIVE_LS_KEY)||'null');}catch(e){return;}
-  if(!p||!p.type)return;
-  if(p.type==='beep'&&p.gid===CUR.gid){
-    const students=S.groups[CUR.gid]?.students||[];
-    BL.gid=p.gid;BL.running=false;BL.paused=true;
-    BL.elapsed=p.elapsed||0;BL.startTime=0;BL.pausedAt=p.elapsed||0;
-    BL.beepIdx=p.beepIdx||0;BL.absentMode=false;
-    BL.students=students.map((s,i)=>{const sv=(p.students||[]).find(x=>x.idx===i);return{...s,idx:i,state:sv?sv.state:'active'};});
-    BL.eliminations=p.eliminations||[];BL.undoStack=[];BL.redoStack=[];
-    document.getElementById('bl-group-name').textContent=S.groups[CUR.gid].name;
-    document.getElementById('bl-res-group').textContent=S.groups[CUR.gid].name;
-    document.getElementById('bl-screen-live').style.display='flex';
-    document.getElementById('bl-screen-results').style.display='none';
-    document.getElementById('bl-start-btn').style.display='none';
-    const pb=document.getElementById('bl-pause-btn');
-    pb.style.display='';pb.textContent='▶ המשך';pb.onclick=blResume;
-    const blSrch=document.getElementById('bl-search');if(blSrch)blSrch.value='';
-    blUpdateProtocolDisplay();blRenderActiveGrid();blRenderElimList();blUpdateUndoRedo();
-    document.getElementById('bl-modal').classList.add('open');
-  }else if(p.type==='lr'&&p.gid===CUR.gid&&p.testId===CUR.test){
-    openLongRunLive();
-    LR.students=LR.students.map(s=>{const sv=(p.students||[]).find(x=>x.idx===s.idx);return sv?{...s,state:sv.state}:s;});
-    LR.finishers=p.finishers||[];
-    LR.elapsed=p.elapsed||0;LR.running=false;LR.round=p.round||'a';
-    if(typeof setLrRound==='function')setLrRound(LR.round);
-    lrRenderGrid();
-    document.getElementById('lr-finish-section').style.display=LR.finishers.length?'':'none';
-    document.getElementById('lr-save-row').style.display=LR.finishers.length?'':'none';
-    LR.finishers.forEach((f,i)=>{if(typeof lrRenderFinishRow==='function')lrRenderFinishRow(f,i+1);});
-    const me=Math.floor(LR.elapsed/60000),se2=Math.floor((LR.elapsed%60000)/1000),ce=Math.floor((LR.elapsed%1000)/10);
-    const lrc=document.getElementById('lr-clock');
-    if(lrc)lrc.innerHTML=`${String(me).padStart(2,'0')}:${String(se2).padStart(2,'0')}<span style="font-size:24px;color:rgba(255,255,255,.5);">.${String(ce).padStart(2,'0')}</span>`;
+  if(!p||p.version!==2||p.user!==SG_USER?.id)return;
+  const gid=p.sbId?Object.keys(S.groups).find(id=>S.groups[id]._sbId===p.sbId):p.gid;
+  if(!S.groups[gid]||String(gid)!==String(CUR.gid)||p.test!==CUR.test||p.semester!==CUR.semester)return;
+  if(JSON.stringify(p.roster)!==JSON.stringify(S.groups[gid].students.map(s=>s.idHash||s.id||s.name))){
+    toast('רשימת התלמידים השתנתה — לא ניתן לשחזר את המבחן בבטחה');return;
   }
+  const spec=liveEngines().find(([type])=>type===p.type);if(!spec)return;
+  const [,e,id,open,close]=spec;
+  const state=p.state;const wasRunning=state.running;
+  open();Object.assign(e,state,{raf:null,interval:null,beepTimeout:null,_introTimer:null});
+  e.gid=CUR.gid;
+  if(p.type==='timer'){
+    e.running=false;
+    e.splits.forEach((sp,i)=>renderSplitRow(sp,i,false));
+    document.getElementById('splits-wrap').style.display=e.splits.length?'block':'none';
+    document.getElementById('timer-save-row').style.display=e.splits.length?'':'none';
+    document.getElementById('tc-start').style.display='';
+    document.getElementById('tc-reset').style.display='';
+    e.elapsed=wasRunning?Math.max(0,Date.now()-e.startTime):e.elapsed;
+    renderClock(e.elapsed);renderLiveScore(e.elapsed);
+    if(wasRunning)timerStart();
+  }else if(p.type==='lr'){
+    lrRenderGrid();e.finishers.forEach((f,i)=>lrRenderFinishRow(f,i+1));
+    document.getElementById('lr-finish-section').style.display=e.finishers.length?'':'none';
+    document.getElementById('lr-save-row').style.display=e.finishers.length?'':'none';
+    // Render once with the saved anchor, then preserve the stopped/running state.
+    e.running=true;if(!wasRunning)e.startTime=Date.now()-e.elapsed;
+    lrTick();if(!wasRunning){e.running=false;cancelAnimationFrame(e.raf);}
+    document.getElementById('lr-start-btn').style.display=wasRunning?'none':'';
+    document.getElementById('lr-stop-btn').style.display=wasRunning?'':'none';
+    document.getElementById('lr-reset-btn').style.display=wasRunning?'none':'';
+    document.getElementById('lr-undo-btn').disabled=!e.undoStack.length;
+  }else if(p.type==='sprint'){
+    const splits=e.splits;e.splits=[];e.running=true;
+    for(const sp of splits){e.startTime=Date.now()-sp.rawMs;spSplit();Object.assign(e.splits[e.splits.length-1],sp);}
+    e.startTime=state.startTime;e.running=wasRunning;
+    if(wasRunning){document.getElementById('sp-finish-btn').style.display='';spTick();}
+    else{
+      document.getElementById('sp-new-btn').style.display='';document.getElementById('sp-split-btn').disabled=true;
+      document.getElementById('sp-timer').textContent=((e.splits.at(-1)?.rawMs||0)/1000).toFixed(2);
+      spRenderResults();
+    }
+  }else if(p.type==='minute'){
+    document.getElementById('srl-count').textContent=e.count;
+    document.getElementById('srl-controls').style.display='flex';
+    document.getElementById('srl-tap-btn').innerHTML='+1<br>'+e.tapLabel;
+    if(wasRunning){srlTick();if(e.running)e.interval=setInterval(srlTick,1000);}
+    else if(e.paused){document.getElementById('srl-stop-btn').innerHTML='▶ המשך';document.getElementById('srl-timer').textContent='0:'+String(e.timeLeft).padStart(2,'0');}
+    else srlEnd();
+  }else{
+    // Audio requires a user gesture after reload. Account for elapsed wall time,
+    // then restore paused so the teacher can explicitly resume the recording.
+    if(wasRunning)e.elapsed=Math.max(0,Date.now()-e.startTime);
+    else if(state._introDeadline&&!state.paused){e.elapsed=Math.max(0,Date.now()-state._introDeadline);}
+    e.running=true;e.startTime=Date.now()-e.elapsed;blCurrentPos();
+    e.running=false;e.paused=true;
+    if(!wasRunning&&state._introDeadline>Date.now()&&!state.paused){
+      e._introRemainingMs=state._introDeadline-Date.now();
+    }
+    BL_AUDIO.currentTime=e._introRemainingMs!==undefined
+      ?Math.max(0,(BL_INTRO_MS-e._introRemainingMs)/1000):(e.elapsed+BL_INTRO_MS)/1000;
+    document.getElementById('bl-start-btn').style.display='none';
+    const pb=document.getElementById('bl-pause-btn');pb.style.display='';pb.disabled=false;pb.textContent='▶ המשך';pb.onclick=blResume;
+    blUpdateProtocolDisplay();blRenderActiveGrid();blRenderElimList();blUpdateUndoRedo();
+  }
+  for(const c of p.controls||[]){const el=document.getElementById(c.id);if(el)el.value=c.value;}
+  _currentLiveCloseFn=close;
+  saveLiveState();
+  toast('המבחן שוחזר — בדוק את התוצאות לפני השמירה');
 }
 
 const BL={
@@ -8536,10 +8622,11 @@ const BL={
 };
 
 function openBeepLive(){
+  BL._semester=CUR.semester;
   const students=(S.groups[CUR.gid]?.students||[]);
   if(!students.length&&CUR.gid!=='__random__'){toast('אין תלמידים בקבוצה');return;}
   BL.gid=CUR.gid;
-  BL.running=false;BL.paused=false;BL.elapsed=0;BL.startTime=0;BL.pausedAt=0;
+  BL.running=false;BL.paused=false;BL.elapsed=0;BL.startTime=0;BL.pausedAt=0;BL._introDeadline=undefined;BL._introRemainingMs=undefined;
   BL.beepIdx=0;
   BL.students=students.map((s,i)=>({...s,idx:i,state:'active'}));
   BL.eliminations=[];BL.undoStack=[];BL.redoStack=[];BL.absentMode=false;
@@ -8579,10 +8666,11 @@ function blStart(){
   pb.style.display='';pb.disabled=true;pb.textContent='⏸ מחכה לביפ הראשון...';
   BL_AUDIO.currentTime=0;
   BL_AUDIO.play().catch(()=>{});
+  BL._introDeadline=Date.now()+BL_INTRO_MS;
   BL._introTimer=setTimeout(()=>{
     BL._introTimer=null;
     BL.running=true;BL.paused=false;
-    BL.startTime=performance.now()-BL.elapsed;
+    BL.startTime=BL._introDeadline;BL.elapsed=Math.max(0,Date.now()-BL.startTime);
     pb.disabled=false;pb.textContent='⏸ השהה';
     blScheduleNextBeep();
     blTick();
@@ -8590,9 +8678,10 @@ function blStart(){
 }
 
 function blPause(){
+  if(BL.running)BL.elapsed=Math.max(0,Date.now()-BL.startTime);
   if(BL._introTimer){
     clearTimeout(BL._introTimer);BL._introTimer=null;
-    BL._introRemainingMs=Math.max(0,BL_INTRO_MS-BL_AUDIO.currentTime*1000);
+    BL._introRemainingMs=Math.max(0,BL._introDeadline-Date.now());BL.paused=true;
     BL_AUDIO.pause();
     const pb=document.getElementById('bl-pause-btn');
     pb.disabled=false;pb.textContent='▶ המשך';pb.onclick=blResume;
@@ -8611,21 +8700,23 @@ function blPause(){
 
 function blResume(){
   if(BL._introRemainingMs!==undefined){
+    BL.paused=false;
     BL_AUDIO.play().catch(()=>{});
-    const rem=BL._introRemainingMs;BL._introRemainingMs=undefined;
+    const rem=BL._introRemainingMs;BL._introRemainingMs=undefined;BL._introDeadline=Date.now()+rem;
     const pb=document.getElementById('bl-pause-btn');
     pb.textContent='⏸ השהה';pb.onclick=blPause;pb.disabled=true;
     BL._introTimer=setTimeout(()=>{
       BL._introTimer=null;
       BL.running=true;BL.paused=false;
-      BL.startTime=performance.now()-BL.elapsed;
+      BL.startTime=BL._introDeadline;BL.elapsed=Math.max(0,Date.now()-BL.startTime);
       pb.disabled=false;
       blScheduleNextBeep();blTick();
     },rem);
     return;
   }
   BL.running=true;BL.paused=false;
-  BL.startTime=performance.now()-BL.elapsed;
+  BL.startTime=Date.now()-BL.elapsed;
+  BL_AUDIO.currentTime=(BL.elapsed+BL_INTRO_MS)/1000;
   BL_AUDIO.play().catch(()=>{});
   document.getElementById('bl-pause-btn').textContent='⏸ השהה';
   document.getElementById('bl-pause-btn').onclick=blPause;
@@ -8633,23 +8724,25 @@ function blResume(){
 }
 
 function blStop(){
+  if(BL.running)BL.elapsed=Math.max(0,Date.now()-BL.startTime);
   BL.running=false;
   clearTimeout(BL.beepTimeout);
   cancelAnimationFrame(BL.raf);
   clearTimeout(BL._introTimer);
-  BL._introTimer=null;BL._introRemainingMs=undefined;
+  BL._introTimer=null;BL._introRemainingMs=undefined;BL._introDeadline=undefined;
   BL_AUDIO.pause();BL_AUDIO.currentTime=0;
 }
 
 function blTick(){
   if(!BL.running)return;
-  BL.elapsed=performance.now()-BL.startTime;
+  BL.elapsed=Date.now()-BL.startTime;
   blUpdateProtocolDisplay();
   BL.raf=requestAnimationFrame(blTick);
 }
 
 function blScheduleNextBeep(){
   if(!BL.running)return;
+  blCurrentPos();
   const next=BEEP_TIMELINE[BL.beepIdx];
   if(!next)return; // past level 14
   const delay=next.cumMs-BL.elapsed;
@@ -8672,6 +8765,11 @@ function blScheduleNextBeep(){
 
 // Get current beep position (what level/shuttle we're IN right now)
 function blCurrentPos(){
+  if(BL.running){
+    BL.elapsed=Math.max(0,Date.now()-BL.startTime);
+    BL.beepIdx=BEEP_TIMELINE.findIndex(b=>b.cumMs>BL.elapsed);
+    if(BL.beepIdx<0)BL.beepIdx=BEEP_TIMELINE.length;
+  }
   // The student is in the shuttle they're currently running
   // beepIdx points to the NEXT beep to fire
   // So current = beepIdx (the last beep that fired was beepIdx-1, and they're now in beepIdx)
@@ -10203,7 +10301,7 @@ function exportAllExcel(){
   const semLabel=isInSemB?'ב׳':'א׳';
   const headers=['#','שם תלמיד','מין','כיתה',...activeTests.map(t=>t.label+' מח׳'+semLabel),`ציון לתעודה מח׳${semLabel}`,'ממוצע'];
   const rows=[headers];
-  g.students.forEach((s,idx)=>{
+  exportStudents(g).forEach(({s,idx},exportIdx)=>{
     const isFem=s.gender==='נ'||s.gender==='f';
     const testScores=activeTests.map(({id})=>{
       const d=g[resKey()]?.[id]?.[idx];
@@ -10228,7 +10326,7 @@ function exportAllExcel(){
     });
     const nums=testScores.filter(v=>v!=='—');
     const avg=nums.length?(nums.reduce((a,b)=>Number(a)+Number(b),0)/nums.length).toFixed(1):'';
-    rows.push([idx+1,s.name,isFem?'נ':'ז',s.grade+s.cls,...testScores,avg,avg]);
+    rows.push([exportIdx+1,s.name,isFem?'נ':'ז',s.grade+s.cls,...testScores,avg,avg]);
   });
   const ws=XLSX.utils.aoa_to_sheet(rows);
   ws['!cols']=[4,22,5,7,...activeTests.map(()=>({wch:12})),{wch:10},{wch:9}].map(w=>typeof w==='number'?{wch:w}:w);
@@ -10307,6 +10405,7 @@ const LR={running:false,startTime:0,elapsed:0,raf:null,
   testId:null,gid:null,students:[],finishers:[],undoStack:[],round:'a'};
 
 function openLongRunLive(){
+  LR._semester=CUR.semester;
   const students=S.groups[CUR.gid]?.students||[];
   if(!students.length&&CUR.gid!=='__random__'){toast('אין תלמידים בקבוצה');return;}
   LR.testId=CUR.test;LR.gid=CUR.gid;LR.running=false;LR.elapsed=0;
@@ -10346,7 +10445,7 @@ function _doCloseLongRunLive(){
 function closeLongRunLive(){ _confirmExitLive(_doCloseLongRunLive); }
 
 function lrStart(){
-  LR.running=true;LR.startTime=performance.now()-LR.elapsed;
+  LR.running=true;LR.startTime=Date.now()-LR.elapsed;
   document.getElementById('lr-start-btn').style.display='none';
   document.getElementById('lr-reset-btn').style.display='none';
   document.getElementById('lr-stop-btn').style.display='';
@@ -10355,7 +10454,7 @@ function lrStart(){
 
 function lrTick(){
   if(!LR.running)return;
-  LR.elapsed=performance.now()-LR.startTime;
+  LR.elapsed=Date.now()-LR.startTime;
   const s=LR.elapsed/1000;
   const m=Math.floor(s/60);const sec=Math.floor(s%60);const cs=Math.floor((s%1)*100);
   document.getElementById('lr-clock').innerHTML=
@@ -10391,6 +10490,7 @@ function lrUpdateCardScores(secs){
 }
 
 function lrStop(){
+  if(LR.running)LR.elapsed=Math.max(0,Date.now()-LR.startTime);
   LR.running=false;cancelAnimationFrame(LR.raf);
   document.getElementById('lr-stop-btn').style.display='none';
   document.getElementById('lr-start-btn').style.display='';
@@ -10412,6 +10512,7 @@ function lrStop(){
 }
 
 function lrTapStudent(idx){
+  if(LR.running)LR.elapsed=Math.max(0,Date.now()-LR.startTime);
   const s=LR.students[idx];if(!s||s.state!=='active')return;
   const T=getTbl(LR.testId);
   const secs=LR.elapsed/1000;
@@ -15764,6 +15865,19 @@ body::after{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;
 </div>
 
 <script>
+
+// Persist after live-test actions and edits; pagehide/visibilitychange cover backgrounding.
+for(const name of ['timerStart','timerStop','timerReset','timerSplit','lrStart','lrStop','lrTapStudent','lrRestore','lrUndo','lrConfirmReset','blStart','blPause','blResume','blStop','blTapStudent','blRestoreElim','blUndo','blRedo','blAdjustTiming','spStart','spSplit','spFinish','srlTap','srlMinus','srlTogglePause','srlEnd','srlReset','_doCloseTimer','_doCloseLongRunLive','_doCloseBeepLive','_doSpClose','_doSrlClose']){
+  const original=window[name];if(typeof original!=='function')continue;
+  window[name]=function(...args){const result=original.apply(this,args);
+    if(['timerStart','lrStart','blStart','spStart','srlTap'].includes(name)){
+      const engine={timerStart:TMR,lrStart:LR,blStart:BL,spStart:SR,srlTap:SRL}[name];
+      if(!engine._semester)engine._semester=CUR.semester;
+    }
+    saveLiveState();return result;};
+}
+document.addEventListener('change',()=>{if(_currentLiveCloseFn)saveLiveState();});
+
 if('serviceWorker' in navigator){
   window.addEventListener('load', ()=>{
     navigator.serviceWorker.register('/Sportgrades/client/sw.js').catch(()=>{});
