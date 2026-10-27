@@ -438,7 +438,7 @@ tr.highlighted td{background:rgba(200,64,26,.06)!important;transition:background
 .bl-stage-flash{position:absolute;inset:0;background:rgba(124,58,237,.18);pointer-events:none;opacity:0;transition:opacity .4s;}
 .bl-stage-flash.show{opacity:1;}
 /* Controls */
-.bl-controls{display:flex;gap:8px;padding:8px 16px;background:#111520;border-bottom:1px solid rgba(255,255,255,.06);flex-shrink:0;}
+.bl-controls{display:flex;flex-wrap:wrap;gap:8px;padding:8px 16px;background:#111520;border-bottom:1px solid rgba(255,255,255,.06);flex-shrink:0;}
 .bl-btn{padding:10px 18px;border-radius:9px;border:none;cursor:pointer;font-family:'Heebo',sans-serif;font-size:13px;font-weight:800;transition:all .15s;}
 .bl-btn:active{transform:scale(.96);}
 .bl-start{background:#22c97a;color:#0a0c12;}
@@ -470,7 +470,16 @@ tr.highlighted td{background:rgba(200,64,26,.06)!important;transition:background
 .bl-card{background:#1a1f2e;border:1.5px solid rgba(124,58,237,.25);border-radius:12px;padding:14px 10px;cursor:pointer;transition:all .18s;position:relative;text-align:center;user-select:none;-webkit-user-select:none;}
 .bl-card:hover{border-color:#7c3aed;background:#1e2438;}
 .bl-card:active{transform:scale(.94);background:#251e3e;border-color:#a78bfa;}
-.bl-card.absent{opacity:.35;border-color:rgba(255,255,255,.1);background:#111520;cursor:default;}
+.bl-card.absent{border-color:#64748b;background:#242832;cursor:default;}
+.bl-card.absent .bl-card-name{color:#aeb6c2;}
+.live-participation-btn{margin-top:10px;min-height:44px;min-width:44px;padding:6px 10px;border:1px solid #64748b;border-radius:8px;background:#303746;color:#f1f5f9;font:600 12px 'Heebo',sans-serif;cursor:pointer;touch-action:manipulation;}
+.live-participation-btn:focus-visible{outline:3px solid #c4b5fd;outline-offset:3px;}
+.live-split-btn{min-height:64px;min-width:150px;padding:12px 24px;border:2px solid #c4b5fd;border-radius:12px;background:#6d28d9;color:white;font:800 23px 'Heebo',sans-serif;touch-action:manipulation;cursor:pointer;}
+.live-split-btn:disabled{opacity:.4;cursor:default;}
+.live-last-place{font-size:32px;font-weight:900;color:#fbbf24;min-width:70px;}
+.live-split-row{display:flex;align-items:center;gap:10px;flex-wrap:wrap;background:#1a1f2e;border:1px solid #475569;border-radius:10px;padding:10px;margin-bottom:8px;color:#fff;}
+.live-split-row strong{font-size:26px;color:#fbbf24;min-width:52px;}
+.live-split-row select{flex:1;min-width:140px;max-width:100%;min-height:44px;background:#303746;color:white;border:1px solid #94a3b8;border-radius:6px;font:14px 'Heebo',sans-serif;}
 .bl-card.absent:active{transform:none;}
 .bl-card-name{font-size:15px;font-weight:700;color:#fff;line-height:1.3;word-break:break-word;}
 .bl-card-score{font-family:'DM Serif Display',serif;font-size:22px;font-weight:900;margin-top:6px;transition:color .3s;}
@@ -480,7 +489,7 @@ tr.highlighted td{background:rgba(200,64,26,.06)!important;transition:background
 .bl-card-score.s-low{color:#f87171;}
 .bl-card-score.s-none{color:rgba(255,255,255,.2);}
 .bl-card-potential{font-size:9px;color:rgba(255,255,255,.3);text-transform:uppercase;letter-spacing:.4px;}
-.bl-absent-badge{position:absolute;top:6px;left:6px;background:rgba(255,255,255,.1);border-radius:4px;padding:2px 6px;font-size:9px;color:rgba(255,255,255,.4);font-weight:700;}
+.bl-absent-badge{background:#3b4351;border-radius:4px;padding:3px 6px;margin-bottom:6px;font-size:11px;color:#e2e8f0;font-weight:700;}
 /* Eliminated list */
 .bl-elim-section{margin-top:4px;}
 .bl-elim-title{font-size:11px;color:rgba(255,255,255,.35);font-weight:700;text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px;display:flex;align-items:center;gap:6px;}
@@ -1664,6 +1673,8 @@ history.pushState(null,'',location.href);
     <div class="bl-controls" style="flex-wrap:wrap;">
       <button class="bl-btn bl-start" id="lr-start-btn" onclick="lrStart()">▶ התחל</button>
       <button class="bl-btn bl-stop" id="lr-stop-btn" onclick="lrStop()" style="display:none;">■ סיום</button>
+      <button class="live-split-btn" id="lr-split-btn" onclick="liveRecordSplit('lr')" disabled>✦ פיצול</button>
+      <output class="live-last-place" id="lr-split-last" aria-live="assertive" aria-atomic="true"></output>
       <button class="bl-btn bl-undo" id="lr-undo-btn" onclick="lrUndo()" disabled>↩ בטל</button>
       <button class="lr-reset-btn" id="lr-reset-btn" onclick="lrConfirmReset()">🔄 איפוס שעון</button>
       <button class="bl-btn" onclick="closeLongRunLive()" style="background:rgba(255,80,80,.15);border:1px solid rgba(255,80,80,.3);color:#ff8080;font-size:12px;margin-right:4px;">✕ יציאה</button>
@@ -2123,6 +2134,8 @@ history.pushState(null,'',location.href);
     <div class="bl-controls">
       <button class="bl-btn bl-start" id="bl-start-btn" onclick="blStart()">▶ התחל</button>
       <button class="bl-btn bl-pause" id="bl-pause-btn" onclick="blPause()" style="display:none;">⏸ השהה</button>
+      <button class="live-split-btn" id="bl-split-btn" onclick="liveRecordSplit('beep')" disabled>✦ פיצול</button>
+      <output class="live-last-place" id="bl-split-last" aria-live="assertive" aria-atomic="true"></output>
       <button class="bl-btn bl-end" onclick="blEnd()">■ סיום מבחן</button>
       <button class="bl-btn bl-undo" id="bl-undo-btn" onclick="blUndo()" disabled>↩ בטל</button>
       <button class="bl-btn" onclick="blAdjustTiming(-100)" style="background:rgba(255,255,255,.07);color:rgba(255,255,255,.6);border:1px solid rgba(255,255,255,.1);font-size:11px;">דיליי −0.1 שנ׳</button>
@@ -2156,7 +2169,7 @@ history.pushState(null,'',location.href);
     <div class="bl-results">
       <div class="bl-res-title">תוצאות — <span id="bl-res-group"></span></div>
       <div style="font-size:12px;color:rgba(255,255,255,.4);margin-bottom:12px;">ניתן לערוך מקטע לפי הצורך — הציון יתעדכן אוטומטית</div>
-      <div id="bl-res-list"></div>
+      <div id="bl-res-splits"></div><div id="bl-res-list"></div>
       <button id="bl-res-save-all-btn" class="bl-save-all" onclick="blSaveAll()">✓ שמור תוצאות לאפליקציה (ציון גבוה נשמר)</button>
       <button id="bl-res-back-random" class="bl-save-all" onclick="document.getElementById('bl-modal').classList.remove('open');sbGoRandom_impl();" style="display:none;background:#5b21b6;margin-top:8px;">🎲 חזור לקבוצה האקראית</button>
 
@@ -8510,7 +8523,7 @@ function saveLiveState(){
     if(!active){localStorage.removeItem(LIVE_LS_KEY);return;}
     const [type,e,id]=active;
     if(!e.running&&!e.paused&&!e._introTimer&&!e._introRemainingMs&&!e.elapsed
-      &&!(e.splits||[]).length&&!(e.finishers||[]).length&&!(e.eliminations||[]).length&&!e.count){
+      &&!(e.splits||[]).length&&!(e.finishers||[]).length&&!(e.eliminations||[]).length&&!e.count&&!(e.nextPlace>1)){
       localStorage.removeItem(LIVE_LS_KEY);return;
     }
     const state={...e};
@@ -8558,7 +8571,7 @@ async function restoreLiveState(){
     renderClock(e.elapsed);renderLiveScore(e.elapsed);
     if(wasRunning)timerStart();
   }else if(p.type==='lr'){
-    lrRenderGrid();e.finishers.forEach((f,i)=>lrRenderFinishRow(f,i+1));
+    lrRenderGrid();liveRenderSplits('lr');
     document.getElementById('lr-finish-section').style.display=e.finishers.length?'':'none';
     document.getElementById('lr-save-row').style.display=e.finishers.length?'':'none';
     // Render once with the saved anchor, then preserve the stopped/running state.
@@ -8567,7 +8580,8 @@ async function restoreLiveState(){
     document.getElementById('lr-start-btn').style.display=wasRunning?'none':'';
     document.getElementById('lr-stop-btn').style.display=wasRunning?'':'none';
     document.getElementById('lr-reset-btn').style.display=wasRunning?'none':'';
-    document.getElementById('lr-undo-btn').disabled=!e.undoStack.length;
+    document.getElementById('lr-undo-btn').disabled=!e.finishers.some(r=>r.studentArrIdx!=null);
+    liveUpdateSplitControl('lr');
   }else if(p.type==='sprint'){
     const splits=e.splits;e.splits=[];e.running=true;
     for(const sp of splits){e.startTime=Date.now()-sp.rawMs;spSplit();Object.assign(e.splits[e.splits.length-1],sp);}
@@ -8629,7 +8643,7 @@ function openBeepLive(){
   BL.running=false;BL.paused=false;BL.elapsed=0;BL.startTime=0;BL.pausedAt=0;BL._introDeadline=undefined;BL._introRemainingMs=undefined;
   BL.beepIdx=0;
   BL.students=students.map((s,i)=>({...s,idx:i,state:'active'}));
-  BL.eliminations=[];BL.undoStack=[];BL.redoStack=[];BL.absentMode=false;
+  BL.eliminations=[];BL.nextPlace=1;BL.lastPlace=null;BL.undoStack=[];BL.redoStack=[];BL.absentMode=false;
   document.getElementById('bl-group-name').textContent=S.groups[CUR.gid].name;
   document.getElementById('bl-res-group').textContent=S.groups[CUR.gid].name;
   document.getElementById('bl-screen-live').style.display='flex';
@@ -8643,6 +8657,7 @@ function openBeepLive(){
   blUpdateUndoRedo();
   document.getElementById('bl-modal').classList.add('open');
   _liveModalOpen(_doCloseBeepLive);
+  liveUpdateSplitControl('beep');
 }
 
 function _doCloseBeepLive(){
@@ -8696,6 +8711,7 @@ function blPause(){
   document.getElementById('bl-pause-btn').textContent='▶ המשך';
   document.getElementById('bl-pause-btn').onclick=blResume;
   saveLiveState();
+  liveUpdateSplitControl('beep');
 }
 
 function blResume(){
@@ -8731,6 +8747,7 @@ function blStop(){
   clearTimeout(BL._introTimer);
   BL._introTimer=null;BL._introRemainingMs=undefined;BL._introDeadline=undefined;
   BL_AUDIO.pause();BL_AUDIO.currentTime=0;
+  liveUpdateSplitControl('beep');
 }
 
 function blTick(){
@@ -8738,6 +8755,7 @@ function blTick(){
   BL.elapsed=Date.now()-BL.startTime;
   blUpdateProtocolDisplay();
   BL.raf=requestAnimationFrame(blTick);
+  liveUpdateSplitControl('beep');
 }
 
 function blScheduleNextBeep(){
@@ -8824,6 +8842,144 @@ function blScoreClass(score){
 }
 
 // ── STUDENT GRID ─────────────────────────────────────────────
+// Split places are session-local, monotonic IDs. Deletion deliberately leaves gaps.
+function liveSplitEngine(type){return type==='beep'?BL:LR;}
+function liveSplitRows(type){
+  const e=liveSplitEngine(type),rows=type==='beep'?e.eliminations:e.finishers;
+  let max=0;
+  rows.forEach(row=>{if(!Number.isInteger(row.place))row.place=max+1;max=Math.max(max,row.place);});
+  e.nextPlace=Math.max(e.nextPlace||1,max+1);
+  return rows;
+}
+function liveSplitTime(ms){
+  ms=Math.max(0,Math.round(ms));
+  return Math.floor(ms/60000)+':'+((ms%60000)/1000).toFixed(3).padStart(6,'0');
+}
+function liveUpdateSplitControl(type){
+  const e=liveSplitEngine(type),prefix=type==='beep'?'bl':'lr';
+  const button=document.getElementById(prefix+'-split-btn');if(button)button.disabled=!e.running;
+  const last=document.getElementById(prefix+'-split-last');if(last)last.textContent=e.lastPlace?'#'+e.lastPlace:'';
+}
+function liveSetSplitStudent(type,row,idx){
+  const e=liveSplitEngine(type);
+  if(row.studentArrIdx!=null){const old=e.students[row.studentArrIdx];if(old&&old.state!=='absent')old.state='active';}
+  row.studentArrIdx=idx;row.studentIdx=null;row.name='';row.score=null;
+  if(idx==null)return;
+  const student=e.students[idx];
+  row.studentIdx=student.idx;row.name=student.name;
+  row.score=type==='beep'?blScoreForStudent(student,row.level,row.shuttle):getScore(e.testId,student.grade,student.gender,row.rawVal);
+  student.state=type==='beep'?'eliminated':'finished';
+}
+function liveRecordSplit(type,studentArrIdx=null){
+  const e=liveSplitEngine(type);
+  if(!e.running)return;
+  if(studentArrIdx!=null&&e.students[studentArrIdx]?.state!=='active')return;
+  // Read the clock at the click, never from a previous animation frame.
+  const ms=Math.max(0,Date.now()-e.startTime);
+  const rows=liveSplitRows(type);
+  const row={place:e.nextPlace++,studentArrIdx:null,studentIdx:null,name:'',score:null,elapsedMs:ms};
+  if(type==='beep'){
+    const pos=blCurrentPos();
+    Object.assign(row,{level:pos.level,shuttle:pos.shuttle,cumDist:pos.cumDist,result:encodeBeepResult(pos.level,pos.shuttle)});
+  }else Object.assign(row,{rawMs:ms,rawVal:liveSplitTime(ms)});
+  rows.push(row);e.lastPlace=row.place;e.redoStack=[];
+  if(studentArrIdx!=null)liveSetSplitStudent(type,row,studentArrIdx);
+  e.elapsed=ms;
+  // Persist before rendering: no dialog, delay, audio operation or grade write.
+  saveLiveState();liveUpdateSplitControl(type);liveRefreshSplits(type);
+  return row;
+}
+function liveAssignSplit(type,place,value){
+  const e=liveSplitEngine(type),rows=liveSplitRows(type),row=rows.find(r=>r.place===place);
+  if(!row)return false;
+  const idx=value===''||value==null?null:Number(value);
+  if(idx===row.studentArrIdx)return true;
+  if(idx!=null&&(!Number.isInteger(idx)||e.students[idx]?.state!=='active'||rows.some(r=>r!==row&&r.studentArrIdx===idx))){
+    toast('בחר תלמיד משתתף שטרם סיים');liveRefreshSplits(type);return false;
+  }
+  // Assignment never writes/deletes grades, including grades saved before a correction.
+  liveSetSplitStudent(type,row,idx);saveLiveState();liveRefreshSplits(type);return true;
+}
+function liveDeleteSplit(type,place){
+  const e=liveSplitEngine(type),rows=liveSplitRows(type),idx=rows.findIndex(r=>r.place===place);
+  if(idx<0||!confirm('למחוק פיצול #'+place+'? המספר לא יוקצה מחדש. ציונים שכבר נשמרו לא יימחקו.'))return;
+  liveSetSplitStudent(type,rows[idx],null);rows.splice(idx,1);
+  e.redoStack=[];saveLiveState();liveRefreshSplits(type);
+}
+function liveRenderSplitRow(type,row,list){
+  const e=liveSplitEngine(type),div=document.createElement('div');div.className='live-split-row';
+  const rank=document.createElement('strong');rank.textContent='#'+row.place;div.appendChild(rank);
+  const result=document.createElement('span');result.textContent=type==='beep'?row.level+'-'+row.shuttle:(row.rawMs!=null?liveSplitTime(row.rawMs):row.rawVal);div.appendChild(result);
+  const select=document.createElement('select');select.setAttribute('aria-label','שיוך תלמיד לפיצול '+row.place);
+  const empty=document.createElement('option');empty.value='';empty.textContent='ללא שיוך';select.appendChild(empty);
+  e.students.forEach((student,idx)=>{
+    if(student.state!=='active'&&idx!==row.studentArrIdx)return;
+    const option=document.createElement('option');option.value=String(idx);option.textContent=student.name||('נבחן '+(idx+1));select.appendChild(option);
+  });
+  select.value=row.studentArrIdx==null?'':String(row.studentArrIdx);
+  select.onchange=()=>liveAssignSplit(type,row.place,select.value);div.appendChild(select);
+  const remove=document.createElement('button');remove.type='button';remove.className='live-participation-btn';remove.textContent='מחק';
+  remove.setAttribute('aria-label','מחק פיצול '+row.place);remove.onclick=()=>liveDeleteSplit(type,row.place);div.appendChild(remove);
+  list.appendChild(div);
+}
+function liveRenderSplits(type,targetId){
+  const rows=liveSplitRows(type),prefix=type==='beep'?'bl':'lr';
+  const list=document.getElementById(targetId||(type==='beep'?'bl-elim-list':'lr-finish-list'));if(!list)return;
+  list.innerHTML='';rows.forEach(row=>liveRenderSplitRow(type,row,list));
+  document.getElementById(type==='beep'?'bl-elim-section':'lr-finish-section').style.display=rows.length?'':'none';
+  document.getElementById(type==='beep'?'bl-elim-count':'lr-finish-count').textContent='('+rows.length+')';
+  if(type==='lr')document.getElementById('lr-save-row').style.display=rows.length?'':'none';
+  liveUpdateSplitControl(type);
+}
+function liveRefreshSplits(type){
+  liveRenderSplits(type);
+  if(type==='beep'){
+    blRenderActiveGrid();blUpdateProtocolDisplay();blUpdateScoreBar();blUpdateUndoRedo();
+    if(document.getElementById('bl-screen-results').style.display!=='none')blRenderResults();
+  }else{
+    lrRenderGrid();document.getElementById('lr-undo-btn').disabled=!liveSplitRows(type).some(r=>r.studentArrIdx!=null);
+  }
+}
+function liveUndoSplitAssignment(type){
+  const e=liveSplitEngine(type),row=[...liveSplitRows(type)].reverse().find(r=>r.studentArrIdx!=null);
+  if(!row)return;
+  (e.redoStack||(e.redoStack=[])).push({place:row.place,idx:row.studentArrIdx});
+  liveAssignSplit(type,row.place,null);
+}
+
+// Participation belongs to the live session, never to a result or cloud schema.
+function liveToggleParticipation(type,idx){
+  const engine=type==='beep'?BL:type==='lr'?LR:null;
+  const student=engine?.students[idx];
+  if(!student)return;
+  const hasResult=type==='beep'
+    ?engine.eliminations.some(e=>e.studentArrIdx===idx)
+    :engine.finishers.some(f=>f.studentArrIdx===idx);
+  if(hasResult||!['active','absent'].includes(student.state)){
+    toast('לתלמיד כבר נרשמה תוצאה — מצב ההשתתפות והתוצאה לא שונו');return;
+  }
+  student.state=student.state==='absent'?'active':'absent';
+  if(type==='beep'){
+    blRenderActiveGrid();blUpdateProtocolDisplay();
+  }else{
+    lrRenderGrid();
+    if(LR.running)lrUpdateCardScores(Math.max(0,Date.now()-LR.startTime)/1000);
+  }
+  saveLiveState();
+}
+
+function liveParticipationButton(type,idx){
+  const student=(type==='beep'?BL:LR).students[idx];
+  const absent=student.state==='absent';
+  const button=document.createElement('button');
+  button.type='button';button.className='live-participation-btn';
+  button.textContent=absent?'החזר להשתתפות':'לא משתתף';
+  button.setAttribute('aria-label',button.textContent+' — '+(student.name||'נבחן'));
+  button.setAttribute('aria-pressed',String(absent));
+  button.onclick=event=>{event.stopPropagation();liveToggleParticipation(type,idx);};
+  return button;
+}
+
 function blRenderActiveGrid(){
   const grid=document.getElementById('bl-active-grid');
   grid.innerHTML='';
@@ -8838,7 +8994,7 @@ function blRenderActiveGrid(){
       ?`<input class="rg-name-input" placeholder="שם נבחן" value="${s.name}" oninput="BL.students[${i}].name=this.value;" onclick="event.stopPropagation();">`
       :`${s.name}${s._external?'<span style="font-size:9px;color:rgba(255,255,255,.4);display:block;">(אורח)</span>':''}`;
     div.innerHTML=`
-      ${s.state==='absent'?'<div class="bl-absent-badge">נעדר</div>':''}
+      ${s.state==='absent'?'<div class="bl-absent-badge">לא משתתף</div>':''}
       <div class="bl-card-name">${nameDisplay}</div>
       <div class="bl-card-score ${scCls}" id="blscore-${i}">${score!==null?score:'—'}</div>
       <div class="bl-card-potential">${score!==null?'ציון פוטנציאלי':''}</div>
@@ -8846,8 +9002,11 @@ function blRenderActiveGrid(){
     if(s.state==='active'||s.state==='absent'){
       div.onclick=()=>blTapStudent(i);
     }
+    div.appendChild(liveParticipationButton('beep',i));
     grid.appendChild(div);
   });
+  blFilterGrid();
+  liveRenderSplits('beep');
 }
 
 function blUpdateAllScores(){
@@ -8862,41 +9021,9 @@ function blUpdateAllScores(){
 }
 
 // ── ELIMINATION ───────────────────────────────────────────────
-function blTapStudent(studentArrIdx){
-  const s=BL.students[studentArrIdx];
-  if(!s||s.state==='eliminated')return;
-
-  // Absent mode — toggle absent/active
-  if(BL.absentMode){
-    s.state=s.state==='absent'?'active':'absent';
-    blRenderActiveGrid();
-    return;
-  }
-  if(s.state==='absent')return;
-
-  // Eliminate
-  const pos=blCurrentPos();
-  const score=blScoreForStudent(s,pos.level,pos.shuttle);
-  const elim={
-    studentArrIdx,
-    studentIdx:s.idx,
-    name:s.name,
-    level:pos.level,shuttle:pos.shuttle,
-    cumDist:pos.cumDist,
-    elapsedMs:BL.elapsed,
-    score,
-    result:encodeBeepResult(pos.level,pos.shuttle),
-  };
-  s.state='eliminated';
-  BL.eliminations.push(elim);
-  BL.undoStack.push(elim);
-  BL.redoStack=[];  // invalidate redo
-
-  blUpdateCard(studentArrIdx,'eliminated');
-  blRenderElimRow(elim,BL.eliminations.length);
-  blUpdateUndoRedo();
-  blUpdateProtocolDisplay();
-  saveLiveState();
+function blTapStudent(idx){
+  if(BL.absentMode){liveToggleParticipation('beep',idx);return;}
+  liveRecordSplit('beep',idx);
 }
 
 function blUpdateCard(i,state){
@@ -8925,38 +9052,14 @@ function blUpdateCard(i,state){
 }
 
 
-function blRenderElimRow(elim,rank){
-  const list=document.getElementById('bl-elim-list');
-  document.getElementById('bl-elim-section').style.display='block';
-  const scCls=blScoreClass(elim.score);
-  const colors={s100:'#4ade80','s-high':'#86efac','s-mid':'#fbbf24','s-low':'#f87171','s-none':'rgba(255,255,255,.3)'};
-  const col=colors[scCls]||colors['s-none'];
-  const div=document.createElement('div');
-  div.className='bl-elim-row';
-  div.id='bl-elimrow-'+elim.studentArrIdx;
-  div.style.gridTemplateColumns='1fr auto auto auto auto auto';
-  const elimDistM=elim.cumDist?Math.round(elim.cumDist):0;
-  div.innerHTML=`
-    <div class="bl-elim-name">${elim.name}</div>
-    <input type="text" value="${elim.level}-${elim.shuttle}"
-      style="background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.15);border-radius:5px;color:#fff;padding:3px 7px;font-size:12px;width:52px;font-family:Heebo,sans-serif;text-align:center;"
-      title="ערוך מקטע" onchange="blEditElimShuttle(this,${elim.studentArrIdx})">
-    <div class="bl-elim-score" style="color:${col}" id="blelimsc-${elim.studentArrIdx}">${elim.score!==null?elim.score:'—'}</div>
-    <div style="font-size:11px;color:rgba(255,255,255,.4);white-space:nowrap;">${elimDistM} מ׳</div>
-    <div class="bl-elim-rank">#${rank}</div>
-    <button onclick="blRestoreElim(${elim.studentArrIdx})"
-      style="background:rgba(79,128,255,.15);border:1px solid rgba(79,128,255,.25);color:#7ba8ff;border-radius:5px;padding:3px 8px;cursor:pointer;font-size:11px;font-weight:700;font-family:Heebo,sans-serif;">↩</button>
-  `;
-  list.prepend(div);
-  document.getElementById('bl-elim-count').textContent=`(${BL.eliminations.length})`;
-  blUpdateScoreBar();
-}
+function blRenderElimRow(){liveRenderSplits('beep');}
 
 function blUpdateScoreBar(){
-  const scores=BL.eliminations.map(e=>e.score).filter(s=>s!==null);
-  if(!scores.length)return;
+  const assigned=BL.eliminations.filter(e=>e.studentArrIdx!=null);
+  const scores=assigned.map(e=>e.score).filter(s=>typeof s==='number'&&Number.isFinite(s));
+  if(!scores.length){document.getElementById('bl-avg-score').textContent='';document.getElementById('bl-score-bar').innerHTML='';return;}
   const avg=(scores.reduce((a,b)=>a+b,0)/scores.length).toFixed(1);
-  const dists=BL.eliminations.map(e=>e.cumDist||0).filter(Boolean);
+  const dists=assigned.map(e=>e.cumDist||0).filter(Boolean);
   const avgDist=dists.length?Math.round(dists.reduce((a,b)=>a+b,0)/dists.length):null;
   const maxDist=dists.length?Math.round(Math.max(...dists)):null;
   const distStr=avgDist?` | מרחק ממוצע: ${avgDist} מ׳ | מקס׳: ${maxDist} מ׳`:'';
@@ -8996,62 +9099,23 @@ function blEditElimShuttle(input,sarr){
   input.value=`${level}-${shuttle}`;
 }
 
-function blRestoreElim(sarr){
-  const idx=BL.eliminations.findIndex(e=>e.studentArrIdx===sarr);
-  if(idx<0)return;
-  const elim=BL.eliminations.splice(idx,1)[0];
-  BL.undoStack=BL.undoStack.filter(e=>e.studentArrIdx!==sarr);
-  BL.students[sarr].state='active';
-  const row=document.getElementById('bl-elimrow-'+sarr);
-  if(row)row.remove();
-  document.getElementById('bl-elim-count').textContent=`(${BL.eliminations.length})`;
-  if(!BL.eliminations.length)document.getElementById('bl-elim-section').style.display='none';
-  blUpdateCard(sarr,'active');
-  blUpdateUndoRedo();
-  blUpdateProtocolDisplay();
+function blRestoreElim(idx){
+  const row=liveSplitRows('beep').find(r=>r.studentArrIdx===idx);
+  if(row)liveAssignSplit('beep',row.place,null);
 }
 
-function blRenderElimList(){
-  document.getElementById('bl-elim-list').innerHTML='';
-  if(!BL.eliminations.length){document.getElementById('bl-elim-section').style.display='none';return;}
-  document.getElementById('bl-elim-section').style.display='block';
-  BL.eliminations.forEach((elim,i)=>blRenderElimRow(elim,i+1));
-  document.getElementById('bl-elim-count').textContent=`(${BL.eliminations.length})`;
-}
+function blRenderElimList(){liveRenderSplits('beep');}
 
 // ── UNDO / REDO ───────────────────────────────────────────────
-function blUndo(){
-  const elim=BL.undoStack.pop();if(!elim)return;
-  BL.redoStack.push(elim);
-  // Remove from eliminations
-  const idx=BL.eliminations.findIndex(e=>e.studentArrIdx===elim.studentArrIdx&&e.level===elim.level&&e.shuttle===elim.shuttle);
-  if(idx>=0)BL.eliminations.splice(idx,1);
-  // Restore student
-  BL.students[elim.studentArrIdx].state='active';
-  // Remove elim row
-  const row=document.getElementById('bl-elimrow-'+elim.studentArrIdx);
-  if(row)row.remove();
-  document.getElementById('bl-elim-count').textContent=`(${BL.eliminations.length})`;
-  if(!BL.eliminations.length)document.getElementById('bl-elim-section').style.display='none';
-  // Restore card
-  blUpdateCard(elim.studentArrIdx,'active');
-  blUpdateUndoRedo();
-  blUpdateProtocolDisplay();
-}
+function blUndo(){liveUndoSplitAssignment('beep');}
 
 function blRedo(){
-  const elim=BL.redoStack.pop();if(!elim)return;
-  BL.students[elim.studentArrIdx].state='eliminated';
-  BL.eliminations.push(elim);
-  BL.undoStack.push(elim);
-  blUpdateCard(elim.studentArrIdx,'eliminated');
-  blRenderElimRow(elim,BL.eliminations.length);
-  blUpdateUndoRedo();
-  blUpdateProtocolDisplay();
+  const item=BL.redoStack.pop();if(!item)return;
+  liveAssignSplit('beep',item.place,item.idx);
 }
 
 function blUpdateUndoRedo(){
-  document.getElementById('bl-undo-btn').disabled=!BL.undoStack.length;
+  document.getElementById('bl-undo-btn').disabled=!BL.eliminations.some(r=>r.studentArrIdx!=null);
 }
 
 // ── ABSENT MODE ───────────────────────────────────────────────
@@ -9105,12 +9169,13 @@ function blRenderResults(){
   const saveBtn=document.getElementById('bl-res-save-all-btn');
   if(backBtn) backBtn.style.display=BL.gid==='__random__'?'block':'none';
   if(saveBtn) saveBtn.style.display=BL.gid==='__random__'?'none':'';
+  liveRenderSplits('beep','bl-res-splits');
   const list=document.getElementById('bl-res-list');
   list.innerHTML='';
   const colors={s100:'#4ade80','s-high':'#86efac','s-mid':'#fbbf24','s-low':'#f87171','s-none':'rgba(255,255,255,.4)'};
   const rows=[];
-  BL.eliminations.forEach((elim,rank)=>{
-    rows.push({...elim,rank:rank+1,absent:false});
+  liveSplitRows('beep').filter(elim=>elim.studentArrIdx!=null).forEach(elim=>{
+    rows.push({...elim,rank:elim.place,absent:false});
   });
   BL.students.forEach(s=>{
     if(s.state==='absent')rows.push({studentIdx:s.idx,studentArrIdx:s.idx,name:s.name,level:'—',shuttle:'—',score:null,rank:'—',absent:true,result:null});
@@ -9121,14 +9186,14 @@ function blRenderResults(){
     div.id='blres-'+row.studentArrIdx;
     const scCls=typeof row.score==='number'?blScoreClass(row.score):'s-none';
     const col=colors[scCls];
-    const resultStr=row.absent?'נעדר':`${row.level}-${row.shuttle}`;
+    const resultStr=row.absent?'לא משתתף':`${row.level}-${row.shuttle}`;
     const scoreStr=row.absent?'—':(row.score!==null&&row.score!==undefined?row.score:'—');
     const activeLabel=row.wasActive?'<span style="font-size:10px;color:#4ade80;margin-right:6px;">✓ עד הסוף</span>':'';
     div.innerHTML=`
       <div class="bl-res-rank">${row.rank}</div>
       <div class="bl-res-name" style="color:${row.absent?'rgba(255,255,255,.3)':'#fff'}">${activeLabel}${row.name}</div>
       <div style="display:flex;align-items:center;gap:6px;">
-        ${row.absent?'<span style="color:rgba(255,255,255,.3);font-size:13px;">נעדר</span>':`
+        ${row.absent?'<span style="color:rgba(255,255,255,.6);font-size:13px;">לא משתתף</span>':`
           <span class="bl-res-result" style="color:rgba(255,255,255,.5);">${resultStr}</span>
           ${row.cumDist?`<span style="font-size:11px;color:rgba(255,255,255,.35);">${Math.round(row.cumDist)} מ׳</span>`:''}
           <input type="text" value="${row.result||''}"
@@ -9190,7 +9255,7 @@ function blSaveAll(silent){
   if(!S.groups[gid])return;
   let saved=0;
   BL.eliminations.forEach(elim=>{
-    if(elim.absent)return;
+    if(elim.studentArrIdx==null||elim.absent||BL.students[elim.studentArrIdx]?.state==='absent')return;
     const val=String(encodeBeepResult(elim.level,elim.shuttle));
     const s=BL.students[elim.studentArrIdx];
     if(s&&s._external){
@@ -9212,7 +9277,7 @@ function blSaveAll(silent){
 
 function blRestartSession(){
   BL.running=false;BL.paused=false;BL.elapsed=0;BL.startTime=0;
-  BL.beepIdx=0;BL.eliminations=[];BL.undoStack=[];BL.redoStack=[];BL.absentMode=false;
+  BL.beepIdx=0;BL.eliminations=[];BL.nextPlace=1;BL.lastPlace=null;BL.undoStack=[];BL.redoStack=[];BL.absentMode=false;
   // FIX 5: reset round to A on restart
   BL.round='a';
   setBeepRound('a');
@@ -9231,6 +9296,7 @@ function blRestartSession(){
   document.getElementById('bl-elim-section').style.display='none';
   document.getElementById('bl-elim-list').innerHTML='';
   blUpdateProtocolDisplay();blRenderActiveGrid();blUpdateUndoRedo();
+  liveUpdateSplitControl('beep');
 }
 
 // ── ENTERED IN SCHOOL SYSTEM ─────────────────────────────────
@@ -10412,7 +10478,7 @@ function openLongRunLive(){
   LR.students=students
     .map((s,i)=>({...s,idx:i,state:'active'}))
     .filter(s=>!s._guest);  // guests only appear in their specific test
-  LR.finishers=[];LR.undoStack=[];LR.round='a';
+  LR.finishers=[];LR.nextPlace=1;LR.lastPlace=null;LR.undoStack=[];LR.round='a';
   const first=students[0];
   LR.refGrade=first?.grade||'ט';LR.refGender=first?.gender||'ז';
   const T=getTbl(CUR.test);
@@ -10432,6 +10498,7 @@ function openLongRunLive(){
   lrRenderGrid();
   document.getElementById('lr-modal').classList.add('open');
   _liveModalOpen(_doCloseLongRunLive);
+  liveUpdateSplitControl('lr');
 }
 
 function _doCloseLongRunLive(){
@@ -10462,6 +10529,7 @@ function lrTick(){
   lrUpdatePotential(s);
   lrUpdateCardScores(s);
   LR.raf=requestAnimationFrame(lrTick);
+  liveUpdateSplitControl('lr');
 }
 
 function lrUpdatePotential(secs){
@@ -10509,72 +10577,37 @@ function lrStop(){
     const warn=document.getElementById('lr-active-label');
     if(warn){warn.innerHTML=`<span style="color:#fbbf24;">⚠ לתלמידים הבאים לא הוזן ציון, יש להזין ידנית: ${names}</span>`;}
   }
+  liveUpdateSplitControl('lr');
 }
 
-function lrTapStudent(idx){
-  if(LR.running)LR.elapsed=Math.max(0,Date.now()-LR.startTime);
-  const s=LR.students[idx];if(!s||s.state!=='active')return;
-  const T=getTbl(LR.testId);
-  const secs=LR.elapsed/1000;
-  const rawVal=fmtTime(secs);
-  s.state='finished';
-  const score=getScore(LR.testId,s.grade,s.gender,rawVal);
-  const finish={studentArrIdx:idx,studentIdx:s.idx,name:s.name,rawVal,score};
-  LR.finishers.push(finish);LR.undoStack.push(finish);
-  saveLiveState();
-  lrRenderFinishRow(finish,LR.finishers.length);
-  const card=document.getElementById('lrc-'+idx);
-  if(card){card.style.opacity='0';card.style.transform='scale(.85)';card.style.pointerEvents='none';
-    setTimeout(()=>{card.style.display='none';lrUpdateCount();},250);}
-  document.getElementById('lr-finish-section').style.display='block';
-  document.getElementById('lr-undo-btn').disabled=false;
+function lrTapStudent(idx){liveRecordSplit('lr',idx);}
+
+function lrRenderFinishRow(){liveRenderSplits('lr');}
+
+function lrRestore(idx){
+  const row=liveSplitRows('lr').find(r=>r.studentArrIdx===idx);
+  if(row)liveAssignSplit('lr',row.place,null);
 }
 
-function lrRenderFinishRow(finish,rank){
-  const list=document.getElementById('lr-finish-list');
-  const col=finish.score===null?'rgba(255,255,255,.4)':finish.score>=80?'#4ade80':finish.score>=60?'#fbbf24':'#f87171';
-  const div=document.createElement('div');div.className='bl-elim-row';div.id='lrfr-'+finish.studentArrIdx;
-  div.style.gridTemplateColumns='1fr auto auto auto auto';
-  div.innerHTML=`
-    <div class="bl-elim-name">${finish.name}</div>
-    <div class="bl-elim-result">${finish.rawVal}</div>
-    <div class="bl-elim-score" style="color:${col}">${finish.score!==null?finish.score:'—'}</div>
-    <div class="bl-elim-rank">#${rank}</div>
-    <button onclick="lrRestore(${finish.studentArrIdx})" style="background:rgba(79,128,255,.15);border:1px solid rgba(79,128,255,.25);color:#7ba8ff;border-radius:5px;padding:3px 8px;cursor:pointer;font-size:11px;font-weight:700;font-family:Heebo,sans-serif;">↩</button>`;
-  list.prepend(div);
-  document.getElementById('lr-finish-count').textContent=`(${LR.finishers.length})`;
-}
-
-function lrRestore(sarr){
-  const idx=LR.finishers.findIndex(f=>f.studentArrIdx===sarr);if(idx<0)return;
-  LR.finishers.splice(idx,1);LR.undoStack=LR.undoStack.filter(f=>f.studentArrIdx!==sarr);
-  LR.students[sarr].state='active';
-  const row=document.getElementById('lrfr-'+sarr);if(row)row.remove();
-  document.getElementById('lr-finish-count').textContent=`(${LR.finishers.length})`;
-  if(!LR.finishers.length)document.getElementById('lr-finish-section').style.display='none';
-  lrRenderGrid();
-}
-
-function lrUndo(){
-  const f=LR.undoStack.pop();if(!f)return;
-  lrRestore(f.studentArrIdx);
-  document.getElementById('lr-undo-btn').disabled=!LR.undoStack.length;
-}
+function lrUndo(){liveUndoSplitAssignment('lr');}
 
 function lrRenderGrid(){
   const grid=document.getElementById('lr-active-grid');grid.innerHTML='';
   LR.students.forEach((s,i)=>{
     if(s.state==='finished')return;
     const div=document.createElement('div');
-    div.className='bl-card';div.id='lrc-'+i;
+    div.className='bl-card'+(s.state==='absent'?' absent':'');div.id='lrc-'+i;
     const lrName=LR.gid==='__random__'
       ?`<input class="rg-name-input" placeholder="שם רץ" value="${s.name}" oninput="LR.students[${i}].name=this.value;" onclick="event.stopPropagation();">`
       :s.name;
-    div.innerHTML=`<div class="bl-card-name">${lrName}</div><div class="bl-card-score s-none" id="lrcs-${i}">—</div><div class="bl-card-potential" style="color:rgba(255,255,255,.3);font-size:10px;">${lrLabel(LR.gid).tap}</div>`;
+    div.innerHTML=`${s.state==='absent'?'<div class="bl-absent-badge">לא משתתף</div>':''}<div class="bl-card-name">${lrName}</div><div class="bl-card-score s-none" id="lrcs-${i}">—</div><div class="bl-card-potential" style="color:rgba(255,255,255,.3);font-size:10px;">${s.state==='absent'?'':lrLabel(LR.gid).tap}</div>`;
     div.onclick=()=>lrTapStudent(i);
+    div.appendChild(liveParticipationButton('lr',i));
     grid.appendChild(div);
   });
   lrUpdateCount();
+  lrFilterGrid();
+  liveRenderSplits('lr');
   // For random group: show/hide the appropriate add button
   const origAddBtn=document.querySelector('#lr-modal .bl-btn[onclick]');
   if(origAddBtn) origAddBtn.style.display=LR.gid==='__random__'?'none':'';
@@ -10600,6 +10633,8 @@ function lrSaveAll(silent){
   let saved=0;
   LR.finishers.forEach(f=>{
     const s=LR.students[f.studentArrIdx];
+    if(f.studentArrIdx==null||!s)return;
+    if(s?.state==='absent')return;
     if(s&&s._external){
       // Save to original group using _targetGid/_targetStudentIdx (or _crossGroupRef for compat)
       const tGid = s._targetGid!==undefined ? s._targetGid : s._crossGroupRef?.gid;
@@ -11206,7 +11241,7 @@ function blSaveAllFull(){
   if(!S.groups[gid])return;
   let saved=0;
   BL.eliminations.forEach(elim=>{
-    if(elim.absent)return;
+    if(elim.studentArrIdx==null||elim.absent||BL.students[elim.studentArrIdx]?.state==='absent')return;
     const s=BL.students[elim.studentArrIdx];
     const val=String(encodeBeepResult(elim.level,elim.shuttle));
     if(s&&s._external){
@@ -11298,9 +11333,11 @@ function lrSaveAllFull(){
   let saved=0;
   LR.finishers.forEach(f=>{
     const s=LR.students[f.studentArrIdx];
+    if(f.studentArrIdx==null||!s)return;
+    if(s?.state==='absent')return;
     if(s&&s._external){
       if(s._crossGroupRef){
-        writeResult(s._crossGroupRef.gid,s._crossGroupRef.studentIdx,LR.testId,f.rawVal,LR.round);
+        writeResult(s._crossGroupRef.gid,LR.testId,s._crossGroupRef.studentIdx,f.rawVal,LR.round);
         saved++;
       }
       // FIX 3: new students not in any group — no save (אורח ללא קבוצה)
@@ -11572,8 +11609,8 @@ function rgOpenBeep(){
   BL.running=false;BL.paused=false;BL.elapsed=0;BL.startTime=0;BL.pausedAt=0;
   BL.beepIdx=0;
   // Load fixed 30-student roster
-  BL.students = RG_FIXED_STUDENTS.map((s,i)=>({...s, id:i, result:'', eliminated:false, status:'active'}));
-  BL.eliminations=[];BL.undoStack=[];BL.redoStack=[];BL.absentMode=false;
+  BL.students = RG_FIXED_STUDENTS.map((s,i)=>({...s, id:i, idx:i, state:'active', result:'', eliminated:false, status:'active'}));
+  BL.eliminations=[];BL.nextPlace=1;BL.lastPlace=null;BL.undoStack=[];BL.redoStack=[];BL.absentMode=false;
   document.getElementById('bl-group-name').textContent='קבוצה אקראית 🎲';
   document.getElementById('bl-res-group').textContent='קבוצה אקראית';
   document.getElementById('bl-screen-live').style.display='flex';
@@ -11587,6 +11624,7 @@ function rgOpenBeep(){
   // Show the "add runner" button
   rgShowBeepAddBtn();
   document.getElementById('bl-modal').classList.add('open');
+  liveUpdateSplitControl('beep');
 }
 
 function rgShowBeepAddBtn(){
@@ -11619,7 +11657,7 @@ const _origBlSaveAll = window.blSaveAll;
 
 function blSaveAllRG(silent){
   BL.eliminations.forEach(elim=>{
-    if(elim.absent)return;
+    if(elim.studentArrIdx==null||elim.absent||BL.students[elim.studentArrIdx]?.state==='absent')return;
     const s=BL.students[elim.studentArrIdx];
     if(!s||!s.name||!s.name.trim())return;
     const val=String(encodeBeepResult(elim.level,elim.shuttle));
@@ -11640,8 +11678,8 @@ function rgOpenLongRun(testId){
   LR.testId=testId;
   LR.gid='__random__';
   LR.running=false;LR.elapsed=0;
-  LR.students = RG_FIXED_STUDENTS.map((s,i)=>({...s, id:i, result:'', done:false}));   // empty — add during test
-  LR.finishers=[];LR.undoStack=[];LR.round='a';
+  LR.students = RG_FIXED_STUDENTS.map((s,i)=>({...s, id:i, idx:i, state:'active', result:'', done:false}));
+  LR.finishers=[];LR.nextPlace=1;LR.lastPlace=null;LR.undoStack=[];LR.round='a';
   const T=getTbl(testId);
   document.getElementById('lr-test-name').textContent=TEST_LIST.find(t=>t.id===testId)?.label||testId;
   document.getElementById('lr-group-name').textContent='קבוצה אקראית 🎲';
@@ -11656,6 +11694,7 @@ function rgOpenLongRun(testId){
   // Add participant button
   rgShowLrAddBtn();
   document.getElementById('lr-modal').classList.add('open');
+  liveUpdateSplitControl('lr');
 }
 
 function rgShowLrAddBtn(){
@@ -11687,7 +11726,8 @@ lrSaveAll = function(silent){
   if(LR.gid==='__random__'){
     LR.finishers.forEach(f=>{
       const s=LR.students[f.studentArrIdx];
-      if(!s)return;
+    if(f.studentArrIdx==null||!s)return;
+      if(!s||s.state==='absent')return;
       rgAddResult(s.name,LR.testId,f.rawVal,s.gender,s.grade);
     });
     if(!silent)toast('✓ תוצאות ריצה נשמרו לקבוצה האקראית');
@@ -11733,7 +11773,7 @@ function lrConfirmReset(){
     ? `האם אתה בטוח שאתה רוצה לאפס את השעון?\n${finCount} תוצאות ייאבדו! (אם כבר שמרת — הן בטוחות)`
     : 'האם אתה בטוח שאתה רוצה לאפס את השעון?';
   if(!confirm(msg))return;
-  LR.elapsed=0;LR.finishers=[];LR.undoStack=[];
+  LR.elapsed=0;LR.finishers=[];LR.nextPlace=1;LR.lastPlace=null;LR.undoStack=[];
   LR.students.forEach(s=>s.state='active');
   document.getElementById('lr-clock').innerHTML='00:00<span style="font-size:24px;color:rgba(255,255,255,.5);">.00</span>';
   document.getElementById('lr-finish-section').style.display='none';
@@ -11744,6 +11784,7 @@ function lrConfirmReset(){
   document.getElementById('lr-reset-btn').style.display='none';
   lrRenderGrid();lrUpdateCount();
   toast('השעון אופס');
+  liveUpdateSplitControl('lr');
 }
 
 // ── GROUP CARD 3-DOT MENU ─────────────────────────────────

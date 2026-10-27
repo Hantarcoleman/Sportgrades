@@ -13,7 +13,7 @@ const ctx={console,Date:class extends Date{static now(){return now;}},Math,Numbe
  SG_USER:{id:'teacher'},CUR:{gid:1,test:'run1000',semester:'a'},S:{groups:{}},LIVE_LS_KEY:'live',
  toast(){},getTbl:()=>({unit:'s'}),customTest:()=>null,TEST_LIST:[{id:'run1000',label:'Run'}],resKey:()=> 'results',
  getScore:(_id,_gr,_ge,v)=>Number(v),calcFinal:v=>v,_pdfScoreColor:()=>'',renderLiveScore(){},renderClock(){},
- lrUpdatePotential(){},lrUpdateCardScores(){},blUpdateProtocolDisplay(){},srlUpdatePotential(){},srlEnd(){ctx.SRL.running=false;},
+ lrUpdatePotential(){},lrUpdateCardScores(){},liveUpdateSplitControl(){},blUpdateProtocolDisplay(){},srlUpdatePotential(){},srlEnd(){ctx.SRL.running=false;},
  fmtTime:s=>String(s),XLSX:{utils:{aoa_to_sheet:rows=>{ctx.sheets.push(rows);return{};},book_new:()=>({}),book_append_sheet(){}},writeFile(){}},sheets:[],
  _pdfDownloadFromHtml:html=>{ctx.pdf=html;return Promise.resolve();},BEEP_TIMELINE:[{cumMs:1000},{cumMs:2000},{cumMs:3000}],
  TMR:{running:true,startTime:1000,elapsed:0,splits:[]},LR:{running:true,startTime:1000,elapsed:0,students:[]},BL:{running:true,startTime:1000,elapsed:0},
@@ -43,7 +43,7 @@ vm.runInContext('timerSplit()',ctx);assert.equal(ctx.TMR.splits[0].cumMs,64000);
 Object.assign(ctx,{
  openBeepLive(){},_doCloseBeepLive(){},openLongRunLive(){},_doCloseLongRunLive(){},
  openTimer(){},_doCloseTimer(){},openSprintLive(){},_doSpClose(){},openSkipropeLive(){},_doSrlClose(){},
- lrRenderGrid(){},lrRenderFinishRow(){},setLrRound(){},
+ lrRenderGrid(){},lrRenderFinishRow(){},liveRenderSplits(){},liveUpdateSplitControl(){},setLrRound(){},
 });
 for(const n of ['liveEngines','saveLiveState','restoreLiveState','timerStart','lrStart'])vm.runInContext(fn(n),ctx);
 function show(id){for(const [key,e] of elements)e.classList.contains=()=>key===id;el(id).classList.contains=()=>true;}
