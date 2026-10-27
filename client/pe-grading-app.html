@@ -480,6 +480,25 @@ tr.highlighted td{background:rgba(200,64,26,.06)!important;transition:background
 .live-split-row{display:flex;align-items:center;gap:10px;flex-wrap:wrap;background:#1a1f2e;border:1px solid #475569;border-radius:10px;padding:10px;margin-bottom:8px;color:#fff;}
 .live-split-row strong{font-size:26px;color:#fbbf24;min-width:52px;}
 .live-split-row select{flex:1;min-width:140px;max-width:100%;min-height:44px;background:#303746;color:white;border:1px solid #94a3b8;border-radius:6px;font:14px 'Heebo',sans-serif;}
+.live-finish-toolbar{display:flex;flex-wrap:wrap;gap:8px;padding:8px 16px;background:#111520;}
+.live-finish-toolbar button[aria-pressed="true"]{background:#fff;color:#111827;border-color:#fff;}
+.live-smart-finish{display:none;background:#fff;color:#111827;padding:16px;overflow:auto;min-height:0;}
+.live-smart-clock{font:800 clamp(32px,9vw,56px) monospace;direction:ltr;text-align:center;}
+.live-smart-number{font:900 clamp(64px,20vw,100px) Arial;line-height:1.1;color:#111827;}
+.live-smart-finish .live-finish-hit{display:block;width:100%;min-height:140px;border:4px solid #111827;border-radius:18px;background:#facc15;color:#111827;font:900 52px 'Heebo',Arial;touch-action:manipulation;cursor:pointer;margin:12px 0;}
+.live-finish-hit:disabled{opacity:.45;}
+.live-finish-hit.finish-recorded{background:#86efac;outline:5px solid #15803d;outline-offset:-5px;}
+.live-smart-finish .live-participation-btn{background:#111827;color:#fff;border-color:#111827;margin:0;}
+.live-smart-recent{padding-right:24px;line-height:1.8;font-size:17px;}
+.live-split-status{font-size:12px;color:#cbd5e1;}
+.live-split-row.cancelled{border-style:dashed;opacity:.7;}
+.live-free-name{min-height:44px;min-width:160px;max-width:100%;background:#fff;color:#111827;border:1px solid #94a3b8;border-radius:6px;padding:6px;font:14px 'Heebo',sans-serif;}
+.live-nonparticipants{margin-top:12px;border:1px solid #64748b;border-radius:8px;padding:8px;color:#cbd5e1;}
+.live-nonparticipants summary{min-height:44px;display:list-item;cursor:pointer;font-weight:700;padding:8px;}
+.live-split-row .estimated{color:#fde047;font-weight:700;}
+.smart-finish-mode .bl-body,.smart-finish-mode .bl-controls>:not(#lr-start-btn):not(#lr-stop-btn):not(#bl-start-btn):not(#bl-pause-btn){display:none!important;}
+.smart-finish-mode .live-smart-finish{display:block;}
+.live-assignment-mode .bl-body>div:first-child{display:none;}
 .bl-card.absent:active{transform:none;}
 .bl-card-name{font-size:15px;font-weight:700;color:#fff;line-height:1.3;word-break:break-word;}
 .bl-card-score{font-family:'DM Serif Display',serif;font-size:22px;font-weight:900;margin-top:6px;transition:color .3s;}
@@ -762,6 +781,7 @@ async function sbLoadUserData() {
         students: g.semester_a?.students || [],
         results:   g.semester_a?.results  || {},
         results_b: g.semester_b?.results  || {},
+        externalResults: g.semester_a?.externalResults || {},
         customTests: g.semester_a?.customTests || {},
       customCategories: g.semester_a?.customCategories || [],
       };
@@ -817,6 +837,7 @@ async function sbSaveGroup(gid) {
     semester_a: {
       students: stripLocalFields(g.students || []),
       results:  g.results  || {},
+      externalResults: g.externalResults || {},
       customTests: g.customTests || {},
       customCategories: g.customCategories || [],
     },
@@ -1681,7 +1702,22 @@ history.pushState(null,'',location.href);
 
     </div>
     <!-- Body -->
-    <div class="bl-body">
+    <div class="live-finish-toolbar" aria-label="מצב עבודה"><button type="button" id="lr-mode-regular" class="live-participation-btn" aria-pressed="true" onclick="liveSetFinishMode('lr','regular')">פיצולים רגיל</button><button type="button" id="lr-mode-smart" class="live-participation-btn" aria-pressed="false" onclick="liveSetFinishMode('lr','smart')">קו סיום חכם</button><button type="button" id="lr-mode-assign" class="live-participation-btn" aria-pressed="false" onclick="liveSetFinishMode('lr','assign')">שיוך תוצאות</button></div>
+ <section id="lr-smart-finish" class="live-smart-finish" aria-label="קו סיום חכם">
+ <div id="lr-smart-clock" class="live-smart-clock" role="timer">0:00.000</div>
+ <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;">
+ <div>מספר סיום אחרון<output id="lr-smart-last" class="live-smart-number" style="display:block;" aria-live="assertive" aria-atomic="true">—</output><small id="lr-smart-last-status" style="display:block;font-weight:700;"></small></div>
+ <div>מספר סיום הבא<strong id="lr-smart-next" style="display:block;font-size:36px;">1</strong></div></div>
+ <p id="lr-smart-counts" style="font-weight:800;"></p>
+ <button type="button" id="lr-smart-hit" class="live-finish-hit" onclick="liveSmartFinish('lr')" disabled>סיום!</button>
+ <div style="display:flex;gap:8px;flex-wrap:wrap;">
+ <button type="button" class="live-participation-btn" onclick="liveCancelLastFinish('lr')">בטל סיום אחרון</button>
+ <button type="button" id="lr-smart-restore" class="live-participation-btn" onclick="liveRestoreFinish('lr')" disabled>שחזר ביטול</button>
+ <button type="button" id="lr-smart-sound" class="live-participation-btn" aria-pressed="false" onclick="liveToggleFinishSound('lr')">צליל: כבוי</button>
+ <button type="button" class="live-participation-btn" onclick="liveSetFinishMode('lr','assign')">שיוך תוצאות</button></div>
+ <h3 style="margin-bottom:4px;">סיומים אחרונים</h3><ul id="lr-smart-recent" class="live-smart-recent"></ul>
+ </section>
+<div class="bl-body">
       <div>
         <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
           <div class="bl-active-count" id="lr-active-label" style="margin-bottom:0;">ממתינים</div>
@@ -1689,7 +1725,7 @@ history.pushState(null,'',location.href);
             style="background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.15);border-radius:7px;padding:5px 10px;color:#fff;font-family:'Heebo',sans-serif;font-size:13px;width:150px;margin-right:auto;">
           <button class="bl-btn" onclick="openAddParticipant('lr')" style="background:rgba(34,201,122,.15);border:1px solid rgba(34,201,122,.3);color:#22c97a;font-size:12px;padding:6px 12px;">+ הוסף נבחן</button>
         </div>
-        <div class="bl-grid" id="lr-active-grid"></div>
+        <div class="bl-grid" id="lr-active-grid"></div><details class="live-nonparticipants" id="lr-nonparticipants"><summary id="lr-nonparticipants-title">לא משתתפים (0)</summary><div id="lr-nonparticipants-list"></div></details>
       </div>
       <div class="bl-elim-section" id="lr-finish-section" style="display:none;">
         <div class="bl-elim-title">✓ הגיעו לסיום <span id="lr-finish-count"></span></div>
@@ -2144,7 +2180,22 @@ history.pushState(null,'',location.href);
     <div style="font-size:11px;color:rgba(255,255,255,.35);text-align:center;padding:4px 16px 0;">ניתן להקדים או לאחר את תזמון הביפ ב-0.1 שניות. אפשרות זו נועדה לפצות על הבדלים בעיכוב השמע בחיבורי בלוטוס בין מכשירים שונים.</div>
 
     <!-- Body: active grid + eliminated list -->
-    <div class="bl-body">
+    <div class="live-finish-toolbar" aria-label="מצב עבודה"><button type="button" id="bl-mode-regular" class="live-participation-btn" aria-pressed="true" onclick="liveSetFinishMode('beep','regular')">פיצולים רגיל</button><button type="button" id="bl-mode-smart" class="live-participation-btn" aria-pressed="false" onclick="liveSetFinishMode('beep','smart')">קו סיום חכם</button><button type="button" id="bl-mode-assign" class="live-participation-btn" aria-pressed="false" onclick="liveSetFinishMode('beep','assign')">שיוך תוצאות</button></div>
+ <section id="bl-smart-finish" class="live-smart-finish" aria-label="קו סיום חכם">
+ <div id="bl-smart-clock" class="live-smart-clock" role="timer">0:00.000</div>
+ <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;">
+ <div>מספר יציאה אחרון<output id="bl-smart-last" class="live-smart-number" style="display:block;" aria-live="assertive" aria-atomic="true">—</output><small id="bl-smart-last-status" style="display:block;font-weight:700;"></small></div>
+ <div>מספר יציאה הבא<strong id="bl-smart-next" style="display:block;font-size:36px;">1</strong></div></div>
+ <p id="bl-smart-counts" style="font-weight:800;"></p>
+ <button type="button" id="bl-smart-hit" class="live-finish-hit" onclick="liveSmartFinish('beep')" disabled>סיום!</button>
+ <div style="display:flex;gap:8px;flex-wrap:wrap;">
+ <button type="button" class="live-participation-btn" onclick="liveCancelLastFinish('beep')">בטל סיום אחרון</button>
+ <button type="button" id="bl-smart-restore" class="live-participation-btn" onclick="liveRestoreFinish('beep')" disabled>שחזר ביטול</button>
+ <button type="button" id="bl-smart-sound" class="live-participation-btn" aria-pressed="false" onclick="liveToggleFinishSound('beep')">צליל: כבוי</button>
+ <button type="button" class="live-participation-btn" onclick="liveSetFinishMode('beep','assign')">שיוך תוצאות</button></div>
+ <h3 style="margin-bottom:4px;">סיומים אחרונים</h3><ul id="bl-smart-recent" class="live-smart-recent"></ul>
+ </section>
+<div class="bl-body">
       <div>
         <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
           <div class="bl-active-count" id="bl-active-label" style="margin-bottom:0;">תלמידים פעילים</div>
@@ -2152,7 +2203,7 @@ history.pushState(null,'',location.href);
             style="background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.15);border-radius:7px;padding:5px 10px;color:#fff;font-family:'Heebo',sans-serif;font-size:13px;width:180px;margin-right:auto;">
           <button class="bl-btn" onclick="openAddParticipant('bl')" style="background:rgba(34,201,122,.15);border:1px solid rgba(34,201,122,.3);color:#22c97a;font-size:12px;padding:6px 12px;">+ הוסף נבחן</button>
         </div>
-        <div class="bl-grid" id="bl-active-grid"></div>
+        <div class="bl-grid" id="bl-active-grid"></div><details class="live-nonparticipants" id="bl-nonparticipants"><summary id="bl-nonparticipants-title">לא משתתפים (0)</summary><div id="bl-nonparticipants-list"></div></details>
       </div>
       <div class="bl-elim-section" id="bl-elim-section" style="display:none;">
         <div class="bl-elim-title">✗ נפסלו <span id="bl-elim-count"></span>
@@ -3897,7 +3948,7 @@ function renderTable(){
     const excellentBadge=excellent?` <span style="display:inline-block;font-size:10px;padding:1px 6px;border-radius:8px;margin-right:4px;font-weight:700;background:rgba(245,158,11,.12);color:#b45309;border:1px solid rgba(245,158,11,.35);" title="ציון 100 לפחות במחצית המבחנים">⭐ מצטיין כללי</span>`:'';
     return `<tr data-idx="${idx}"${!hasResult&&testHasAnyResult(CUR.gid,CUR.test)?' class="no-result"':hasResult?' class="has-result"':''}>
       <td style="font-size:11px;color:var(--ink3);font-weight:700;width:28px;text-align:center;">${idx+1}</td>
-      <td class="tn" style="cursor:pointer;" onclick="openStudentReport(${idx})" title="לחץ לדוח תלמיד">${s.name}${riskBadge}${excellentBadge}${!hasResult?'<span style="font-size:10px;color:#fbbf24;margin-right:5px;"> ⚠</span>':d._ts?`<div style="font-size:9px;color:var(--ink3);font-weight:400;">${new Date(d._ts).toLocaleDateString('he-IL',{day:'2-digit',month:'2-digit',year:'2-digit'})}</div>`:''}
+      <td class="tn" style="cursor:pointer;" onclick="openStudentReport(${idx})" title="לחץ לדוח תלמיד">${s.name}${liveMeasurementNote(d)?'<span style="display:block;font-size:11px;color:#b45309;">משוער — הושלם בדיעבד</span>':''}${riskBadge}${excellentBadge}${!hasResult?'<span style="font-size:10px;color:#fbbf24;margin-right:5px;"> ⚠</span>':d._ts?`<div style="font-size:9px;color:var(--ink3);font-weight:400;">${new Date(d._ts).toLocaleDateString('he-IL',{day:'2-digit',month:'2-digit',year:'2-digit'})}</div>`:''}
       </td>
       <td style="font-size:11px;color:var(--ink3);">${s.grade}${s.cls}</td>
       <td style="text-align:center;">
@@ -5229,7 +5280,7 @@ async function exportMashov(arrBuf, originalFileName, gid, testId, semester){
       s.cls||m.entry.cls||'',
       (m.score!=null&&!Number.isNaN(m.score))?m.score:'',
       '',
-      '',
+      liveMeasurementNote(semester==='b'?(g.results_b?.[testId]?.[m.studentIdx]||g.results?.[testId]?.[m.studentIdx]):g.results?.[testId]?.[m.studentIdx]),
     ]);
   });
   if(filledScores.length){
@@ -5701,8 +5752,49 @@ async function applyGroupUpdate(){
 
 // ── EXPORT ──────────────────────────────────────────────────
 function exportStudents(g){
-  return g.students.map((s,idx)=>({s,idx}))
+  return g.students.map((s,idx)=>({s,idx})).filter(({s})=>!s._guest&&!s._external)
     .sort((a,b)=>String(a.s.name||'').localeCompare(String(b.s.name||''),'he'));
+}
+function externalExcelRows(group,testId,semester=CUR.semester){
+  return savedExternalResults(group,testId,semester).map(row=>[
+    row.number||'',row.name,row.gender||'',(row.grade||'')+(row.cls||''),row.rawVal,
+    typeof row.baseScore==='number'&&Number.isFinite(row.baseScore)?row.baseScore:typeof row.score==='number'&&Number.isFinite(row.score)?row.score:'',row.bonusA||'',
+    typeof row.score==='number'&&Number.isFinite(row.score)?row.score:'',
+    row.savedAt?new Date(row.savedAt).toLocaleDateString('he-IL'):'',
+    liveMeasurementNote({a:row.rawVal,_finish:row._finish})]);
+}
+function appendExternalExcelSheet(workbook,group,tests){
+  const rows=[['שם הרץ החיצוני','מבחן','תוצאה','ציון','אופן מדידה']];
+  tests.forEach(test=>savedExternalResults(group,test.id).forEach(row=>rows.push([
+    row.name,test.label,row.rawVal,typeof row.score==='number'&&Number.isFinite(row.score)?row.score:'',
+    liveMeasurementNote({a:row.rawVal,_finish:row._finish})])));
+  if(rows.length===1)return;
+  const sheet=XLSX.utils.aoa_to_sheet(rows);sheet['!cols']=[24,24,18,10,30].map(wch=>({wch}));
+  XLSX.utils.book_append_sheet(workbook,sheet,'רצים חיצוניים');
+}
+function testAchievementPDFRows(group,testId,semester,unit){
+  const table=getTbl(testId),key=semester==='b'?'results_b':'results',scores=[];
+  let rows='';
+  exportStudents(group).forEach(({s,idx},number)=>{
+    const d=group[key]?.[testId]?.[idx]||{},female=s.gender==='נ'||s.gender==='f',disabled=table.maleOnly&&female;
+    if(!d.a&&!disabled)return;
+    const base=disabled?null:getScore(testId,s.grade,s.gender,d.a),score=calcFinal(base,d.bonusA||0,0);
+    if(typeof score==='number'&&Number.isFinite(score))scores.push(score);
+    const raw=disabled?'—':String(d.a||'—')+(liveMeasurementNote(d)?' (משוער)':'')+(unit?' '+unit:'');
+    rows+='<tr><td class="nm">'+exportSafeHTML(s.name)+'</td><td>'+exportSafeHTML(raw)+'</td>'
+      +'<td style="color:'+_pdfScoreColor(score)+';font-weight:700">'+(score??'—')+'</td>'
+      +'<td>'+(number+1)+'</td><td>'+(female?'נ':'ז')+'</td><td>'+exportSafeHTML((s.grade||'')+(s.cls||''))+'</td><td>'+(base??'—')+'</td></tr>';
+  });
+  const external=savedExternalResults(group,testId,semester);
+  if(external.length)rows+='<tr><th colspan="7">רצים חיצוניים — אינם באלפון</th></tr>';
+  external.forEach(row=>{
+    const score=typeof row.score==='number'&&Number.isFinite(row.score)?row.score:null;
+    if(score!==null)scores.push(score);
+    const raw=String(row.rawVal)+(liveMeasurementNote({a:row.rawVal,_finish:row._finish})?' (משוער)':'')+(unit?' '+unit:'');
+    rows+='<tr><td class="nm">'+exportSafeHTML(row.name)+'</td><td>'+exportSafeHTML(raw)+'</td><td>'+(score??'—')+'</td>'
+      +'<td>'+exportSafeHTML(row.number||'')+'</td><td>'+exportSafeHTML(row.gender||'')+'</td><td>'+exportSafeHTML((row.grade||'')+(row.cls||''))+'</td><td>'+(typeof row.baseScore==='number'&&Number.isFinite(row.baseScore)?row.baseScore:score??'—')+'</td></tr>';
+  });
+  return {rows,scores};
 }
 function exportExcel(){
   const g=S.groups[CUR.gid];if(!g)return;
@@ -5710,16 +5802,18 @@ function exportExcel(){
   const label=ct?ct.name:(TEST_LIST.find(t=>t.id===CUR.test)?.label||CUR.test);
   const unit=(T.unit||(ct&&ct.unit)||'ערך').replace('-','');
   const fmtDate=ts=>ts?new Date(ts).toLocaleDateString('he-IL',{day:'2-digit',month:'2-digit',year:'2-digit'}):'';
-  const rows=[['#','שם','מין','כיתה',`תוצאה (${unit})`,'ציון','בונוס %','ציון לתעודה','תאריך בדיקה']];
+  const rows=[['#','שם','מין','כיתה',`תוצאה (${unit})`,'ציון','בונוס %','ציון לתעודה','תאריך בדיקה','אופן מדידה']];
   exportStudents(g).forEach(({s,idx},exportIdx)=>{
     const d=g[resKey()]?.[CUR.test]?.[idx]||{};
     const isFem=s.gender==='נ'||s.gender==='f';const dis=T.maleOnly&&isFem;
     const sA=dis?'':(d.a?(getScore(CUR.test,s.grade,s.gender,d.a)??''):'');
     const fin=sA!==''?Math.min(100,Math.round(sA*(1+(d.bonusA||0)/100))):'';
-    rows.push([exportIdx+1,s.name,isFem?'נ':'ז',s.grade+s.cls,d.a||'',sA,d.bonusA||'',fin,fmtDate(d._ts)]);
+    rows.push([exportIdx+1,s.name,isFem?'נ':'ז',s.grade+s.cls,d.a||'',sA,d.bonusA||'',fin,fmtDate(d._ts),liveMeasurementNote(d)]);
   });
+  const external=externalExcelRows(g,CUR.test);
+  if(external.length)rows.push([],['','רצים חיצוניים — אינם באלפון'],...external);
   const ws=XLSX.utils.aoa_to_sheet(rows);
-  ws['!cols']=[4,22,6,8,14,8,10,12,12].map(w=>({wch:w}));
+  ws['!cols']=[4,22,6,8,14,8,10,12,12,28].map(w=>({wch:w}));
   const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,label.slice(0,31));
   const _semLbl=CUR.semester==='b'?'מחצית ב':'מחצית א';
   const _dateStr=new Date().toLocaleDateString('he-IL',{day:'numeric',month:'numeric',year:'2-digit'});
@@ -5734,7 +5828,7 @@ function exportFullExcel(){
   const allTests=[...TEST_LIST,...Object.entries(S.customTests||{}).map(([id,ct])=>({id,label:ct.name,unit:ct.unit||''}))];
 
   // Sheet 1: Summary — student × test final scores
-  const summaryHeader=['שם','מין','כיתה',...allTests.map(t=>t.label),'ממוצע'];
+  const summaryHeader=['שם','מין','כיתה',...allTests.map(t=>t.label),'ממוצע','הערות מדידה'];
   const summaryRows=[summaryHeader];
   exportStudents(g).forEach(({s,idx},exportIdx)=>{
     const isFem=s.gender==='נ'||s.gender==='f';
@@ -5754,18 +5848,18 @@ function exportFullExcel(){
       if(fin!=='')scores.push(Number(fin));
     });
     const avg=scores.length?(scores.reduce((a,b)=>a+b,0)/scores.length).toFixed(1):'';
-    row.push(avg);
+    row.push(avg,liveEstimatedTests(g,idx,allTests));
     summaryRows.push(row);
   });
   const wsSummary=XLSX.utils.aoa_to_sheet(summaryRows);
-  wsSummary['!cols']=[{wch:22},{wch:6},{wch:8},...allTests.map(()=>({wch:14})),{wch:10}];
+  wsSummary['!cols']=[{wch:22},{wch:6},{wch:8},...allTests.map(()=>({wch:14})),{wch:10},{wch:35}];
   XLSX.utils.book_append_sheet(wb,wsSummary,'סיכום כל המבחנים');
 
   // Sheet per test
   allTests.forEach(({id,label,unit})=>{
     const T=getTbl(id);
     const u=(T.unit||unit||'').replace('-','');
-    const header=['#','שם','מין','כיתה',`תוצאה א׳${u?' ('+u+')':''}`,`ציון א׳`,`תוצאה ב׳${u?' ('+u+')':''}`,`ציון ב׳`,'ציון סופי','תאריך'];
+    const header=['#','שם','מין','כיתה',`תוצאה א׳${u?' ('+u+')':''}`,`ציון א׳`,`תוצאה ב׳${u?' ('+u+')':''}`,`ציון ב׳`,'ציון סופי','תאריך','אופן מדידה א׳','אופן מדידה ב׳'];
     const rows=[header];
     let hasData=false;
     exportStudents(g).forEach(({s,idx},exportIdx)=>{
@@ -5778,16 +5872,28 @@ function exportFullExcel(){
       const base=(sB!==''&&Number(sB)>=(Number(sA)||0))?sB:sA;
       const fin=base!==''?Math.min(100,Math.round(Number(base)*(1+(da.bonusA||0)/100)+(da.bonusB||0))):'';
       if(da.a||db.a) hasData=true;
-      rows.push([exportIdx+1,s.name,isFem?'נ':'ז',s.grade+s.cls,da.a||'',sA,db.a||'',sB,fin,fmtDate(da._ts||db._ts)]);
+      rows.push([exportIdx+1,s.name,isFem?'נ':'ז',s.grade+s.cls,da.a||'',sA,db.a||'',sB,fin,fmtDate(da._ts||db._ts),liveMeasurementNote(da),liveMeasurementNote(db)]);
     });
+    const external=savedExternalResults(g,id);
+    if(external.length){
+      hasData=true;rows.push([],['','רצים חיצוניים — אינם באלפון']);
+      external.forEach(row=>{
+        const score=typeof row.score==='number'&&Number.isFinite(row.score)?row.score:'';
+        const rawA=CUR.semester==='b'?'':row.rawVal,rawB=CUR.semester==='b'?row.rawVal:'';
+        const note=liveMeasurementNote({a:row.rawVal,_finish:row._finish});
+        const base=typeof row.baseScore==='number'&&Number.isFinite(row.baseScore)?row.baseScore:score;
+        rows.push([row.number||'',row.name,row.gender||'',(row.grade||'')+(row.cls||''),rawA,rawA?base:'',rawB,rawB?base:'',score,row.savedAt?new Date(row.savedAt).toLocaleDateString('he-IL'):'',rawA?note:'',rawB?note:'']);
+      });
+    }
     if(!hasData) return; // skip empty tests
     const ws=XLSX.utils.aoa_to_sheet(rows);
-    ws['!cols']=[{wch:4},{wch:22},{wch:6},{wch:8},{wch:14},{wch:8},{wch:14},{wch:8},{wch:10},{wch:12}];
+    ws['!cols']=[{wch:4},{wch:22},{wch:6},{wch:8},{wch:14},{wch:8},{wch:14},{wch:8},{wch:10},{wch:12},{wch:28},{wch:28}];
     XLSX.utils.book_append_sheet(wb,ws,label.slice(0,31));
   });
 
   const _semLblF=CUR.semester==='b'?'מחצית ב':'מחצית א';
   const _dateFStr=new Date().toLocaleDateString('he-IL',{day:'numeric',month:'numeric',year:'2-digit'});
+  appendExternalExcelSheet(wb,g,allTests);
   XLSX.writeFile(wb,`כל המבחנים ${_semLblF} ${g.classes||g.name} ${_dateFStr}.xlsx`);
   toast('✓ קובץ אקסל יוצא — כל המבחנים');
 }
@@ -5848,26 +5954,11 @@ function exportPDF(){
   const unit=(T.unit||(ct?.unit)||'').replace('-','');
   const semLabel=CUR.semester==='b'?'מחצית ב׳':'מחצית א׳';
   const today=new Date().toLocaleDateString('he-IL');
-  const scores=[];
-  let rows='';
-  exportStudents(g).forEach(({s,idx},exportIdx)=>{
-    const isFem=s.gender==='נ'||s.gender==='f';
-    const dis=T.maleOnly&&isFem;
-    const d=g[resKey()]?.[CUR.test]?.[idx]||{};
-    if(!d.a&&!dis) return;
-    const sA=dis?null:getScore(CUR.test,s.grade,s.gender,d.a);
-    const fin=calcFinal(sA,d.bonusA||0,0);
-    if(fin!==null) scores.push(fin);
-    const col=_pdfScoreColor(fin);
-    rows+=`<tr><td>${exportIdx+1}</td><td class="nm">${s.name}</td><td>${isFem?'נ':'ז'}</td><td>${s.grade}${s.cls}</td>`+
-      `<td>${dis?'—':((d.a||'—')+(unit?' '+unit:''))}</td>`+
-      `<td>${sA!==null?sA:'—'}</td>`+
-      `<td style="color:${col};font-weight:700">${fin!==null?fin:'—'}</td></tr>`;
-  });
+  const {rows,scores}=testAchievementPDFRows(g,CUR.test,CUR.semester,unit);
   const avg=scores.length?(scores.reduce((a,b)=>a+b,0)/scores.length).toFixed(1):'-';
   const ftHtml=scores.length?`<span>ממוצע: ${avg}</span><span>נבחנו: ${scores.length}</span><span>מקסימום: ${Math.max(...scores)}</span><span>מינימום: ${Math.min(...scores)}</span>`:`<span>אין ציונים</span>`;
   const inner=`<div class="hd"><div><h1>SportGrade — דוח מבחן</h1><div class="meta">${g.name} | ${semLabel} | ${today}</div></div><div class="tl">${testLabel}</div></div>
-<table><thead><tr><th>#</th><th>שם תלמיד</th><th>מין</th><th>כיתה</th><th>תוצאה</th><th>ציון א׳</th><th>ציון סופי</th></tr></thead><tbody>${rows}</tbody></table>
+<table><thead><tr><th>שם התלמיד</th><th>תוצאה</th><th>ציון</th><th>#</th><th>מין</th><th>כיתה</th><th>ציון א׳</th></tr></thead><tbody>${rows}</tbody></table>
 <div class="ft">${ftHtml}</div>`;
   _pdfDownloadFromHtml(inner,`${g.name}_${testLabel}_${semLabel}.pdf`);
 }
@@ -5878,32 +5969,18 @@ function exportFullPDF(){
   const semLabel=CUR.semester==='b'?'מחצית ב׳':'מחצית א׳';
   const today=new Date().toLocaleDateString('he-IL');
   const allTests=[...TEST_LIST,...Object.entries(S.customTests||{}).map(([id,ct])=>({id,label:ct.name,unit:ct.unit||''}))];
-  const activeTests=allTests.filter(({id})=>Object.values(g[resKey()]?.[id]||{}).some(d=>d&&d.a!==''));
+  const activeTests=allTests.filter(({id})=>Object.values(g[resKey()]?.[id]||{}).some(d=>d&&d.a!=='')||savedExternalResults(g,id).length);
   if(!activeTests.length){toast('אין מבחנים עם ציונים לייצוא');return;}
   let sectionsHtml='';
   let first=true;
   activeTests.forEach(({id,label,unit:u})=>{
     const T=getTbl(id);
     const unitStr=(T.unit||u||'').replace('-','');
-    const scores=[];let rows='';
-    exportStudents(g).forEach(({s,idx},exportIdx)=>{
-      const isFem=s.gender==='נ'||s.gender==='f';
-      const dis=T.maleOnly&&isFem;
-      const d=g[resKey()]?.[id]?.[idx]||{};
-      if(!d.a&&!dis) return;
-      const sA=dis?null:getScore(id,s.grade,s.gender,d.a);
-      const fin=calcFinal(sA,d.bonusA||0,0);
-      if(fin!==null) scores.push(fin);
-      const col=_pdfScoreColor(fin);
-      rows+=`<tr><td>${exportIdx+1}</td><td class="nm">${s.name}</td><td>${isFem?'נ':'ז'}</td><td>${s.grade}${s.cls}</td>`+
-        `<td>${dis?'—':((d.a||'—')+(unitStr?' '+unitStr:''))}</td>`+
-        `<td>${sA!==null?sA:'—'}</td>`+
-        `<td style="color:${col};font-weight:700">${fin!==null?fin:'—'}</td></tr>`;
-    });
+    const {rows,scores}=testAchievementPDFRows(g,id,CUR.semester,unitStr);
     const avg=scores.length?(scores.reduce((a,b)=>a+b,0)/scores.length).toFixed(1):'-';
     const ftHtml=scores.length?`<span>ממוצע: ${avg}</span><span>נבחנו: ${scores.length}</span><span>מקסימום: ${Math.max(...scores)}</span><span>מינימום: ${Math.min(...scores)}</span>`:`<span>אין ציונים</span>`;
     sectionsHtml+=`<div class="sec${first?'':' pb'}"><div class="sec-hd">${label}</div>
-<table><thead><tr><th>#</th><th>שם תלמיד</th><th>מין</th><th>כיתה</th><th>תוצאה</th><th>ציון א׳</th><th>ציון סופי</th></tr></thead><tbody>${rows}</tbody></table>
+<table><thead><tr><th>שם התלמיד</th><th>תוצאה</th><th>ציון</th><th>#</th><th>מין</th><th>כיתה</th><th>ציון א׳</th></tr></thead><tbody>${rows}</tbody></table>
 <div class="ft">${ftHtml}</div></div>`;
     first=false;
   });
@@ -8520,7 +8597,7 @@ function saveLiveState(){
   const active=liveEngines().find(([,e,id])=>document.getElementById(id)?.classList.contains('open'))
     ||liveEngines().find(([,e])=>e.running||e.paused);
   try{
-    if(!active){localStorage.removeItem(LIVE_LS_KEY);return;}
+    if(!active)return; // Retain the completed session when its view is closed.
     const [type,e,id]=active;
     if(!e.running&&!e.paused&&!e._introTimer&&!e._introRemainingMs&&!e.elapsed
       &&!(e.splits||[]).length&&!(e.finishers||[]).length&&!(e.eliminations||[]).length&&!e.count&&!(e.nextPlace>1)){
@@ -8580,7 +8657,7 @@ async function restoreLiveState(){
     document.getElementById('lr-start-btn').style.display=wasRunning?'none':'';
     document.getElementById('lr-stop-btn').style.display=wasRunning?'':'none';
     document.getElementById('lr-reset-btn').style.display=wasRunning?'none':'';
-    document.getElementById('lr-undo-btn').disabled=!e.finishers.some(r=>r.studentArrIdx!=null);
+    document.getElementById('lr-undo-btn').disabled=!e.finishers.some(r=>!r.cancelled&&r.studentArrIdx!=null);
     liveUpdateSplitControl('lr');
   }else if(p.type==='sprint'){
     const splits=e.splits;e.splits=[];e.running=true;
@@ -8643,7 +8720,7 @@ function openBeepLive(){
   BL.running=false;BL.paused=false;BL.elapsed=0;BL.startTime=0;BL.pausedAt=0;BL._introDeadline=undefined;BL._introRemainingMs=undefined;
   BL.beepIdx=0;
   BL.students=students.map((s,i)=>({...s,idx:i,state:'active'}));
-  BL.eliminations=[];BL.nextPlace=1;BL.lastPlace=null;BL.undoStack=[];BL.redoStack=[];BL.absentMode=false;
+  BL.eliminations=[];BL.nextPlace=1;BL.lastPlace=null;BL.lastCancelledPlace=null;BL.undoStack=[];BL.redoStack=[];BL.absentMode=false;
   document.getElementById('bl-group-name').textContent=S.groups[CUR.gid].name;
   document.getElementById('bl-res-group').textContent=S.groups[CUR.gid].name;
   document.getElementById('bl-screen-live').style.display='flex';
@@ -8662,7 +8739,7 @@ function openBeepLive(){
 
 function _doCloseBeepLive(){
   blStop();BL.paused=false;
-  try{localStorage.removeItem(LIVE_LS_KEY);}catch(e){}
+  saveLiveState();
   _liveModalClose();
   document.getElementById('bl-modal').classList.remove('open');
   document.getElementById('rg-bl-add-btn')?.remove();
@@ -8843,6 +8920,219 @@ function blScoreClass(score){
 
 // ── STUDENT GRID ─────────────────────────────────────────────
 // Split places are session-local, monotonic IDs. Deletion deliberately leaves gaps.
+function liveFinishNumberLabel(type){return type==='beep'?'מספר יציאה':'מספר סיום';}
+function liveExternalId(){
+  return typeof crypto!=='undefined'&&crypto.randomUUID?crypto.randomUUID():Date.now().toString(36)+'-'+Math.random().toString(36).slice(2);
+}
+function liveAssignExternal(type,place,name){
+  const row=liveSplitRows(type).find(item=>item.place===place);if(!row||row.cancelled)return false;
+  name=String(name||'').trim().slice(0,120);
+  liveSetSplitStudent(type,row,null);
+  if(name){row.externalId=row.externalId||liveExternalId();row.externalName=name;row.name=name;}
+  saveLiveState();liveRefreshSplits(type);return true;
+}
+function liveSaveExternalSplits(type){
+  const e=liveSplitEngine(type),g=S.groups[e.gid];if(!g)return 0;
+  const semester=e._semester||CUR.semester||'a',testId=type==='beep'?'beep':e.testId;
+  let saved=0,touched=false;
+  liveSplitRows(type).forEach(row=>{
+    const student=row.studentArrIdx!=null?e.students[row.studentArrIdx]:null;
+    const isGuest=student?._external&&!(student._targetGid===e.gid&&student._targetStudentIdx!=null);
+    if(!row.externalName&&!isGuest&&!row.externalId)return;
+    row.externalId=row.externalId||liveExternalId();
+    touched=true;
+    const name=row.externalName||(isGuest?student.name:'');
+    const inactive=!!row.cancelled||!name||student?.state==='absent';
+    if(inactive&&!g.externalResults?.[semester]?.[testId]?.[row.externalId])return;
+    g.externalResults=g.externalResults||{};g.externalResults[semester]=g.externalResults[semester]||{};
+    const records=g.externalResults[semester][testId]||(g.externalResults[semester][testId]={});
+    if(inactive){records[row.externalId]={...records[row.externalId],inactive:true};return;}
+    records[row.externalId]={id:row.externalId,name,rawVal:type==='beep'?String(encodeBeepResult(row.level,row.shuttle)):row.rawVal,
+      score:!inactive&&typeof row.score==='number'&&Number.isFinite(row.score)?row.score:null,
+      baseScore:typeof row.score==='number'&&Number.isFinite(row.score)?row.score:null,
+      gender:isGuest?student.gender:'',grade:isGuest?student.grade:'',cls:isGuest?(student.cls||''):'',number:row.place,inactive,
+      _finish:liveFinishMetadata(type,row),savedAt:Date.now()};
+    if(!inactive)saved++;
+  });
+  if(touched){
+    // Random-mode free names use the existing random-result store, keyed by identity.
+    if(e.gid==='__random__'&&typeof rgLoad==='function'&&typeof rgSave==='function'){
+      const data=rgLoad();
+      liveSplitRows(type).forEach(row=>{
+        const index=data.findIndex(item=>item._liveExternalId===row.externalId);
+        if(!row.externalName&&index<0)return;
+        const record=g.externalResults?.[semester]?.[testId]?.[row.externalId];if(!record)return;
+        const result={name:record.name,result:record.rawVal,testId,gender:record.gender,grade:record.grade,score:record.score,
+          ts:record.savedAt||Date.now(),_finish:record._finish,_liveExternalId:record.id,_externalFree:true,_inactive:!!record.inactive};
+        if(index<0)data.push(result);else data[index]=result;
+      });
+      rgSave(data);
+    }
+    saveLiveState();
+  }
+  return saved;
+}
+function savedExternalResults(group,testId,semester=CUR.semester){
+  const saved=Object.values(group.externalResults?.[semester]?.[testId]||{}).filter(row=>!row.inactive&&row.name&&row.rawVal!==''&&row.rawVal!=null);
+  // Preserve historical guest results without moving their students or rewriting grades.
+  const key=semester==='b'?'results_b':'results';
+  (group.students||[]).forEach((student,idx)=>{
+    if(!student._guest&&!student._external)return;
+    const d=group[key]?.[testId]?.[idx];if(!d||d.a==null||d.a==='')return;
+    const base=getScore(testId,student.grade,student.gender,d.a);
+    saved.push({id:'legacy-guest-'+idx,name:student.name,rawVal:d.a,baseScore:base,bonusA:d.bonusA||0,score:calcFinal(base,d.bonusA||0,0),gender:student.gender,grade:student.grade,cls:student.cls,number:idx+1,savedAt:d._ts,_finish:d._finish});
+  });
+  return saved.sort((a,b)=>String(a.name).localeCompare(String(b.name),'he'));
+}
+function exportSafeHTML(value){
+  return String(value??'').replace(/[&<>"']/g,char=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[char]));
+}
+function liveRenderNonParticipants(type){
+  const e=liveSplitEngine(type),p=type==='beep'?'bl':'lr';
+  const details=document.getElementById(p+'-nonparticipants'),list=document.getElementById(p+'-nonparticipants-list');
+  if(!details||!list)return;
+  const absent=e.students.map((student,idx)=>({student,idx})).filter(item=>item.student.state==='absent');
+  document.getElementById(p+'-nonparticipants-title').textContent='לא משתתפים ('+absent.length+')';
+  details.open=!!e.nonParticipantsOpen;
+  details.ontoggle=()=>{if(e.nonParticipantsOpen===details.open)return;e.nonParticipantsOpen=details.open;saveLiveState();};
+  list.innerHTML='';
+  absent.forEach(({student,idx})=>{
+    const row=document.createElement('div');row.className='live-split-row';
+    const name=document.createElement('span');name.textContent=student.name;row.appendChild(name);
+    const button=liveParticipationButton(type,idx);button.textContent='החזר למבחן';row.appendChild(button);list.appendChild(row);
+  });
+}
+function liveFinishMetadata(type,row){
+  return {number:row.place,estimated:!!row.estimated,arrivalGroup:row.arrivalGroup||null,
+    kind:type,value:type==='beep'?String(encodeBeepResult(row.level,row.shuttle)):row.rawVal};
+}
+function liveMeasurementNote(data){
+  return data?._finish?.estimated&&String(data.a??data.result)===String(data._finish.value)?'משוער — הושלם בדיעבד':'';
+}
+function liveEstimatedTests(group,idx,tests,semester=CUR.semester){
+  return tests.filter(test=>liveMeasurementNote(semester==='b'?(group.results_b?.[test.id]?.[idx]||group.results?.[test.id]?.[idx]):group.results?.[test.id]?.[idx]))
+    .map(test=>test.label+': משוער').join('; ');
+}
+function liveSetFinishMode(type,mode){
+  if(!['regular','smart','assign'].includes(mode))return;
+  liveSplitEngine(type).finishMode=mode;
+  liveRefreshSplits(type);saveLiveState();
+}
+function liveFinishRows(type){return liveSplitRows(type).filter(row=>!row.cancelled);}
+function liveDisplaySplitRows(type){
+  return [...liveSplitRows(type)].sort((a,b)=>(a.arrivalGroup||a.place)-(b.arrivalGroup||b.place)||a.place-b.place);
+}
+function liveRenderSmartFinish(type){
+  const e=liveSplitEngine(type),p=type==='beep'?'bl':'lr',root=document.getElementById(p+'-modal');
+  const mode=e.finishMode||'regular';
+  root?.classList.toggle('smart-finish-mode',mode==='smart');
+  root?.classList.toggle('live-assignment-mode',mode==='assign');
+  for(const m of ['regular','smart','assign'])document.getElementById(p+'-mode-'+m)?.setAttribute('aria-pressed',String(mode===m));
+  const panel=document.getElementById(p+'-smart-finish');if(!panel)return;
+  const rows=liveFinishRows(type),all=liveSplitRows(type),last=all.find(row=>row.place===e.lastPlace);
+  document.getElementById(p+'-smart-clock').textContent=liveSplitTime(e.running?Date.now()-e.startTime:e.elapsed||0);
+  const hit=document.getElementById(p+'-smart-hit');hit.disabled=!e.running;
+  document.getElementById(p+'-smart-next').textContent=String(e.nextPlace);
+  document.getElementById(p+'-smart-last').textContent=e.lastPlace?String(e.lastPlace):'—';
+  document.getElementById(p+'-smart-last').setAttribute('aria-label',liveFinishNumberLabel(type)+' '+(e.lastPlace||'טרם נרשם')+(last?.cancelled?' בוטל':''));
+  const lastStatus=document.getElementById(p+'-smart-last-status');if(lastStatus)lastStatus.textContent=last?.cancelled?'בוטל — ניתן לשחזור':'';
+  const total=e.students.filter(student=>student.state!=='absent').length+rows.filter(row=>row.externalName).length;
+  const assigned=rows.filter(row=>row.studentArrIdx!=null||row.externalName).length;
+  document.getElementById(p+'-smart-counts').textContent='תועדו '+rows.length+' סיומים • שויכו '+assigned+' • עדיין משתתפים: '+Math.max(0,total-rows.length);
+  document.getElementById(p+'-smart-restore').disabled=!all.some(row=>row.cancelled);
+  const sound=document.getElementById(p+'-smart-sound');sound.textContent=e.finishSound?'צליל: פעיל':'צליל: כבוי';sound.setAttribute('aria-pressed',String(!!e.finishSound));
+  const recent=document.getElementById(p+'-smart-recent');
+  const stamp=JSON.stringify(all.map(row=>[row.place,row.cancelled,row.name,row.estimated,row.arrivalGroup,row.rawVal,row.level,row.shuttle]));
+  if(recent.dataset.stamp!==stamp){
+    recent.dataset.stamp=stamp;recent.innerHTML='';
+    all.slice(-5).reverse().forEach(row=>{
+      const li=document.createElement('li');
+      li.textContent=liveFinishNumberLabel(type)+' '+row.place+' — '+(type==='beep'?row.level+'-'+row.shuttle:row.rawVal)
+        +(row.estimated?' (משוער)':' (נמדד)')+(row.name?' — '+row.name:' — ממתין לשיוך')+(row.cancelled?' — בוטל':'');
+      recent.appendChild(li);
+    });
+  }
+}
+let LIVE_FINISH_AUDIO=null;
+function liveToggleFinishSound(type){
+  const e=liveSplitEngine(type);e.finishSound=!e.finishSound;
+  liveRenderSmartFinish(type);saveLiveState();
+}
+function liveFinishFeedback(type){
+  const e=liveSplitEngine(type),p=type==='beep'?'bl':'lr',button=document.getElementById(p+'-smart-hit');
+  try{if(typeof navigator!=='undefined'&&typeof navigator.vibrate==='function')navigator.vibrate(25);}catch(error){}
+  if(button){
+    const token=String(Number(button.dataset.feedbackToken||0)+1);button.dataset.feedbackToken=token;
+    button.classList.add('finish-recorded');
+    setTimeout(()=>{if(button.dataset.feedbackToken===token)button.classList.remove('finish-recorded');},160);
+  }
+  if(e.finishSound){try{
+    const Audio=window.AudioContext||window.webkitAudioContext;
+    if(Audio){
+      const context=LIVE_FINISH_AUDIO||(LIVE_FINISH_AUDIO=new Audio());
+      if(context.state==='suspended')context.resume().catch(()=>{});
+      const oscillator=context.createOscillator(),gain=context.createGain();
+      oscillator.connect(gain);gain.connect(context.destination);oscillator.frequency.value=880;
+      gain.gain.setValueAtTime(.08,context.currentTime);gain.gain.exponentialRampToValueAtTime(.001,context.currentTime+.07);
+      oscillator.start();oscillator.stop(context.currentTime+.08);
+    }
+  }catch(error){}}
+}
+function liveSmartFinish(type){
+  const row=liveRecordSplit(type);
+  if(row)liveFinishFeedback(type);
+  return row;
+}
+function liveCancelFinish(type,place){
+  const e=liveSplitEngine(type),row=liveSplitRows(type).find(item=>item.place===place);
+  if(!row||row.cancelled)return;
+  row.cancelled=true;e.lastCancelledPlace=place;
+  if(row.studentArrIdx!=null){const student=e.students[row.studentArrIdx];if(student&&student.state!=='absent')student.state='active';}
+  saveLiveState();liveRefreshSplits(type);
+}
+function liveCancelLastFinish(type){
+  const e=liveSplitEngine(type),rows=liveFinishRows(type);
+  const row=rows.find(item=>item.place===e.lastPlace)||[...rows].reverse().find(item=>!item.estimated)||rows.at(-1);
+  if(row)liveCancelFinish(type,row.place);
+}
+function liveRestoreFinish(type,place=null){
+  const e=liveSplitEngine(type),all=liveSplitRows(type);
+  const row=place!=null?all.find(item=>item.place===place):all.find(item=>item.place===e.lastCancelledPlace&&item.cancelled)||[...all].reverse().find(item=>item.cancelled);
+  if(!row?.cancelled)return false;
+  const idx=row.studentArrIdx;
+  if(idx!=null&&(e.students[idx]?.state!=='active'||liveFinishRows(type).some(item=>item.studentArrIdx===idx))){
+    toast('התלמיד כבר שויך או אינו משתתף — תקן את ההשתתפות או השיוך לפני שחזור');return false;
+  }
+  row.cancelled=false;
+  if(idx!=null)e.students[idx].state=type==='beep'?'eliminated':'finished';
+  saveLiveState();liveRefreshSplits(type);return true;
+}
+function liveSetArrivalGroup(type,place,anchorValue){
+  const rows=liveSplitRows(type),row=rows.find(item=>item.place===place);
+  if(!row||row.cancelled)return;
+  if(anchorValue===''){delete row.arrivalGroup;}
+  else{
+    const anchor=rows.find(item=>item.place===Number(anchorValue)&&!item.cancelled);if(!anchor)return;
+    row.arrivalGroup=anchor.arrivalGroup||anchor.place;anchor.arrivalGroup=row.arrivalGroup;
+  }
+  saveLiveState();liveRefreshSplits(type);
+}
+function liveAddMissedFinishes(type,anchorPlace,count){
+  const e=liveSplitEngine(type),rows=liveSplitRows(type),anchor=rows.find(row=>row.place===anchorPlace);
+  count=Number(count);
+  if(!anchor||anchor.cancelled||!Number.isInteger(count)||count<1||count>30){toast('בחר 1–30 מסיימים להשלמה');return [];}
+  anchor.arrivalGroup=anchor.arrivalGroup||anchor.place;
+  const added=[];
+  for(let i=0;i<count;i++){
+    const row={place:e.nextPlace++,studentArrIdx:null,studentIdx:null,name:'',score:null,
+      estimated:true,arrivalGroup:anchor.arrivalGroup,elapsedMs:anchor.elapsedMs};
+    if(type==='beep')Object.assign(row,{level:anchor.level,shuttle:anchor.shuttle,cumDist:anchor.cumDist,result:anchor.result});
+    else Object.assign(row,{rawMs:anchor.rawMs,rawVal:anchor.rawVal});
+    rows.push(row);added.push(row);
+  }
+  // No change to lastPlace: these are explicitly retrospective, not newly announced crossings.
+  saveLiveState();liveRefreshSplits(type);return added;
+}
 function liveSplitEngine(type){return type==='beep'?BL:LR;}
 function liveSplitRows(type){
   const e=liveSplitEngine(type),rows=type==='beep'?e.eliminations:e.finishers;
@@ -8859,11 +9149,13 @@ function liveUpdateSplitControl(type){
   const e=liveSplitEngine(type),prefix=type==='beep'?'bl':'lr';
   const button=document.getElementById(prefix+'-split-btn');if(button)button.disabled=!e.running;
   const last=document.getElementById(prefix+'-split-last');if(last)last.textContent=e.lastPlace?'#'+e.lastPlace:'';
+  liveRenderSmartFinish(type);
 }
 function liveSetSplitStudent(type,row,idx){
   const e=liveSplitEngine(type);
   if(row.studentArrIdx!=null){const old=e.students[row.studentArrIdx];if(old&&old.state!=='absent')old.state='active';}
   row.studentArrIdx=idx;row.studentIdx=null;row.name='';row.score=null;
+  delete row.externalName;
   if(idx==null)return;
   const student=e.students[idx];
   row.studentIdx=student.idx;row.name=student.name;
@@ -8891,10 +9183,10 @@ function liveRecordSplit(type,studentArrIdx=null){
 }
 function liveAssignSplit(type,place,value){
   const e=liveSplitEngine(type),rows=liveSplitRows(type),row=rows.find(r=>r.place===place);
-  if(!row)return false;
+  if(!row||row.cancelled)return false;
   const idx=value===''||value==null?null:Number(value);
-  if(idx===row.studentArrIdx)return true;
-  if(idx!=null&&(!Number.isInteger(idx)||e.students[idx]?.state!=='active'||rows.some(r=>r!==row&&r.studentArrIdx===idx))){
+  if(idx===row.studentArrIdx&&!row.externalName)return true;
+  if(idx!=null&&(!Number.isInteger(idx)||e.students[idx]?.state!=='active'||rows.some(r=>r!==row&&!r.cancelled&&r.studentArrIdx===idx))){
     toast('בחר תלמיד משתתף שטרם סיים');liveRefreshSplits(type);return false;
   }
   // Assignment never writes/deletes grades, including grades saved before a correction.
@@ -8902,13 +9194,14 @@ function liveAssignSplit(type,place,value){
 }
 function liveDeleteSplit(type,place){
   const e=liveSplitEngine(type),rows=liveSplitRows(type),idx=rows.findIndex(r=>r.place===place);
-  if(idx<0||!confirm('למחוק פיצול #'+place+'? המספר לא יוקצה מחדש. ציונים שכבר נשמרו לא יימחקו.'))return;
-  liveSetSplitStudent(type,rows[idx],null);rows.splice(idx,1);
-  e.redoStack=[];saveLiveState();liveRefreshSplits(type);
+  if(idx<0||!confirm('לבטל '+liveFinishNumberLabel(type)+' '+place+'? ניתן לשחזר; המספר לא יוקצה מחדש וציונים שכבר נשמרו לא יימחקו.'))return;
+  // Retain the original measurement and assignment so cancellation is reversible.
+  e.redoStack=[];liveCancelFinish(type,place);
 }
 function liveRenderSplitRow(type,row,list){
   const e=liveSplitEngine(type),div=document.createElement('div');div.className='live-split-row';
-  const rank=document.createElement('strong');rank.textContent='#'+row.place;div.appendChild(rank);
+  if(row.cancelled)div.classList.add('cancelled');
+  const rank=document.createElement('strong');rank.textContent=(type==='beep'?'מספר יציאה ':'#')+row.place;rank.setAttribute('aria-label',liveFinishNumberLabel(type)+' '+row.place);div.appendChild(rank);
   const result=document.createElement('span');result.textContent=type==='beep'?row.level+'-'+row.shuttle:(row.rawMs!=null?liveSplitTime(row.rawMs):row.rawVal);div.appendChild(result);
   const select=document.createElement('select');select.setAttribute('aria-label','שיוך תלמיד לפיצול '+row.place);
   const empty=document.createElement('option');empty.value='';empty.textContent='ללא שיוך';select.appendChild(empty);
@@ -8917,13 +9210,38 @@ function liveRenderSplitRow(type,row,list){
     const option=document.createElement('option');option.value=String(idx);option.textContent=student.name||('נבחן '+(idx+1));select.appendChild(option);
   });
   select.value=row.studentArrIdx==null?'':String(row.studentArrIdx);
+  select.disabled=!!row.cancelled;
   select.onchange=()=>liveAssignSplit(type,row.place,select.value);div.appendChild(select);
-  const remove=document.createElement('button');remove.type='button';remove.className='live-participation-btn';remove.textContent='מחק';
-  remove.setAttribute('aria-label','מחק פיצול '+row.place);remove.onclick=()=>liveDeleteSplit(type,row.place);div.appendChild(remove);
+  const status=document.createElement('span');status.className='live-split-status'+(row.estimated?' estimated':'');
+  status.textContent=(row.cancelled?'בוטל':row.externalName?'שויך לרץ חיצוני':row.studentArrIdx!=null?'שויך':'ממתין לשיוך')+' • '+(row.estimated?'הושלם בדיעבד — משוער':'נמדד בזמן אמת')
+    +(row.arrivalGroup?' • סיימו יחד — קבוצה #'+row.arrivalGroup+' (ללא סדר פנימי)':'');div.appendChild(status);
+  if(!row.cancelled){
+    const free=document.createElement('input');free.type='text';free.maxLength=120;free.value=row.externalName||'';free.placeholder='שם חופשי של רץ חיצוני';free.className='live-free-name';
+    free.setAttribute('aria-label','שם חופשי לפיצול '+row.place);
+    free.onchange=()=>liveAssignExternal(type,row.place,free.value);
+    free.onkeydown=event=>{if(event.key==='Enter'){event.preventDefault();liveAssignExternal(type,row.place,free.value);}};div.appendChild(free);
+    const clear=document.createElement('button');clear.type='button';clear.className='live-participation-btn';clear.textContent='בטל שם חופשי';clear.disabled=!row.externalName;
+    clear.onclick=()=>liveAssignExternal(type,row.place,'');div.appendChild(clear);
+  }
+  const remove=document.createElement('button');remove.type='button';remove.className='live-participation-btn';remove.textContent=row.cancelled?'שחזר סיום':'בטל סיום';
+  remove.setAttribute('aria-label',remove.textContent+' '+row.place);
+  remove.onclick=()=>row.cancelled?liveRestoreFinish(type,row.place):liveDeleteSplit(type,row.place);div.appendChild(remove);
+  if(!row.cancelled){
+    const details=document.createElement('details'),summary=document.createElement('summary');summary.textContent='הגעה משותפת / השלמה';summary.style.minHeight='44px';details.appendChild(summary);
+    const group=document.createElement('select');group.setAttribute('aria-label','קבוצת הגעה לסיום '+row.place);
+    const solo=document.createElement('option');solo.value='';solo.textContent='ללא קבוצת הגעה';group.appendChild(solo);
+    liveFinishRows(type).forEach(anchor=>{
+      const option=document.createElement('option');option.value=String(anchor.place);option.textContent='יחד עם '+liveFinishNumberLabel(type)+' '+anchor.place;group.appendChild(option);
+    });
+    group.value=row.arrivalGroup==null?'':String(row.arrivalGroup);group.onchange=()=>liveSetArrivalGroup(type,row.place,group.value);details.appendChild(group);
+    const count=document.createElement('input');count.type='number';count.min='1';count.max='30';count.value='1';count.style.minHeight='44px';count.style.width='70px';count.setAttribute('aria-label','מספר מסיימים חסרים');details.appendChild(count);
+    const add=document.createElement('button');add.type='button';add.className='live-participation-btn';add.textContent='הוסף סיומים משוערים';
+    add.onclick=()=>liveAddMissedFinishes(type,row.place,count.value);details.appendChild(add);div.appendChild(details);
+  }
   list.appendChild(div);
 }
 function liveRenderSplits(type,targetId){
-  const rows=liveSplitRows(type),prefix=type==='beep'?'bl':'lr';
+  const rows=liveDisplaySplitRows(type),prefix=type==='beep'?'bl':'lr';
   const list=document.getElementById(targetId||(type==='beep'?'bl-elim-list':'lr-finish-list'));if(!list)return;
   list.innerHTML='';rows.forEach(row=>liveRenderSplitRow(type,row,list));
   document.getElementById(type==='beep'?'bl-elim-section':'lr-finish-section').style.display=rows.length?'':'none';
@@ -8932,18 +9250,24 @@ function liveRenderSplits(type,targetId){
   liveUpdateSplitControl(type);
 }
 function liveRefreshSplits(type){
+  // Keep the one-handed capture path small: defer hidden roster/assignment DOM work.
+  if(liveSplitEngine(type).finishMode==='smart'){
+    liveUpdateSplitControl(type);
+    if(type==='beep')blUpdateProtocolDisplay();
+    return;
+  }
   liveRenderSplits(type);
   if(type==='beep'){
     blRenderActiveGrid();blUpdateProtocolDisplay();blUpdateScoreBar();blUpdateUndoRedo();
     if(document.getElementById('bl-screen-results').style.display!=='none')blRenderResults();
   }else{
-    lrRenderGrid();document.getElementById('lr-undo-btn').disabled=!liveSplitRows(type).some(r=>r.studentArrIdx!=null);
+    lrRenderGrid();document.getElementById('lr-undo-btn').disabled=!liveFinishRows(type).some(r=>r.studentArrIdx!=null);
   }
 }
 function liveUndoSplitAssignment(type){
-  const e=liveSplitEngine(type),row=[...liveSplitRows(type)].reverse().find(r=>r.studentArrIdx!=null);
+  const e=liveSplitEngine(type),row=[...liveFinishRows(type)].reverse().find(r=>r.studentArrIdx!=null||r.externalName);
   if(!row)return;
-  (e.redoStack||(e.redoStack=[])).push({place:row.place,idx:row.studentArrIdx});
+  (e.redoStack||(e.redoStack=[])).push({place:row.place,idx:row.studentArrIdx,externalName:row.externalName});
   liveAssignSplit(type,row.place,null);
 }
 
@@ -8953,8 +9277,8 @@ function liveToggleParticipation(type,idx){
   const student=engine?.students[idx];
   if(!student)return;
   const hasResult=type==='beep'
-    ?engine.eliminations.some(e=>e.studentArrIdx===idx)
-    :engine.finishers.some(f=>f.studentArrIdx===idx);
+    ?engine.eliminations.some(e=>!e.cancelled&&e.studentArrIdx===idx)
+    :engine.finishers.some(f=>!f.cancelled&&f.studentArrIdx===idx);
   if(hasResult||!['active','absent'].includes(student.state)){
     toast('לתלמיד כבר נרשמה תוצאה — מצב ההשתתפות והתוצאה לא שונו');return;
   }
@@ -8984,7 +9308,7 @@ function blRenderActiveGrid(){
   const grid=document.getElementById('bl-active-grid');
   grid.innerHTML='';
   BL.students.forEach((s,i)=>{
-    if(s.state==='eliminated')return;
+    if(s.state!=='active')return;
     const score=s.state==='absent'?null:blCurrentScoreFor(s);
     const scCls=blScoreClass(score);
     const div=document.createElement('div');
@@ -9006,6 +9330,7 @@ function blRenderActiveGrid(){
     grid.appendChild(div);
   });
   blFilterGrid();
+  liveRenderNonParticipants('beep');
   liveRenderSplits('beep');
 }
 
@@ -9055,7 +9380,7 @@ function blUpdateCard(i,state){
 function blRenderElimRow(){liveRenderSplits('beep');}
 
 function blUpdateScoreBar(){
-  const assigned=BL.eliminations.filter(e=>e.studentArrIdx!=null);
+  const assigned=BL.eliminations.filter(e=>!e.cancelled&&e.studentArrIdx!=null);
   const scores=assigned.map(e=>e.score).filter(s=>typeof s==='number'&&Number.isFinite(s));
   if(!scores.length){document.getElementById('bl-avg-score').textContent='';document.getElementById('bl-score-bar').innerHTML='';return;}
   const avg=(scores.reduce((a,b)=>a+b,0)/scores.length).toFixed(1);
@@ -9111,11 +9436,12 @@ function blUndo(){liveUndoSplitAssignment('beep');}
 
 function blRedo(){
   const item=BL.redoStack.pop();if(!item)return;
-  liveAssignSplit('beep',item.place,item.idx);
+  if(item.externalName)liveAssignExternal('beep',item.place,item.externalName);
+  else liveAssignSplit('beep',item.place,item.idx);
 }
 
 function blUpdateUndoRedo(){
-  document.getElementById('bl-undo-btn').disabled=!BL.eliminations.some(r=>r.studentArrIdx!=null);
+  document.getElementById('bl-undo-btn').disabled=!BL.eliminations.some(r=>!r.cancelled&&r.studentArrIdx!=null);
 }
 
 // ── ABSENT MODE ───────────────────────────────────────────────
@@ -9174,7 +9500,7 @@ function blRenderResults(){
   list.innerHTML='';
   const colors={s100:'#4ade80','s-high':'#86efac','s-mid':'#fbbf24','s-low':'#f87171','s-none':'rgba(255,255,255,.4)'};
   const rows=[];
-  liveSplitRows('beep').filter(elim=>elim.studentArrIdx!=null).forEach(elim=>{
+  liveFinishRows('beep').filter(elim=>elim.studentArrIdx!=null).forEach(elim=>{
     rows.push({...elim,rank:elim.place,absent:false});
   });
   BL.students.forEach(s=>{
@@ -9253,21 +9579,21 @@ function blEditResult(input){
 function blSaveAll(silent){
   const gid=BL.gid;
   if(!S.groups[gid])return;
-  let saved=0;
+  let saved=liveSaveExternalSplits('beep');
   BL.eliminations.forEach(elim=>{
-    if(elim.studentArrIdx==null||elim.absent||BL.students[elim.studentArrIdx]?.state==='absent')return;
+    if(elim.cancelled||elim.studentArrIdx==null||elim.absent||BL.students[elim.studentArrIdx]?.state==='absent')return;
     const val=String(encodeBeepResult(elim.level,elim.shuttle));
     const s=BL.students[elim.studentArrIdx];
     if(s&&s._external){
       if(s._targetGid!==undefined&&s._targetStudentIdx!==undefined){
-        writeResult(s._targetGid,'beep',s._targetStudentIdx,val,BL.round);
+        writeResult(s._targetGid,'beep',s._targetStudentIdx,val,BL.round,liveFinishMetadata('beep',elim));
         saved++;
       }
       return;
     }
     const idx=elim.studentIdx;
     if(idx===undefined||idx===null||idx>=S.groups[gid].students.length)return;
-    writeResult(gid,'beep',idx,val,BL.round);
+    writeResult(gid,'beep',idx,val,BL.round,liveFinishMetadata('beep',elim));
     saved++;
   });
   saveState();
@@ -9277,7 +9603,7 @@ function blSaveAll(silent){
 
 function blRestartSession(){
   BL.running=false;BL.paused=false;BL.elapsed=0;BL.startTime=0;
-  BL.beepIdx=0;BL.eliminations=[];BL.nextPlace=1;BL.lastPlace=null;BL.undoStack=[];BL.redoStack=[];BL.absentMode=false;
+  BL.beepIdx=0;BL.eliminations=[];BL.nextPlace=1;BL.lastPlace=null;BL.lastCancelledPlace=null;BL.undoStack=[];BL.redoStack=[];BL.absentMode=false;
   // FIX 5: reset round to A on restart
   BL.round='a';
   setBeepRound('a');
@@ -10003,7 +10329,7 @@ function srmExportPDF(){
       const classAvgCell=classAvg!==undefined?`<td style="padding:8px 12px;text-align:center;font-size:11px;color:#6b7280;">${classAvg}${diffStr}</td>`:'<td></td>';
       rows+=`<tr style="border-bottom:1px solid #e5e7eb;">
         <td style="padding:8px 12px;font-weight:600;color:#111;">${label}</td>
-        <td style="padding:8px 12px;color:#444;">${d.a}${d.bonusA?` +${d.bonusA}%`:''}</td>
+        <td style="padding:8px 12px;color:#444;">${d.a}${liveMeasurementNote(d)?' (משוער)':''}${d.bonusA?` +${d.bonusA}%`:''}</td>
         <td style="padding:8px 12px;text-align:center;"><span style="background:${bg};color:${col};font-weight:700;padding:3px 10px;border-radius:20px;font-size:13px;">${fin!==null?fin:'—'}</span></td>
         ${classAvgCell}
         <td style="padding:8px 12px;font-size:11px;color:#888;">${dateStr}</td>
@@ -10362,10 +10688,10 @@ function exportAllExcel(){
   const g=S.groups[CUR.gid];if(!g)return;
   const isInSemB=CUR.semester==='b';
   const allTests=[...TEST_LIST,...Object.entries(S.customTests||{}).map(([id,ct])=>({id,label:ct.name}))];
-  const activeTests=allTests.filter(({id})=>Object.values(g[resKey()]?.[id]||{}).some(d=>d&&d.a!==''));
+  const activeTests=allTests.filter(({id})=>Object.values(g[resKey()]?.[id]||{}).some(d=>d&&d.a!=='')||savedExternalResults(g,id).length);
   if(!activeTests.length){toast('אין מבחנים עם ציונים לייצוא');return;}
   const semLabel=isInSemB?'ב׳':'א׳';
-  const headers=['#','שם תלמיד','מין','כיתה',...activeTests.map(t=>t.label+' מח׳'+semLabel),`ציון לתעודה מח׳${semLabel}`,'ממוצע'];
+  const headers=['#','שם תלמיד','מין','כיתה',...activeTests.map(t=>t.label+' מח׳'+semLabel),`ציון לתעודה מח׳${semLabel}`,'ממוצע','הערות מדידה'];
   const rows=[headers];
   exportStudents(g).forEach(({s,idx},exportIdx)=>{
     const isFem=s.gender==='נ'||s.gender==='f';
@@ -10392,12 +10718,13 @@ function exportAllExcel(){
     });
     const nums=testScores.filter(v=>v!=='—');
     const avg=nums.length?(nums.reduce((a,b)=>Number(a)+Number(b),0)/nums.length).toFixed(1):'';
-    rows.push([exportIdx+1,s.name,isFem?'נ':'ז',s.grade+s.cls,...testScores,avg,avg]);
+    rows.push([exportIdx+1,s.name,isFem?'נ':'ז',s.grade+s.cls,...testScores,avg,avg,liveEstimatedTests(g,idx,activeTests)]);
   });
   const ws=XLSX.utils.aoa_to_sheet(rows);
-  ws['!cols']=[4,22,5,7,...activeTests.map(()=>({wch:12})),{wch:10},{wch:9}].map(w=>typeof w==='number'?{wch:w}:w);
+  ws['!cols']=[4,22,5,7,...activeTests.map(()=>({wch:12})),{wch:10},{wch:9},{wch:35}].map(w=>typeof w==='number'?{wch:w}:w);
   const wb=XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb,ws,g.name.slice(0,31));
+  appendExternalExcelSheet(wb,g,activeTests);
   XLSX.writeFile(wb,`${g.name}_כל_המבחנים.xlsx`);
   toast('ייצוא מרוכז הושלם ✓');
 }
@@ -10447,7 +10774,7 @@ BL.round='a';
 function setBeepRound(){}
 
 // Helper: write result respecting semester AND round A/B
-function writeResult(gid, testId, studentIdx, rawVal, round){
+function writeResult(gid, testId, studentIdx, rawVal, round, finishMetadata=null){
   const g=S.groups[gid];if(!g)return;
   const key=resKey();
   if(!g[key])g[key]={};
@@ -10462,6 +10789,7 @@ function writeResult(gid, testId, studentIdx, rawVal, round){
   if(sExist!==null&&sNew!==null&&sExist>=sNew)return;
   d.a=rawVal;
   d._ts=Date.now();
+  if(finishMetadata)d._finish={...finishMetadata};else delete d._finish;
 }
 
 // ═══════════════════════════════════════════════════════════
@@ -10478,7 +10806,7 @@ function openLongRunLive(){
   LR.students=students
     .map((s,i)=>({...s,idx:i,state:'active'}))
     .filter(s=>!s._guest);  // guests only appear in their specific test
-  LR.finishers=[];LR.nextPlace=1;LR.lastPlace=null;LR.undoStack=[];LR.round='a';
+  LR.finishers=[];LR.nextPlace=1;LR.lastPlace=null;LR.lastCancelledPlace=null;LR.undoStack=[];LR.round='a';
   const first=students[0];
   LR.refGrade=first?.grade||'ט';LR.refGender=first?.gender||'ז';
   const T=getTbl(CUR.test);
@@ -10502,8 +10830,9 @@ function openLongRunLive(){
 }
 
 function _doCloseLongRunLive(){
+  if(LR.running)LR.elapsed=Math.max(0,Date.now()-LR.startTime);
   LR.running=false;cancelAnimationFrame(LR.raf);
-  try{localStorage.removeItem(LIVE_LS_KEY);}catch(e){}
+  saveLiveState();
   _liveModalClose();
   document.getElementById('lr-modal').classList.remove('open');
   document.getElementById('rg-lr-add-btn')?.remove();
@@ -10594,7 +10923,7 @@ function lrUndo(){liveUndoSplitAssignment('lr');}
 function lrRenderGrid(){
   const grid=document.getElementById('lr-active-grid');grid.innerHTML='';
   LR.students.forEach((s,i)=>{
-    if(s.state==='finished')return;
+    if(s.state!=='active')return;
     const div=document.createElement('div');
     div.className='bl-card'+(s.state==='absent'?' absent':'');div.id='lrc-'+i;
     const lrName=LR.gid==='__random__'
@@ -10607,6 +10936,7 @@ function lrRenderGrid(){
   });
   lrUpdateCount();
   lrFilterGrid();
+  liveRenderNonParticipants('lr');
   liveRenderSplits('lr');
   // For random group: show/hide the appropriate add button
   const origAddBtn=document.querySelector('#lr-modal .bl-btn[onclick]');
@@ -10630,23 +10960,23 @@ function lrFilterGrid(){
 function setLrRound(){}
 
 function lrSaveAll(silent){
-  let saved=0;
+  let saved=liveSaveExternalSplits('lr');
   LR.finishers.forEach(f=>{
     const s=LR.students[f.studentArrIdx];
-    if(f.studentArrIdx==null||!s)return;
+    if(f.cancelled||f.studentArrIdx==null||!s)return;
     if(s?.state==='absent')return;
     if(s&&s._external){
       // Save to original group using _targetGid/_targetStudentIdx (or _crossGroupRef for compat)
       const tGid = s._targetGid!==undefined ? s._targetGid : s._crossGroupRef?.gid;
       const tIdx = s._targetStudentIdx!==undefined ? s._targetStudentIdx : s._crossGroupRef?.studentIdx;
       if(tGid!==undefined && tIdx!==undefined){
-        writeResult(tGid,LR.testId,tIdx,f.rawVal,LR.round);
+        writeResult(tGid,LR.testId,tIdx,f.rawVal,LR.round,liveFinishMetadata('lr',f));
         saved++;
       }
       return;
     }
     if(f.studentIdx===undefined||f.studentIdx===null)return;
-    writeResult(LR.gid,LR.testId,f.studentIdx,f.rawVal,LR.round);
+    writeResult(LR.gid,LR.testId,f.studentIdx,f.rawVal,LR.round,liveFinishMetadata('lr',f));
     saved++;
   });
   saveState();
@@ -11199,21 +11529,6 @@ function blConfirmAddStudent(){
   const targetGid=ref?ref.gid:(_addParticipantMode==='bl'?BL.gid:LR.gid);
   let targetStudentIdx=ref?ref.studentIdx:undefined;
 
-  if(!ref){
-    // Brand-new guest: add permanently to current group with (אורח) tag
-    const currentGid=_addParticipantMode==='bl'?BL.gid:LR.gid;
-    const g=S.groups[currentGid];
-    if(g){
-      const newIdx=g.students.length;
-      g.students.push({name:name+' (אורח)',gender,grade,cls:'',_guest:true});
-      g.classes=[...new Set(g.students.map(s=>s.grade+s.cls))].sort((a,b)=>a.localeCompare(b,'he')).join(', ');
-      saveState();
-      targetStudentIdx=newIdx;
-      // Update ic2 count if in group view
-      const ic2=document.getElementById('ic2');
-      if(ic2)ic2.textContent=g.students.length;
-    }
-  }
 
   const newStudent={
     name,gender,grade,cls:'',
@@ -11231,6 +11546,7 @@ function blConfirmAddStudent(){
     LR.students.push(newStudent);
     lrRenderGrid();lrUpdateCount();
   }
+  saveLiveState();
   closeModal('bl-add-modal');
   toast(`"${name}" נוסף${ref?' (מקבוצה אחרת)':' כאורח'}`);
 }
@@ -11239,9 +11555,9 @@ function blConfirmAddStudent(){
 function blSaveAllFull(){
   const gid=BL.gid;
   if(!S.groups[gid])return;
-  let saved=0;
+  let saved=liveSaveExternalSplits('beep');
   BL.eliminations.forEach(elim=>{
-    if(elim.studentArrIdx==null||elim.absent||BL.students[elim.studentArrIdx]?.state==='absent')return;
+    if(elim.cancelled||elim.studentArrIdx==null||elim.absent||BL.students[elim.studentArrIdx]?.state==='absent')return;
     const s=BL.students[elim.studentArrIdx];
     const val=String(encodeBeepResult(elim.level,elim.shuttle));
     if(s&&s._external){
@@ -11249,14 +11565,14 @@ function blSaveAllFull(){
       const tGid = s._targetGid!==undefined ? s._targetGid : s._crossGroupRef?.gid;
       const tIdx = s._targetStudentIdx!==undefined ? s._targetStudentIdx : s._crossGroupRef?.studentIdx;
       if(tGid!==undefined && tIdx!==undefined){
-        writeResult(tGid,'beep',tIdx,val,BL.round);
+        writeResult(tGid,'beep',tIdx,val,BL.round,liveFinishMetadata('beep',elim));
         saved++;
       }
       return; // skip regular save for externals
     }
     const idx=elim.studentIdx;
     if(idx===undefined||idx===null||idx>=S.groups[gid].students.length)return;
-    writeResult(gid,'beep',idx,val,BL.round);
+    writeResult(gid,'beep',idx,val,BL.round,liveFinishMetadata('beep',elim));
     saved++;
   });
   saveState();
@@ -11330,20 +11646,20 @@ function isNameInActiveList(name){
 
 // ── FIX 2+3: Save result for added participants (cross-group + new) ──
 function lrSaveAllFull(){
-  let saved=0;
+  let saved=liveSaveExternalSplits('lr');
   LR.finishers.forEach(f=>{
     const s=LR.students[f.studentArrIdx];
-    if(f.studentArrIdx==null||!s)return;
+    if(f.cancelled||f.studentArrIdx==null||!s)return;
     if(s?.state==='absent')return;
     if(s&&s._external){
       if(s._crossGroupRef){
-        writeResult(s._crossGroupRef.gid,LR.testId,s._crossGroupRef.studentIdx,f.rawVal,LR.round);
+        writeResult(s._crossGroupRef.gid,LR.testId,s._crossGroupRef.studentIdx,f.rawVal,LR.round,liveFinishMetadata('lr',f));
         saved++;
       }
       // FIX 3: new students not in any group — no save (אורח ללא קבוצה)
       return;
     }
-    writeResult(LR.gid,LR.testId,f.studentIdx,f.rawVal,LR.round);
+    writeResult(LR.gid,LR.testId,f.studentIdx,f.rawVal,LR.round,liveFinishMetadata('lr',f));
     saved++;
   });
   saveState();
@@ -11500,7 +11816,7 @@ function sbGoRandom(){
 }
 
 function rgRenderResults(){
-  const data = rgLoad();
+  const data = rgLoad().map((entry,index)=>({...entry,_sourceIndex:index})).filter(entry=>!entry._inactive);
   // Update sidebar badge
   const rgBadge=document.getElementById('sb-rg-count');
   if(rgBadge)rgBadge.textContent=data.length?`(${data.length})`:'';
@@ -11513,17 +11829,17 @@ function rgRenderResults(){
   const grouped={};
   data.forEach((entry,i)=>{
     if(!grouped[entry.testId])grouped[entry.testId]={label:TEST_LIST.find(t=>t.id===entry.testId)?.label||entry.testId,items:[]};
-    grouped[entry.testId].items.push({...entry,_i:i});
+    grouped[entry.testId].items.push({...entry,_i:entry._sourceIndex??i});
   });
   list.innerHTML = Object.entries(grouped).map(([testId,{label,items}])=>`
     <div style="margin-bottom:14px;">
       <div style="font-size:11px;font-weight:700;color:var(--ink3);letter-spacing:.5px;text-transform:uppercase;margin-bottom:6px;">${label}</div>
       ${items.map(entry=>{
-        const score=getScore(entry.testId,entry.grade,entry.gender,entry.result);
+        const score=entry._externalFree?(typeof entry.score==='number'&&Number.isFinite(entry.score)?entry.score:null):getScore(entry.testId,entry.grade,entry.gender,entry.result);
         return `<div class="rg-entry">
           <div>
-            <div class="rg-entry-name">${entry.name}</div>
-            <div class="rg-entry-result">תוצאה: ${entry.result} · ${entry.gender==='נ'?'נ':'ז'} · ${entry.grade}׳</div>
+            <div class="rg-entry-name">${exportSafeHTML(entry.name)}</div>
+            <div class="rg-entry-result">תוצאה: ${entry.result}${liveMeasurementNote(entry)?' (משוער — הושלם בדיעבד)':''} · ${entry.gender==='נ'?'נ':'ז'} · ${entry.grade}׳</div>
           </div>
           <div class="rg-entry-score ${score!==null?'sp '+spCls(score):''}">${score!==null?score:'—'}</div>
           <button onclick="rgRemove(${entry._i})" style="background:none;border:none;cursor:pointer;color:var(--ink3);font-size:16px;padding:4px 6px;" title="מחק">✕</button>
@@ -11564,10 +11880,10 @@ function rgAddManual(){
 }
 
 // Add a single result to random group storage
-function rgAddResult(name,testId,result,gender,grade){
+function rgAddResult(name,testId,result,gender,grade,finishMetadata=null){
   if(!name||!result)return;
   const data=rgLoad();
-  data.push({name,result,testId,gender:gender||'ז',grade:grade||'ט',ts:Date.now()});
+  data.push({name,result,testId,gender:gender||'ז',grade:grade||'ט',ts:Date.now(),...(finishMetadata?{_finish:finishMetadata}:{})});
   rgSave(data);
 }
 
@@ -11610,7 +11926,7 @@ function rgOpenBeep(){
   BL.beepIdx=0;
   // Load fixed 30-student roster
   BL.students = RG_FIXED_STUDENTS.map((s,i)=>({...s, id:i, idx:i, state:'active', result:'', eliminated:false, status:'active'}));
-  BL.eliminations=[];BL.nextPlace=1;BL.lastPlace=null;BL.undoStack=[];BL.redoStack=[];BL.absentMode=false;
+  BL.eliminations=[];BL.nextPlace=1;BL.lastPlace=null;BL.lastCancelledPlace=null;BL.undoStack=[];BL.redoStack=[];BL.absentMode=false;
   document.getElementById('bl-group-name').textContent='קבוצה אקראית 🎲';
   document.getElementById('bl-res-group').textContent='קבוצה אקראית';
   document.getElementById('bl-screen-live').style.display='flex';
@@ -11656,12 +11972,14 @@ function rgBlAddParticipant(){
 const _origBlSaveAll = window.blSaveAll;
 
 function blSaveAllRG(silent){
+  liveSaveExternalSplits('beep');
+  if(S.groups[BL.gid]?.externalResults)saveState();
   BL.eliminations.forEach(elim=>{
-    if(elim.studentArrIdx==null||elim.absent||BL.students[elim.studentArrIdx]?.state==='absent')return;
+    if(elim.cancelled||elim.studentArrIdx==null||elim.absent||BL.students[elim.studentArrIdx]?.state==='absent')return;
     const s=BL.students[elim.studentArrIdx];
     if(!s||!s.name||!s.name.trim())return;
     const val=String(encodeBeepResult(elim.level,elim.shuttle));
-    rgAddResult(s.name,'beep',val,s.gender,s.grade);
+    rgAddResult(s.name,'beep',val,s.gender,s.grade,liveFinishMetadata('beep',elim));
   });
   if(!silent)toast('✓ תוצאות ביפ נשמרו לקבוצה האקראית');
 }
@@ -11679,7 +11997,7 @@ function rgOpenLongRun(testId){
   LR.gid='__random__';
   LR.running=false;LR.elapsed=0;
   LR.students = RG_FIXED_STUDENTS.map((s,i)=>({...s, id:i, idx:i, state:'active', result:'', done:false}));
-  LR.finishers=[];LR.nextPlace=1;LR.lastPlace=null;LR.undoStack=[];LR.round='a';
+  LR.finishers=[];LR.nextPlace=1;LR.lastPlace=null;LR.lastCancelledPlace=null;LR.undoStack=[];LR.round='a';
   const T=getTbl(testId);
   document.getElementById('lr-test-name').textContent=TEST_LIST.find(t=>t.id===testId)?.label||testId;
   document.getElementById('lr-group-name').textContent='קבוצה אקראית 🎲';
@@ -11724,11 +12042,13 @@ function rgLrAddParticipant(){
 const _lrSaveAll_orig = lrSaveAll;
 lrSaveAll = function(silent){
   if(LR.gid==='__random__'){
+    liveSaveExternalSplits('lr');
+    if(S.groups[LR.gid]?.externalResults)saveState();
     LR.finishers.forEach(f=>{
       const s=LR.students[f.studentArrIdx];
-    if(f.studentArrIdx==null||!s)return;
+    if(f.cancelled||f.studentArrIdx==null||!s)return;
       if(!s||s.state==='absent')return;
-      rgAddResult(s.name,LR.testId,f.rawVal,s.gender,s.grade);
+      rgAddResult(s.name,LR.testId,f.rawVal,s.gender,s.grade,liveFinishMetadata('lr',f));
     });
     if(!silent)toast('✓ תוצאות ריצה נשמרו לקבוצה האקראית');
     if(!silent)document.getElementById('lr-modal').classList.remove('open');
@@ -11773,7 +12093,7 @@ function lrConfirmReset(){
     ? `האם אתה בטוח שאתה רוצה לאפס את השעון?\n${finCount} תוצאות ייאבדו! (אם כבר שמרת — הן בטוחות)`
     : 'האם אתה בטוח שאתה רוצה לאפס את השעון?';
   if(!confirm(msg))return;
-  LR.elapsed=0;LR.finishers=[];LR.nextPlace=1;LR.lastPlace=null;LR.undoStack=[];
+  LR.elapsed=0;LR.finishers=[];LR.nextPlace=1;LR.lastPlace=null;LR.lastCancelledPlace=null;LR.undoStack=[];
   LR.students.forEach(s=>s.state='active');
   document.getElementById('lr-clock').innerHTML='00:00<span style="font-size:24px;color:rgba(255,255,255,.5);">.00</span>';
   document.getElementById('lr-finish-section').style.display='none';

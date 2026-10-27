@@ -4,8 +4,8 @@ load(['lrStop','lrStart','blPause','blResume','blStop','blUndo','blRedo','lrUndo
 ctx.BL_AUDIO={currentTime:0,play:()=>Promise.resolve(),pause(){}};
 ctx.blScheduleNextBeep=()=>{};ctx.blTick=()=>{};
 const snapshotGrade=JSON.stringify(ctx.S);
-function places(type){return Array.from(ctx.liveSplitRows(type),r=>r.place);}
-function candidates(type,place){const target=get(type==='beep'?'bl-elim-list':'lr-finish-list');const row=target.children.find(r=>r.children[0].textContent==='#'+place);return row.children[2].children.map(o=>o.value);}
+function places(type){return Array.from(ctx.liveFinishRows(type),r=>r.place);}
+function candidates(type,place){const target=get(type==='beep'?'bl-elim-list':'lr-finish-list');const row=target.children.find(r=>r.children[0].textContent===(type==='beep'?'מספר יציאה ':'#')+place);return row.children[2].children.map(o=>o.value);}
 (async()=>{
  for(const type of ['lr','beep']){
    const e=reset(type);e.students.push({name:'תמר',idx:2,state:'active'},{name:'אור',idx:3,state:'absent'});

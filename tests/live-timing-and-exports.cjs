@@ -19,7 +19,7 @@ const ctx={console,Date:class extends Date{static now(){return now;}},Math,Numbe
  TMR:{running:true,startTime:1000,elapsed:0,splits:[]},LR:{running:true,startTime:1000,elapsed:0,students:[]},BL:{running:true,startTime:1000,elapsed:0},
  SR:{running:true,startTime:1000},SRL:{running:true,deadline:61000},
 };vm.createContext(ctx);
-const names=['exportStudents','exportExcel','exportFullExcel','exportPDF','exportFullPDF','exportAllExcel','timerTick','timerSplit','lrTick','blCurrentPos','srlTick'];
+const names=['liveMeasurementNote','liveEstimatedTests','savedExternalResults','exportSafeHTML','externalExcelRows','appendExternalExcelSheet','testAchievementPDFRows','exportStudents','exportExcel','exportFullExcel','exportPDF','exportFullPDF','exportAllExcel','timerTick','timerSplit','lrTick','blCurrentPos','srlTick'];
 for(const n of names)vm.runInContext(fn(n),ctx);
 ctx.S.groups[1]={name:'Group',classes:'ט1',students:[{name:'תמר',grade:'ט',cls:'1',gender:'נ',id:'333'},{name:'אביב',grade:'ט',cls:'1',gender:'ז',id:'111'},{name:'דנה',grade:'ט',cls:'1',gender:'נ',id:'222'}],results:{run1000:{0:{a:'30'},1:{a:'10'},2:{a:'20'}}}};
 ctx.S.customTests={};const before=JSON.stringify(ctx.S);
@@ -31,6 +31,14 @@ for(const name of ['exportExcel','exportFullExcel','exportAllExcel']){
  assert.equal(JSON.stringify(ctx.S),before,'Export mutated source');
 }
 for(const name of ['exportPDF','exportFullPDF']){vm.runInContext(name+'()',ctx);assert(ctx.pdf.indexOf('אביב')<ctx.pdf.indexOf('דנה'));assert(ctx.pdf.indexOf('דנה')<ctx.pdf.indexOf('תמר'));assert.equal(JSON.stringify(ctx.S),before);}
+// Estimated results remain numeric/scorable while their provenance is explicit in exports.
+const estimatedResult=ctx.S.groups[1].results.run1000[0];estimatedResult._finish={estimated:true,value:'30'};
+for(const name of ['exportExcel','exportFullExcel','exportAllExcel']){
+ ctx.sheets=[];ctx[name]();assert(JSON.stringify(ctx.sheets).includes('משוער'),name+' lost estimate provenance');
+}
+for(const name of ['exportPDF','exportFullPDF']){ctx[name]();assert(ctx.pdf.includes('(משוער)'),name+' lost estimate provenance');}
+estimatedResult.a='31';assert.equal(ctx.liveMeasurementNote(estimatedResult),'');estimatedResult.a='30';delete estimatedResult._finish;
+assert.equal(JSON.stringify(ctx.S),before);
 vm.runInContext('timerTick();lrTick()',ctx);assert.equal(ctx.TMR.elapsed,99000);assert.equal(ctx.LR.elapsed,99000);
 now+=180000;vm.runInContext('timerTick();lrTick()',ctx);assert.equal(ctx.TMR.elapsed,279000);assert.equal(ctx.LR.elapsed,279000);
 vm.runInContext('blCurrentPos()',ctx);assert.equal(ctx.BL.beepIdx,3);

@@ -3,8 +3,8 @@ const html=fs.readFileSync(path.join(__dirname,'../client/pe-grading-app.html'),
 function fn(name){const start=html.search(new RegExp('(?:async )?function '+name+'\\('));assert(start>=0,name);const lineEnd=html.indexOf('\n',start);return html.slice(start,html.slice(start,lineEnd).trim().endsWith('}')?lineEnd:html.indexOf('\n}',start)+2);}
 const nodes=new Map();
 class Element{
-  constructor(tag='div'){this.tagName=tag;this.style={};this.children=[];this.attrs={};this.value='';this.className='';this.textContent='';
-    this.classList={contains:c=>this.className.split(' ').includes(c),remove:c=>{this.className=this.className.split(' ').filter(v=>v!==c).join(' ');},toggle:(c,on)=>{const list=new Set(this.className.split(' ').filter(Boolean));on?list.add(c):list.delete(c);this.className=[...list].join(' ');}};
+  constructor(tag='div'){this.tagName=tag;this.style={};this.dataset={};this.children=[];this.attrs={};this.value='';this.className='';this.textContent='';
+    this.classList={contains:c=>this.className.split(' ').includes(c),add:c=>{if(!this.className.split(' ').includes(c))this.className+=' '+c;},remove:c=>{this.className=this.className.split(' ').filter(v=>v!==c).join(' ');},toggle:(c,on)=>{const list=new Set(this.className.split(' ').filter(Boolean));on?list.add(c):list.delete(c);this.className=[...list].join(' ');}};
   }
   set id(v){this._id=v;nodes.set(v,this);}get id(){return this._id;}
   set innerHTML(v){this._html=v;this.children=[];for(const m of v.matchAll(/id="([^"]+)"/g))get(m[1]);}
@@ -37,7 +37,9 @@ const ctx={console,Date:class extends Date{static now(){return now;}},Math,Numbe
  openTimer(){},_doCloseTimer(){},openSprintLive(){},_doSpClose(){},openSkipropeLive(){},_doSrlClose(){},
  blRenderElimList(){},blUpdateScoreBar(){},blRenderResults(){},blResume(){},confirm:()=>true,BL_AUDIO:{},BL_INTRO_MS:12300,
 };vm.createContext(ctx);
-for(const name of ['liveSplitEngine','liveSplitRows','liveSplitTime','liveUpdateSplitControl','liveSetSplitStudent','liveRecordSplit','liveAssignSplit','liveDeleteSplit','liveRenderSplitRow','liveRenderSplits','liveRefreshSplits','liveUndoSplitAssignment','liveToggleParticipation','liveParticipationButton','blRenderActiveGrid','blFilterGrid','blTapStudent','lrRenderGrid','lrFilterGrid','lrUpdateCount','lrTapStudent','blSaveAll','blSaveAllFull','blSaveAllRG','lrSaveAll','lrSaveAllFull','liveEngines','saveLiveState','restoreLiveState','lrTick'])vm.runInContext(fn(name),ctx);
+const liveHelpers=['liveExternalId','liveAssignExternal','liveSaveExternalSplits','savedExternalResults','exportSafeHTML','liveRenderNonParticipants','liveFinishNumberLabel','liveFinishMetadata','liveMeasurementNote','liveEstimatedTests','liveSetFinishMode','liveFinishRows','liveDisplaySplitRows','liveRenderSmartFinish','liveToggleFinishSound','liveFinishFeedback','liveSmartFinish','liveCancelFinish','liveCancelLastFinish','liveRestoreFinish','liveSetArrivalGroup','liveAddMissedFinishes'];
+vm.runInContext('let LIVE_FINISH_AUDIO=null;',ctx);
+for(const name of [...liveHelpers,'liveSplitEngine','liveSplitRows','liveSplitTime','liveUpdateSplitControl','liveSetSplitStudent','liveRecordSplit','liveAssignSplit','liveDeleteSplit','liveRenderSplitRow','liveRenderSplits','liveRefreshSplits','liveUndoSplitAssignment','liveToggleParticipation','liveParticipationButton','blRenderActiveGrid','blFilterGrid','blTapStudent','lrRenderGrid','lrFilterGrid','lrUpdateCount','lrTapStudent','blSaveAll','blSaveAllFull','blSaveAllRG','lrSaveAll','lrSaveAllFull','liveEngines','saveLiveState','restoreLiveState','lrTick'])vm.runInContext(fn(name),ctx);
 const students=()=>[{name:'אביב',idx:0,state:'active'},{name:'דנה',idx:1,state:'active'}];
 const existing=JSON.stringify(ctx.S);
 function reset(type){
@@ -55,17 +57,18 @@ async function runParticipationTests(){
    const button=grid.children[0].children[0];assert.equal(button.tagName,'button');assert.equal(button.type,'button');
    button.click();assert.equal(engine.students[0].state,'absent');assert(engine.running);assert.equal(engine.startTime,1000);
    assert.equal(engine.finishers.length+engine.eliminations.length,0,'Click bubbled into result recording');
-   assert.equal(grid.children[0].classList.contains('absent'),true);assert(grid.children[0].innerHTML.includes('לא משתתף'));
-   assert.equal(grid.children[0].children[0].attrs['aria-pressed'],'true');
+   const excluded=get(type==='lr'?'lr-nonparticipants-list':'bl-nonparticipants-list');
+   assert.equal(grid.children.length,1);assert.equal(excluded.children.length,1);
+   assert.equal(excluded.children[0].children[1].attrs['aria-pressed'],'true');
    assert.equal(type==='lr'?get('lr-active-remain').textContent:ctx.activeBeep,type==='lr'?'1 ממתינים':1);
    // Tapping the excluded card cannot record a result.
-   grid.children[0].click();assert.equal(engine.finishers.length+engine.eliminations.length,0);
-   render();assert.equal(grid.children[0].children[0].textContent,'החזר להשתתפות');
+   excluded.children[0].click();assert.equal(engine.finishers.length+engine.eliminations.length,0);
+   render();assert.equal(excluded.children[0].children[1].textContent,'החזר למבחן');
    assert.equal(JSON.parse(storage.get('live')).state.students[0].state,'absent');
    await ctx.restoreLiveState();assert.equal(engine.students[0].state,'absent');
    assert.equal(engine.running,type==='lr'); // Beep reload intentionally restores paused for audio.
    // Rejoin without restarting the clock; excluded scores remain untouched.
-   const anchor=engine.startTime;grid.children[0].children[0].click();assert.equal(engine.students[0].state,'active');assert.equal(engine.startTime,anchor);
+   const anchor=engine.startTime;excluded.children[0].children[1].click();assert.equal(engine.students[0].state,'active');assert.equal(engine.startTime,anchor);
    assert.equal(JSON.stringify(ctx.S),existing);assert.equal(writes.length,0);
    // Existing session results cannot be invalidated by the participation action.
    if(type==='lr'){engine.students[0].state='finished';engine.finishers.push({studentArrIdx:0,studentIdx:0,rawVal:'123'});}
