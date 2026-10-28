@@ -494,6 +494,13 @@ tr.highlighted td{background:rgba(200,64,26,.06)!important;transition:background
 .live-split-row.cancelled{border-style:dashed;opacity:.7;}
 .live-free-name{min-height:44px;min-width:160px;max-width:100%;background:#fff;color:#111827;border:1px solid #94a3b8;border-radius:6px;padding:6px;font:14px 'Heebo',sans-serif;}
 .attempt-history-table td,.attempt-history-table th{padding:8px;border-bottom:1px solid var(--bd);text-align:right;font-size:13px;}
+.class-history-scroll{overflow:auto;max-height:68vh;border:1px solid var(--bd);}
+.class-history-table{border-collapse:separate;border-spacing:0;min-width:100%;text-align:right;}
+.class-history-table td,.class-history-table th{padding:10px;border-bottom:1px solid var(--bd);border-left:1px solid var(--bd);min-width:170px;font-size:13px;vertical-align:top;background:var(--bg);}
+.class-history-table thead th{position:sticky;top:0;background:var(--bg2);z-index:2;}
+.class-history-table tr>th:first-child{position:sticky;right:0;background:var(--bg2);z-index:1;}
+.class-history-table thead th:first-child{z-index:3;}
+.class-history-attempt+.class-history-attempt{margin-top:8px;padding-top:8px;border-top:1px dashed var(--bd);}
 .live-nonparticipants{margin-top:12px;border:1px solid #64748b;border-radius:8px;padding:8px;color:#cbd5e1;}
 .live-nonparticipants summary{min-height:44px;display:list-item;cursor:pointer;font-weight:700;padding:8px;}
 .live-split-row .estimated{color:#fde047;font-weight:700;}
@@ -783,6 +790,7 @@ async function sbLoadUserData() {
         results:   g.semester_a?.results  || {},
         results_b: g.semester_b?.results  || {},
         externalResults: g.semester_a?.externalResults || {},
+        testSessions: g.semester_a?.testSessions || {},
         customTests: g.semester_a?.customTests || {},
       customCategories: g.semester_a?.customCategories || [],
       };
@@ -839,6 +847,7 @@ async function sbSaveGroup(gid) {
       students: stripLocalFields(g.students || []),
       results:  g.results  || {},
       externalResults: g.externalResults || {},
+      testSessions: g.testSessions || {},
       customTests: g.customTests || {},
       customCategories: g.customCategories || [],
     },
@@ -1561,6 +1570,10 @@ history.pushState(null,'',location.href);
   </div>
   <!-- TABS with "create new test" button at end -->
   <div class="tabs" id="test-tabs"></div>
+  <div style="display:flex;gap:8px;flex-wrap:wrap;margin:8px 0;">
+    <button type="button" class="btn bs" onclick="openClassTestHistory()">היסטוריית מבחן — כיתה</button>
+    <button type="button" class="btn bs" onclick="startManualHistorySession(true);toast('נפתח מועד חדש להזנה ידנית — הציונים הקיימים נשמרו')">מועד חדש להזנה ידנית</button>
+  </div>
 
   <!-- Settings bar -->
   <div class="sb">
@@ -7364,6 +7377,7 @@ function srlUpdatePotential(){
 }
 
 function srlReset(){
+  SRL.historySessionId=null;
   SRL.attemptId=null;
   if(SRL.interval){clearInterval(SRL.interval);SRL.interval=null;}
   SRL.count=0;SRL.running=false;SRL.paused=false;SRL.timeLeft=60;
@@ -7385,6 +7399,7 @@ function srlTap(){
   if(SRL.running){srlTick();if(!SRL.running)return;}
   if(SRL.paused)return; // while paused, tap does nothing
   if(!SRL.running){
+    startTestHistorySession(SRL,'srl');
     // First tap: start
     SRL.running=true;SRL.count=1;SRL.timeLeft=60;SRL.remainingMs=60000;SRL.deadline=Date.now()+60000;
     document.getElementById('srl-count').textContent=SRL.count;
@@ -7580,6 +7595,7 @@ function strUpdatePotential(){
 }
 
 function strReset(){
+  STR.historySessionId=null;
   STR.attemptId=null;
   STR.count=0;
   document.getElementById('str-count').textContent='0';
@@ -7594,6 +7610,7 @@ function strReset(){
 }
 
 function strTap(){
+  startTestHistorySession(STR,'str',false);
   STR.count++;
   document.getElementById('str-count').textContent=STR.count;
   strUpdatePotential();
@@ -7716,6 +7733,7 @@ function spMainBtn(){
 }
 
 function spStart(){
+  startTestHistorySession(SR,'sprint',true);
   SR.running=true;
   SR.startTime=Date.now();
   SR.splits=[];
@@ -8153,6 +8171,7 @@ function _doCloseTimer(){
 function closeTimer(){ _confirmExitLive(_doCloseTimer); }
 
 function timerStart(){
+  startTestHistorySession(TMR,'timer',false);
   if(TMR.running)return;
   TMR.running=true;
   // If resuming (elapsed > 0), continue from where we stopped — don't clear splits
@@ -8373,6 +8392,7 @@ function timerStop(silent){
 
 function timerReset(){
   if(TMR.running){if(!confirm('לאפס את השעון?'))return;}
+  TMR.historySessionId=null;
   cancelAnimationFrame(TMR.raf);
   TMR.running=false;TMR.elapsed=0;TMR.splits=[];
   renderClock(0);
@@ -8688,6 +8708,7 @@ const BL={
 };
 
 function openBeepLive(){
+  BL.historySessionId=null;
   BL._semester=CUR.semester;
   const students=(S.groups[CUR.gid]?.students||[]);
   if(!students.length&&CUR.gid!=='__random__'){toast('אין תלמידים בקבוצה');return;}
@@ -8728,6 +8749,7 @@ const BL_INTRO_MS=12300; // הביפ הראשון בהקלטה המקורית מ
 
 // ── TIMING ENGINE ──────────────────────────────────────────
 function blStart(){
+  startTestHistorySession(BL,'beep',false);
   document.getElementById('bl-start-btn').style.display='none';
   const pb=document.getElementById('bl-pause-btn');
   pb.style.display='';pb.disabled=true;pb.textContent='⏸ מחכה לביפ הראשון...';
@@ -8922,11 +8944,12 @@ function liveSaveExternalSplits(type){
     g.externalResults=g.externalResults||{};g.externalResults[semester]=g.externalResults[semester]||{};
     const records=g.externalResults[semester][testId]||(g.externalResults[semester][testId]={});
     if(inactive){records[row.externalId]={...records[row.externalId],inactive:true};return;}
+    const metadata=liveFinishMetadata(type,row);registerTestHistorySession(g,semester,testId,metadata);
     records[row.externalId]={id:row.externalId,name,rawVal:type==='beep'?String(encodeBeepResult(row.level,row.shuttle)):row.rawVal,
       score:!inactive&&typeof row.score==='number'&&Number.isFinite(row.score)?row.score:null,
       baseScore:typeof row.score==='number'&&Number.isFinite(row.score)?row.score:null,
       gender:isGuest?student.gender:'',grade:isGuest?student.grade:'',cls:isGuest?(student.cls||''):'',number:row.place,inactive,
-      _finish:liveFinishMetadata(type,row),savedAt:Date.now()};
+      _finish:metadata,savedAt:Date.now()};
     if(!inactive)saved++;
   });
   if(touched){
@@ -9100,7 +9123,7 @@ function liveAddMissedFinishes(type,anchorPlace,count){
   const added=[];
   for(let i=0;i<count;i++){
     const row={place:e.nextPlace++,studentArrIdx:null,studentIdx:null,name:'',score:null,
-      estimated:true,arrivalGroup:anchor.arrivalGroup,elapsedMs:anchor.elapsedMs};
+      estimated:true,arrivalGroup:anchor.arrivalGroup,elapsedMs:anchor.elapsedMs,historySessionId:anchor.historySessionId||e.historySessionId,historySessionStartedAt:anchor.historySessionStartedAt||e.historySessionStartedAt};
     if(type==='beep')Object.assign(row,{level:anchor.level,shuttle:anchor.shuttle,cumDist:anchor.cumDist,result:anchor.result});
     else Object.assign(row,{rawMs:anchor.rawMs,rawVal:anchor.rawVal});
     rows.push(row);added.push(row);
@@ -9149,6 +9172,7 @@ function liveRecordSplit(type,studentArrIdx=null){
     const pos=blCurrentPos();
     Object.assign(row,{level:pos.level,shuttle:pos.shuttle,cumDist:pos.cumDist,result:encodeBeepResult(pos.level,pos.shuttle)});
   }else Object.assign(row,{rawMs:ms,rawVal:liveSplitTime(ms)});
+  const history=startTestHistorySession(e,type);row.historySessionId=history.id;row.historySessionStartedAt=history.startedAt;
   rows.push(row);e.lastPlace=row.place;e.redoStack=[];
   if(studentArrIdx!=null)liveSetSplitStudent(type,row,studentArrIdx);
   e.elapsed=ms;
@@ -9258,6 +9282,14 @@ function liveToggleParticipation(type,idx){
     toast('לתלמיד כבר נרשמה תוצאה — מצב ההשתתפות והתוצאה לא שונו');return;
   }
   student.state=student.state==='absent'?'active':'absent';
+  const original=S.groups[engine.gid]?.students?.[student.idx];
+  if(original&&engine.historySessionId){
+    const key=testHistoryStudentKey(original,student.idx),semester=engine._semester||CUR.semester;
+    const session=S.groups[engine.gid].testSessions?.[semester]?.[type==='beep'?'beep':engine.testId]?.[engine.historySessionId];
+    for(const roster of [engine.historySessionRoster,session?.roster]){
+      const item=roster?.find(entry=>entry.key===key);if(item)item.absent=student.state==='absent';
+    }
+  }
   if(type==='beep'){
     blRenderActiveGrid();blUpdateProtocolDisplay();
   }else{
@@ -9577,6 +9609,7 @@ function blSaveAll(silent){
 }
 
 function blRestartSession(){
+  BL.historySessionId=null;
   BL.running=false;BL.paused=false;BL.elapsed=0;BL.startTime=0;
   BL.beepIdx=0;BL.eliminations=[];BL.nextPlace=1;BL.lastPlace=null;BL.lastCancelledPlace=null;BL.undoStack=[];BL.redoStack=[];BL.absentMode=false;
   // FIX 5: reset round to A on restart
@@ -10752,7 +10785,48 @@ function setBeepRound(){}
 // Helper: write result respecting semester AND round A/B
 function measurementAttemptMetadata(kind,source,value){
   source.attemptId=source.attemptId||liveExternalId();
-  return {attemptId:source.attemptId,kind,value:String(value)};
+  const engine=testHistoryEngine(kind);
+  const session=engine?startTestHistorySession(engine,kind):kind==='manual'?startManualHistorySession(false,source.gid??CUR.gid,source.testId??CUR.test,source.semester??CUR.semester):null;
+  if(session){source.historySessionId=source.historySessionId||session.id;source.historySessionStartedAt=source.historySessionStartedAt||session.startedAt;}
+  return {attemptId:source.attemptId,kind,value:String(value),
+    ...(source.historySessionId?{sessionId:source.historySessionId,sessionStartedAt:source.historySessionStartedAt}:{})};
+}
+function testHistoryEngine(kind){
+  if(kind==='lr'&&typeof LR!=='undefined')return LR;
+  if(kind==='beep'&&typeof BL!=='undefined')return BL;
+  if(kind==='sprint'&&typeof SR!=='undefined')return SR;
+  if(kind==='timer'&&typeof TMR!=='undefined')return TMR;
+  if(kind==='metro'&&typeof MTR!=='undefined')return MTR;
+  if(kind==='srl'&&typeof SRL!=='undefined')return SRL;
+  if(kind==='str'&&typeof STR!=='undefined')return STR;
+  return null;
+}
+function testHistoryStudentKey(student,idx){
+  return student.idHash?'hash:'+student.idHash:student.id?'id:'+student.id:'index:'+idx+':'+student.name;
+}
+function startTestHistorySession(engine,kind,fresh=false){
+  if(fresh||!engine.historySessionId){
+    engine.historySessionId=liveExternalId();engine.historySessionStartedAt=Date.now();
+    const group=S.groups[engine.gid??CUR.gid];
+    engine.historySessionRoster=(group?.students||[]).map((student,idx)=>({key:testHistoryStudentKey(student,idx),name:student.name,
+      absent:!!engine.students?.some(item=>item.idx===idx&&item.state==='absent')}));
+  }
+  return {id:engine.historySessionId,startedAt:engine.historySessionStartedAt,kind};
+}
+function startManualHistorySession(fresh=false,gid=CUR.gid,testId=CUR.test,semester=CUR.semester){
+  const scope=String(gid)+'|'+testId+'|'+semester;
+  if(fresh||CUR.manualHistorySession?.scope!==scope)CUR.manualHistorySession={scope,id:liveExternalId(),startedAt:Date.now(),kind:'manual'};
+  return CUR.manualHistorySession;
+}
+function registerTestHistorySession(group,semester,testId,metadata){
+  if(!metadata?.sessionId)return;
+  group.testSessions=group.testSessions||{};
+  const sem=group.testSessions[semester]||(group.testSessions[semester]={});
+  const sessions=sem[testId]||(sem[testId]={});
+  const engine=testHistoryEngine(metadata.kind);
+  const roster=engine?.historySessionId===metadata.sessionId?engine.historySessionRoster:null;
+  if(!sessions[metadata.sessionId])sessions[metadata.sessionId]={id:metadata.sessionId,startedAt:metadata.sessionStartedAt||null,kind:metadata.kind,
+    roster:roster?roster.map(item=>({...item})):(group.students||[]).map((student,idx)=>({key:testHistoryStudentKey(student,idx),name:student.name,absent:false}))};
 }
 function recordedTestAttempts(data,testId,student){
   if(Array.isArray(data?._attempts))return data._attempts.map(item=>({...item}));
@@ -10781,8 +10855,10 @@ function betterTestAttempt(testId,candidate,current){
 }
 function writeResult(gid,testId,studentIdx,rawVal,round,finishMetadata=null){
   const g=S.groups[gid],student=g?.students?.[studentIdx];if(!g||!student||rawVal==null||String(rawVal).trim()==='')return;
+  finishMetadata=finishMetadata||measurementAttemptMetadata('manual',{gid,testId,semester:CUR.semester},rawVal);
   const key=resKey();g[key]=g[key]||{};g[key][testId]=g[key][testId]||{};
   const d=g[key][testId][studentIdx]||(g[key][testId][studentIdx]={a:'',b:'',bonusA:0,bonusB:0,showB:false});
+  registerTestHistorySession(g,key==='results_b'?'b':'a',testId,finishMetadata);
   if(!Array.isArray(d._attempts))d._attempts=recordedTestAttempts(d,testId,student);
   const id=finishMetadata?.attemptId||liveExternalId(),value=String(rawVal);
   const old=d._attempts.find(item=>item.id===id);
@@ -10798,6 +10874,62 @@ function writeResult(gid,testId,studentIdx,rawVal,round,finishMetadata=null){
   if(!best)return;
   d.a=best.val;d._ts=best.ts;d._bestAttemptId=best.id;
   if(best.finish)d._finish={...best.finish};else delete d._finish;
+}
+function classTestHistory(gid,testId){
+  const group=S.groups[gid];if(!group)return {sessions:[],rows:[],hasUnknown:false};
+  const sessions=new Map(),rows=new Map();let hasUnknown=false;
+  const addRow=(key,name,external=false)=>{
+    if(!rows.has(key))rows.set(key,{key,name,external,cells:{}});return rows.get(key);
+  };
+  const addSession=(semester,session)=>{
+    const key=semester+':'+session.id;
+    if(!sessions.has(key))sessions.set(key,{...session,key,semester});
+    (session.roster||[]).forEach(student=>addRow(student.key,student.name));
+    return key;
+  };
+  for(const semester of ['a','b']){
+    Object.values(group.testSessions?.[semester]?.[testId]||{}).forEach(session=>addSession(semester,session));
+    const results=group[semester==='b'?'results_b':'results']?.[testId]||{};
+    (group.students||[]).forEach((student,idx)=>{
+      const row=addRow(testHistoryStudentKey(student,idx),student.name,!!student._guest||!!student._external);
+      const data=results[idx];
+      recordedTestAttempts(data,testId,student).forEach(attempt=>{
+        const meta=attempt.finish;
+        const key=meta?.sessionId?addSession(semester,{id:meta.sessionId,startedAt:meta.sessionStartedAt||null,kind:meta.kind}):'unknown';
+        if(key==='unknown')hasUnknown=true;
+        (row.cells[key]||(row.cells[key]=[])).push({...attempt,semester,selected:attempt.id===data?._bestAttemptId});
+      });
+    });
+    Object.values(group.externalResults?.[semester]?.[testId]||{}).forEach(record=>{
+      const row=addRow('external:'+record.id,record.name,true),meta=record._finish;
+      const key=meta?.sessionId?addSession(semester,{id:meta.sessionId,startedAt:meta.sessionStartedAt||null,kind:meta.kind}):'unknown';
+      if(key==='unknown')hasUnknown=true;
+      (row.cells[key]||(row.cells[key]=[])).push({val:record.rawVal,score:record.score,ts:record.savedAt,semester,cancelled:record.inactive,finish:meta});
+    });
+  }
+  return {sessions:[...sessions.values()].sort((a,b)=>(a.startedAt||0)-(b.startedAt||0)||a.key.localeCompare(b.key)),
+    rows:[...rows.values()].sort((a,b)=>Number(a.external)-Number(b.external)||String(a.name).localeCompare(String(b.name),'he')),hasUnknown};
+}
+function openClassTestHistory(){
+  const group=S.groups[CUR.gid];if(!group)return;
+  const history=classTestHistory(CUR.gid,CUR.test),label=customTest(CUR.test)?.name||TEST_LIST.find(test=>test.id===CUR.test)?.label||CUR.test;
+  const headings=history.sessions.map((session,idx)=>'<th>מועד '+(idx+1)+'<br>מחצית '+(session.semester==='b'?'ב׳':'א׳')+'<br>'+exportSafeHTML(session.startedAt?new Date(session.startedAt).toLocaleString('he-IL'):'תאריך לא נשמר')+'</th>').join('');
+  const columns=history.sessions.map(session=>session.key);if(history.hasUnknown)columns.push('unknown');
+  const body=history.rows.map(student=>'<tr><th scope="row">'+exportSafeHTML(student.name)+(student.external?' (חיצוני)':'')+'</th>'+columns.map(key=>{
+    const entries=student.cells[key]||[];
+    if(!entries.length){const session=history.sessions.find(item=>item.key===key),absent=session?.roster?.find(item=>item.key===student.key)?.absent;return '<td>'+(absent?'לא משתתף':'לא נשמרה תוצאה')+'</td>';}
+    return '<td>'+entries.map(attempt=>'<div class="class-history-attempt"><strong>'+exportSafeHTML(attempt.val)+'</strong>'+(attempt.finish?.estimated?' (משוער)':'')+
+      '<br>ציון במחוון: '+(typeof attempt.score==='number'&&Number.isFinite(attempt.score)?attempt.score:'—')+
+      (attempt.selected?'<br>נבחר לציון':'')+(attempt.cancelled?'<br>בוטל':'')+
+      (key==='unknown'?'<br>מחצית '+(attempt.semester==='b'?'ב׳':'א׳')+' • '+exportSafeHTML(attempt.ts?new Date(attempt.ts).toLocaleString('he-IL'):'תאריך לא נשמר'):'')+'</div>').join('')+'</td>';
+  }).join('')+'</tr>').join('');
+  let modal=document.getElementById('class-test-history-modal');
+  if(!modal){modal=document.createElement('div');modal.id='class-test-history-modal';modal.className='modal-bg';document.body.appendChild(modal);}
+  modal.innerHTML='<div class="modal" style="max-width:1400px;width:96vw;" dir="rtl"><h2>היסטוריית מבחן כיתתית — '+exportSafeHTML(group.name)+'</h2><p>'+exportSafeHTML(label)+
+    ' • כל הפעלה חדשה היא מועד נפרד; השהיה והמשך שייכים לאותו מועד.</p><p>הציונים המוצגים הם ציוני המחוון לפני בונוסים. הצפייה אינה משנה ציונים.</p>'+
+    (columns.length?'<div class="class-history-scroll"><table class="class-history-table"><thead><tr><th>תלמיד</th>'+headings+(history.hasUnknown?'<th>נתונים קודמים<br>ללא מזהה מועד</th>':'')+'</tr></thead><tbody>'+body+'</tbody></table></div>':'<p>אין עדיין ניסיונות שמורים למבחן זה.</p>')+
+    '<p style="font-size:12px;">נתונים ישנים ללא מזהה הפעלה אינם מאוחדים למועד משוער. בהזנה ידנית אפשר להתחיל מועד באמצעות „מועד חדש להזנה ידנית”.</p><button type="button" class="btn bs" onclick="closeModal(&quot;class-test-history-modal&quot;)">סגור</button></div>';
+  openModal('class-test-history-modal');
 }
 function openAttemptHistory(studentIdx){
   const group=S.groups[CUR.gid],student=group?.students?.[studentIdx];if(!student)return;
@@ -10829,6 +10961,7 @@ const LR={running:false,startTime:0,elapsed:0,raf:null,
   testId:null,gid:null,students:[],finishers:[],undoStack:[],round:'a'};
 
 function openLongRunLive(){
+  LR.historySessionId=null;
   LR._semester=CUR.semester;
   const students=S.groups[CUR.gid]?.students||[];
   if(!students.length&&CUR.gid!=='__random__'){toast('אין תלמידים בקבוצה');return;}
@@ -10871,6 +11004,7 @@ function _doCloseLongRunLive(){
 function closeLongRunLive(){ _confirmExitLive(_doCloseLongRunLive); }
 
 function lrStart(){
+  startTestHistorySession(LR,'lr',false);
   LR.running=true;LR.startTime=Date.now()-LR.elapsed;
   document.getElementById('lr-start-btn').style.display='none';
   document.getElementById('lr-reset-btn').style.display='none';
@@ -11153,6 +11287,7 @@ function metroSchedule(){
 }
 
 function metroStartTest(){
+  startTestHistorySession(MTR,'metro',true);
   MTR.testing=true;MTR.reps=0;MTR.halfReps=0;MTR.splits=[];MTR.stoppedOnce=false;
   // Saeif 5: first click adds half-rep (student is at bottom = down position)
   MTR.halfReps=1;MTR.reps=0.5;
@@ -11950,6 +12085,7 @@ const RG={active:false,testId:'beep'};
 
 // ── Random Beep: reuse BL engine with fake "random" group ──────
 function rgOpenBeep(){
+  BL.historySessionId=null;
   // Create a temporary empty group so BL works
   BL.gid = '__random__';
   BL.running=false;BL.paused=false;BL.elapsed=0;BL.startTime=0;BL.pausedAt=0;
@@ -12023,6 +12159,7 @@ blSaveAll = function(silent){
 
 // ── Random Long Run: reuse LR engine ──────────────────────────
 function rgOpenLongRun(testId){
+  LR.historySessionId=null;
   LR.testId=testId;
   LR.gid='__random__';
   LR.running=false;LR.elapsed=0;
@@ -12123,6 +12260,7 @@ function lrConfirmReset(){
     ? `האם אתה בטוח שאתה רוצה לאפס את השעון?\n${finCount} תוצאות ייאבדו! (אם כבר שמרת — הן בטוחות)`
     : 'האם אתה בטוח שאתה רוצה לאפס את השעון?';
   if(!confirm(msg))return;
+  LR.historySessionId=null;
   LR.elapsed=0;LR.finishers=[];LR.nextPlace=1;LR.lastPlace=null;LR.lastCancelledPlace=null;LR.undoStack=[];
   LR.students.forEach(s=>s.state='active');
   document.getElementById('lr-clock').innerHTML='00:00<span style="font-size:24px;color:rgba(255,255,255,.5);">.00</span>';

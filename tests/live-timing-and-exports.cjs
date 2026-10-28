@@ -13,7 +13,7 @@ const ctx={console,Date:class extends Date{static now(){return now;}},Math,Numbe
  SG_USER:{id:'teacher'},CUR:{gid:1,test:'run1000',semester:'a'},S:{groups:{}},LIVE_LS_KEY:'live',
  toast(){},getTbl:()=>({unit:'s'}),customTest:()=>null,TEST_LIST:[{id:'run1000',label:'Run'}],resKey:()=> 'results',
  getScore:(_id,_gr,_ge,v)=>Number(v),calcFinal:v=>v,_pdfScoreColor:()=>'',renderLiveScore(){},renderClock(){},
- lrUpdatePotential(){},lrUpdateCardScores(){},liveUpdateSplitControl(){},blUpdateProtocolDisplay(){},srlUpdatePotential(){},srlEnd(){ctx.SRL.running=false;},
+ startTestHistorySession:()=>({id:'test-session',startedAt:now}),lrUpdatePotential(){},lrUpdateCardScores(){},liveUpdateSplitControl(){},blUpdateProtocolDisplay(){},srlUpdatePotential(){},srlEnd(){ctx.SRL.running=false;},
  fmtTime:s=>String(s),XLSX:{utils:{aoa_to_sheet:rows=>{ctx.sheets.push(rows);return{};},book_new:()=>({}),book_append_sheet(){}},writeFile(){}},sheets:[],
  _pdfDownloadFromHtml:html=>{ctx.pdf=html;return Promise.resolve();},BEEP_TIMELINE:[{cumMs:1000},{cumMs:2000},{cumMs:3000}],
  TMR:{running:true,startTime:1000,elapsed:0,splits:[]},LR:{running:true,startTime:1000,elapsed:0,students:[]},BL:{running:true,startTime:1000,elapsed:0},
