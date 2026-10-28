@@ -493,6 +493,7 @@ tr.highlighted td{background:rgba(200,64,26,.06)!important;transition:background
 .live-split-status{font-size:12px;color:#cbd5e1;}
 .live-split-row.cancelled{border-style:dashed;opacity:.7;}
 .live-free-name{min-height:44px;min-width:160px;max-width:100%;background:#fff;color:#111827;border:1px solid #94a3b8;border-radius:6px;padding:6px;font:14px 'Heebo',sans-serif;}
+.attempt-history-table td,.attempt-history-table th{padding:8px;border-bottom:1px solid var(--bd);text-align:right;font-size:13px;}
 .live-nonparticipants{margin-top:12px;border:1px solid #64748b;border-radius:8px;padding:8px;color:#cbd5e1;}
 .live-nonparticipants summary{min-height:44px;display:list-item;cursor:pointer;font-weight:700;padding:8px;}
 .live-split-row .estimated{color:#fde047;font-weight:700;}
@@ -3948,7 +3949,7 @@ function renderTable(){
     const excellentBadge=excellent?` <span style="display:inline-block;font-size:10px;padding:1px 6px;border-radius:8px;margin-right:4px;font-weight:700;background:rgba(245,158,11,.12);color:#b45309;border:1px solid rgba(245,158,11,.35);" title="ציון 100 לפחות במחצית המבחנים">⭐ מצטיין כללי</span>`:'';
     return `<tr data-idx="${idx}"${!hasResult&&testHasAnyResult(CUR.gid,CUR.test)?' class="no-result"':hasResult?' class="has-result"':''}>
       <td style="font-size:11px;color:var(--ink3);font-weight:700;width:28px;text-align:center;">${idx+1}</td>
-      <td class="tn" style="cursor:pointer;" onclick="openStudentReport(${idx})" title="לחץ לדוח תלמיד">${s.name}${liveMeasurementNote(d)?'<span style="display:block;font-size:11px;color:#b45309;">משוער — הושלם בדיעבד</span>':''}${riskBadge}${excellentBadge}${!hasResult?'<span style="font-size:10px;color:#fbbf24;margin-right:5px;"> ⚠</span>':d._ts?`<div style="font-size:9px;color:var(--ink3);font-weight:400;">${new Date(d._ts).toLocaleDateString('he-IL',{day:'2-digit',month:'2-digit',year:'2-digit'})}</div>`:''}
+      <td class="tn" style="cursor:pointer;" onclick="openStudentReport(${idx})" title="לחץ לדוח תלמיד">${s.name}<button type="button" class="bb" style="min-height:36px;" onclick="event.stopPropagation();openAttemptHistory(${idx})">היסטוריה</button>${liveMeasurementNote(d)?'<span style="display:block;font-size:11px;color:#b45309;">משוער — הושלם בדיעבד</span>':''}${riskBadge}${excellentBadge}${!hasResult?'<span style="font-size:10px;color:#fbbf24;margin-right:5px;"> ⚠</span>':d._ts?`<div style="font-size:9px;color:var(--ink3);font-weight:400;">${new Date(d._ts).toLocaleDateString('he-IL',{day:'2-digit',month:'2-digit',year:'2-digit'})}</div>`:''}
       </td>
       <td style="font-size:11px;color:var(--ink3);">${s.grade}${s.cls}</td>
       <td style="text-align:center;">
@@ -4017,39 +4018,27 @@ function _attachColsMenuClose(menu,btn){
   },0);
 }
 
-function onLive(e){const i=parseInt(e.target.dataset.idx),f=e.target.dataset.f;r(i)[f]=e.target.value;refreshRow(i);}
+function onLive(e){const i=parseInt(e.target.dataset.idx),f=e.target.dataset.f;if(f==='a'&&e.target.dataset.orig===undefined)e.target.dataset.orig=r(i).a??'';r(i)[f]=e.target.value;refreshRow(i);}
 function _checkReminder(){setTimeout(checkWeeklyReminder,2000);}
 function onFC(e){
   const i=parseInt(e.target.dataset.idx),f=e.target.dataset.f,v=e.target.value;
   if(f==='bonusA'){r(i).bonusA=parseFloat(v)||0;saveState();refreshRow(i);return;}
   if(f==='a'){
-    const prev=e.target.dataset.orig||'';
+    const prev=e.target.dataset.orig??r(i).a??'';
     // Anomaly check — warn if value seems implausible
     if(v!==''&&checkAnomalous(CUR.test,v)){
       if(!confirm(`הערך "${v}" נראה לא הגיוני עבור מבחן זה.\nהאם להמשיך ולשמור?`)){
         e.target.value=prev;r(i)[f]=prev;refreshRow(i);return;
       }
     }
-    // If new value lowers the score compared to saved, ask for confirmation
-    if(prev!==''&&v!==''&&v!==prev){
-      const s=S.groups[CUR.gid]?.students[i];
-      if(s){
-        const grade=s.grade||'ט';const gender=s.gender||'ז';
-        const sExist=getScore(CUR.test,grade,gender,prev);
-        const sNew=getScore(CUR.test,grade,gender,v);
-        if(sExist!==null&&sNew!==null&&sNew<sExist){
-          if(!confirm(`האם להוריד את הציון מ-${sExist} ל-${sNew}?`)){
-            e.target.value=prev;
-            r(i)[f]=prev;
-            refreshRow(i);
-            return;
-          }
-        }
-      }
-      if(!r(i)._hist) r(i)._hist=[];
-      r(i)._hist.unshift({val:prev,ts:Date.now(),sem:CUR.semester,field:f});
-      if(r(i)._hist.length>10) r(i)._hist.pop();
+    if(v!==''){
+      r(i).a=prev;
+      writeResult(CUR.gid,CUR.test,i,v,'a',measurementAttemptMetadata('manual',{},v));
+      e.target.value=r(i).a;e.target.dataset.orig=r(i).a;
+      saveState();refreshRow(i);return;
     }
+    const data=r(i),student=S.groups[CUR.gid]?.students[i];
+    if(student&&!Array.isArray(data._attempts))data._attempts=recordedTestAttempts({...data,a:prev},CUR.test,student);
     r(i)[f]=v;
     if(v)r(i)._ts=Date.now();
     e.target.dataset.orig=v;
@@ -7375,6 +7364,7 @@ function srlUpdatePotential(){
 }
 
 function srlReset(){
+  SRL.attemptId=null;
   if(SRL.interval){clearInterval(SRL.interval);SRL.interval=null;}
   SRL.count=0;SRL.running=false;SRL.paused=false;SRL.timeLeft=60;
   document.getElementById('srl-timer').textContent='1:00';
@@ -7472,18 +7462,10 @@ function srlSave(){
     const idx=g.students.findIndex(s=>s.name.trim().toLowerCase()===nl);
     if(idx<0){toast(`לא נמצא תלמיד בשם "${name}"`);document.getElementById('srl-student-name')?.focus();return;}
     SRL.lastSavedIdx=idx;SRL.lastSavedName=g.students[idx].name;
-    const s=g.students[idx];
-    const existing=g[resKey()]?.[SRL.testId]?.[idx];
-    const sExist=existing?.a!==undefined&&existing.a!==''?getScore(SRL.testId,s.grade,s.gender,existing.a):null;
-    const sNew=getScore(SRL.testId,s.grade,s.gender,String(SRL.count));
-    if(sExist!==null&&sNew!==null&&sExist>=sNew){
-      msg=`⚠ ${SRL.lastSavedName} — הציון הקיים (${existing.a} ${SRL.unit}) גבוה יותר, לא הוחלף`;
-    } else {
-      writeResult(SRL.gid,SRL.testId,idx,String(SRL.count),'a');
-      saveState();
-      if(CUR.gid===SRL.gid&&CUR.test===SRL.testId)renderTable();
-      msg=`✓ ${SRL.lastSavedName} — ${SRL.count} ${SRL.unit}`;
-    }
+    writeResult(SRL.gid,SRL.testId,idx,String(SRL.count),'a',measurementAttemptMetadata('srl',SRL,String(SRL.count)));
+    saveState();
+    if(CUR.gid===SRL.gid&&CUR.test===SRL.testId)renderTable();
+    msg='✓ הניסיון נשמר בהיסטוריה; הביצוע הטוב ביותר נשמר לציון';
   }
   document.getElementById('srl-finish-row').style.display='none';
   document.getElementById('srl-saved-msg').textContent=msg;
@@ -7505,7 +7487,7 @@ function srlSaveEdit(){
   if(g&&SRL.lastSavedIdx>=0){
     const key=resKey();
     if(g[key]?.[SRL.testId]){
-      g[key][SRL.testId][SRL.lastSavedIdx].a=String(newCount);
+      writeResult(SRL.gid,SRL.testId,SRL.lastSavedIdx,String(newCount),'a',measurementAttemptMetadata('srl',SRL,String(newCount)));
       saveState();
       if(CUR.gid===SRL.gid&&CUR.test===SRL.testId)renderTable();
     }
@@ -7598,6 +7580,7 @@ function strUpdatePotential(){
 }
 
 function strReset(){
+  STR.attemptId=null;
   STR.count=0;
   document.getElementById('str-count').textContent='0';
   document.getElementById('str-finish-row').style.display='none';
@@ -7638,18 +7621,10 @@ function strSave(){
     const idx=g.students.findIndex(s=>s.name.trim().toLowerCase()===nl);
     if(idx<0){toast(`לא נמצא תלמיד בשם "${name}"`);document.getElementById('str-finish-name')?.focus();return;}
     STR.lastSavedIdx=idx;STR.lastSavedName=g.students[idx].name;
-    const s=g.students[idx];
-    const existing=g[resKey()]?.[STR.testId]?.[idx];
-    const sExist=existing?.a!==undefined&&existing.a!==''?getScore(STR.testId,s.grade,s.gender,existing.a):null;
-    const sNew=getScore(STR.testId,s.grade,s.gender,String(STR.count));
-    if(sExist!==null&&sNew!==null&&sExist>=sNew){
-      msg=`⚠ ${STR.lastSavedName} — הציון הקיים (${existing.a} חזרות) גבוה יותר, לא הוחלף`;
-    } else {
-      writeResult(STR.gid,STR.testId,idx,String(STR.count),'a');
-      saveState();
-      if(CUR.gid===STR.gid&&CUR.test===STR.testId)renderTable();
-      msg=`✓ ${STR.lastSavedName} — ${STR.count} חזרות`;
-    }
+    writeResult(STR.gid,STR.testId,idx,String(STR.count),'a',measurementAttemptMetadata('str',STR,String(STR.count)));
+    saveState();
+    if(CUR.gid===STR.gid&&CUR.test===STR.testId)renderTable();
+    msg='✓ הניסיון נשמר בהיסטוריה; הביצוע הטוב ביותר נשמר לציון';
   }
   document.getElementById('str-finish-row').style.display='none';
   document.getElementById('str-saved-msg').textContent=msg;
@@ -7671,7 +7646,7 @@ function strSaveEdit(){
   if(g&&STR.lastSavedIdx>=0){
     const key=resKey();
     if(g[key]?.[STR.testId]){
-      g[key][STR.testId][STR.lastSavedIdx].a=String(newCount);
+      writeResult(STR.gid,STR.testId,STR.lastSavedIdx,String(newCount),'a',measurementAttemptMetadata('str',STR,String(newCount)));
       saveState();
       if(CUR.gid===STR.gid&&CUR.test===STR.testId)renderTable();
     }
@@ -7830,8 +7805,8 @@ function spSaveAll(){
     const existing=g[resKey()]?.[SR.testId]?.[idx];
     const sExist=existing?.a!==undefined&&existing.a!==''?getScore(SR.testId,s.grade,s.gender,existing.a):null;
     const sNew=getScore(SR.testId,s.grade,s.gender,rawSecs);
+    writeResult(SR.gid,SR.testId,idx,rawSecs,'a',measurementAttemptMetadata('sprint',sp,rawSecs));
     if(sExist!==null&&sNew!==null&&sExist>=sNew){lowScore++;return;}
-    writeResult(SR.gid,SR.testId,idx,rawSecs,'a');
     saved++;
   });
   saveState();
@@ -8310,7 +8285,7 @@ function selectSplitName(idx,name,studentIdx){
       scoreEl.style.color=c;scoreEl.textContent=score!==null?score:'—';
     }
     // AUTO-SAVE: write result immediately without waiting for "שמור" button
-    writeResult(CUR.gid, TMR.testId, studentIdx, TMR.splits[idx].rawVal, TMR.round);
+    writeResult(CUR.gid,TMR.testId,studentIdx,TMR.splits[idx].rawVal,TMR.round,measurementAttemptMetadata('timer',TMR.splits[idx],TMR.splits[idx].rawVal));
     saveState();
     if(CUR.test===TMR.testId)renderTable();
   }
@@ -8330,7 +8305,7 @@ function splitNameChange(idx,val){
   }
   if(studentIdx===undefined)return;
   TMR.splits[idx].studentIdx=studentIdx;
-  writeResult(CUR.gid,TMR.testId,studentIdx,TMR.splits[idx].rawVal,TMR.round);
+  writeResult(CUR.gid,TMR.testId,studentIdx,TMR.splits[idx].rawVal,TMR.round,measurementAttemptMetadata('timer',TMR.splits[idx],TMR.splits[idx].rawVal));
   saveState();
   if(CUR.test===TMR.testId)renderTable();
 }
@@ -8424,7 +8399,7 @@ function timerAutoSave(){
     let idx=split.studentIdx;
     if(idx===undefined&&split.name){const m=fuzzyFindStudent(split.name,students);if(m)idx=m.idx;}
     if(idx===undefined)return;
-    writeResult(CUR.gid,TMR.testId,idx,split.rawVal,TMR.round);
+    writeResult(CUR.gid,TMR.testId,idx,split.rawVal,TMR.round,measurementAttemptMetadata('timer',split,split.rawVal));
     saved++;
   });
   if(saved>0){saveState();if(CUR.test===TMR.testId)renderTable();}
@@ -8451,7 +8426,7 @@ function timerSaveAll(){
     let idx=split.studentIdx;
     if(idx===undefined){const m=fuzzyFindStudent(name,students);if(m)idx=m.idx;}
     if(idx===undefined){missing++;return;}
-    writeResult(CUR.gid,TMR.testId,idx,split.rawVal,TMR.round);
+    writeResult(CUR.gid,TMR.testId,idx,split.rawVal,TMR.round,measurementAttemptMetadata('timer',split,split.rawVal));
     saved++;
   });
   saveState();
@@ -9003,8 +8978,8 @@ function liveRenderNonParticipants(type){
   });
 }
 function liveFinishMetadata(type,row){
-  return {number:row.place,estimated:!!row.estimated,arrivalGroup:row.arrivalGroup||null,
-    kind:type,value:type==='beep'?String(encodeBeepResult(row.level,row.shuttle)):row.rawVal};
+  const value=type==='beep'?String(encodeBeepResult(row.level,row.shuttle)):row.rawVal;
+  return {...measurementAttemptMetadata(type,row,value),number:row.place,estimated:!!row.estimated,arrivalGroup:row.arrivalGroup||null};
 }
 function liveMeasurementNote(data){
   return data?._finish?.estimated&&String(data.a??data.result)===String(data._finish.value)?'משוער — הושלם בדיעבד':'';
@@ -10554,7 +10529,8 @@ function _srmTab0(g,s,idx,isFem,allTests){
     [0,1].forEach(semIdx=>{
       const key='results'+(semIdx?'_b':'');
       const d=g[key]?.[id]?.[idx];
-      if(d?._hist) d._hist.forEach(h=>allHistEntries.push({...h,testLabel:label,testId:id}));
+      if(d?._attempts)d._attempts.forEach(h=>allHistEntries.push({...h,ts:h.ts||0,sem:semIdx?'b':'a',testLabel:label,testId:id}));
+      else if(d?._hist)d._hist.forEach(h=>allHistEntries.push({...h,testLabel:label,testId:id}));
     });
   });
   const archHist=getStudentArchiveHistory(s.name);
@@ -10563,9 +10539,9 @@ function _srmTab0(g,s,idx,isFem,allTests){
   }
   if(allHistEntries.length){
     allHistEntries.sort((a,b)=>b.ts-a.ts);
-    html+=`<div style="margin-top:16px;"><div style="font-size:11px;font-weight:800;color:var(--ink3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px;">📋 היסטוריית שינויים (${allHistEntries.length})</div><div style="background:var(--bg2);border-radius:var(--rs);overflow:hidden;">`;
+    html+=`<div style="margin-top:16px;"><div style="font-size:11px;font-weight:800;color:var(--ink3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px;">📋 היסטוריית ניסיונות ושינויים (${allHistEntries.length})</div><div style="background:var(--bg2);border-radius:var(--rs);overflow:hidden;">`;
     allHistEntries.slice(0,20).forEach(h=>{
-      const dateStr=new Date(h.ts).toLocaleDateString('he-IL',{day:'2-digit',month:'2-digit',year:'2-digit',hour:'2-digit',minute:'2-digit'});
+      const dateStr=h.ts?new Date(h.ts).toLocaleDateString('he-IL',{day:'2-digit',month:'2-digit',year:'2-digit',hour:'2-digit',minute:'2-digit'}):'תאריך לא נשמר';
       html+=`<div style="display:flex;align-items:center;gap:8px;padding:7px 12px;border-bottom:1px solid var(--bd);font-size:12px;"><span style="color:var(--ink3);flex:0 0 120px;">${dateStr}</span><span style="flex:1;color:var(--ink2);">${h.testLabel} · ${h.sem==='b'?'מח׳ ב׳':'מח׳ א׳'}</span><span style="font-family:monospace;background:rgba(239,68,68,.1);color:#dc2626;padding:2px 8px;border-radius:4px;font-size:11px;">${h.val}</span></div>`;
     });
     html+='</div></div>';
@@ -10774,22 +10750,76 @@ BL.round='a';
 function setBeepRound(){}
 
 // Helper: write result respecting semester AND round A/B
-function writeResult(gid, testId, studentIdx, rawVal, round, finishMetadata=null){
-  const g=S.groups[gid];if(!g)return;
-  const key=resKey();
-  if(!g[key])g[key]={};
-  if(!g[key][testId])g[key][testId]={};
-  if(!g[key][testId][studentIdx])g[key][testId][studentIdx]={a:'',b:'',bonusA:0,bonusB:0,showB:false};
-  const d=g[key][testId][studentIdx];
-  // Always write to field 'a' with improvement-only logic (round parameter ignored)
-  const s=g.students?.[studentIdx];
-  const grade=s?.grade||'ט';const gender=s?.gender||'ז';
-  const sExist=d.a?getScore(testId,grade,gender,d.a):null;
-  const sNew=getScore(testId,grade,gender,rawVal);
-  if(sExist!==null&&sNew!==null&&sExist>=sNew)return;
-  d.a=rawVal;
-  d._ts=Date.now();
-  if(finishMetadata)d._finish={...finishMetadata};else delete d._finish;
+function measurementAttemptMetadata(kind,source,value){
+  source.attemptId=source.attemptId||liveExternalId();
+  return {attemptId:source.attemptId,kind,value:String(value)};
+}
+function recordedTestAttempts(data,testId,student){
+  if(Array.isArray(data?._attempts))return data._attempts.map(item=>({...item}));
+  if(!data)return [];
+  const attempts=[];
+  const add=(id,val,ts,finish=null)=>{
+    if(val==null||val==='')return;
+    const score=getScore(testId,student.grade||'ט',student.gender||'ז',val);
+    attempts.push({id,val:String(val),score:typeof score==='number'&&Number.isFinite(score)?score:null,ts:ts||null,source:'legacy',finish});
+  };
+  (data._hist||[]).forEach((entry,index)=>{if(!entry.field||entry.field==='a'||entry.field==='b')add('legacy-history-'+index,entry.val,entry.ts);});
+  add(data._finish?.attemptId||'legacy-a',data.a,data._ts,data._finish||null);
+  add('legacy-b',data.b,null);
+  return attempts;
+}
+function betterTestAttempt(testId,candidate,current){
+  if(typeof candidate.score!=='number'||!Number.isFinite(candidate.score))return false;
+  if(!current)return true;
+  if(candidate.score!==current.score)return candidate.score>current.score;
+  // At score 100 (or another shared grade), retain the better actual performance.
+  const parse=value=>typeof parseInputVal==='function'?parseInputVal(testId,value):Number(value);
+  const next=parse(candidate.val),previous=parse(current.val);
+  if(!Number.isFinite(next)||!Number.isFinite(previous))return false;
+  const table=getTbl(testId),custom=typeof customTest==='function'?customTest(testId):null;
+  return table.lb||custom?.lowerBetter?next<previous:next>previous;
+}
+function writeResult(gid,testId,studentIdx,rawVal,round,finishMetadata=null){
+  const g=S.groups[gid],student=g?.students?.[studentIdx];if(!g||!student||rawVal==null||String(rawVal).trim()==='')return;
+  const key=resKey();g[key]=g[key]||{};g[key][testId]=g[key][testId]||{};
+  const d=g[key][testId][studentIdx]||(g[key][testId][studentIdx]={a:'',b:'',bonusA:0,bonusB:0,showB:false});
+  if(!Array.isArray(d._attempts))d._attempts=recordedTestAttempts(d,testId,student);
+  const id=finishMetadata?.attemptId||liveExternalId(),value=String(rawVal);
+  const old=d._attempts.find(item=>item.id===id);
+  if(!old||old.val!==value){
+    const score=getScore(testId,student.grade||'ט',student.gender||'ז',value);
+    const sequence=Math.max(0,...d._attempts.map(item=>item.sequence||0))+1;
+    const attempt={id,val:value,score:typeof score==='number'&&Number.isFinite(score)?score:null,ts:Date.now(),sequence,
+      source:finishMetadata?.kind||'saved',round:round||'a',finish:finishMetadata?{...finishMetadata}:null};
+    if(old)Object.assign(old,attempt);else d._attempts.push(attempt);
+  }
+  let best=null;
+  d._attempts.forEach(attempt=>{if(betterTestAttempt(testId,attempt,best))best=attempt;});
+  if(!best)return;
+  d.a=best.val;d._ts=best.ts;d._bestAttemptId=best.id;
+  if(best.finish)d._finish={...best.finish};else delete d._finish;
+}
+function openAttemptHistory(studentIdx){
+  const group=S.groups[CUR.gid],student=group?.students?.[studentIdx];if(!student)return;
+  const label=customTest(CUR.test)?.name||TEST_LIST.find(test=>test.id===CUR.test)?.label||CUR.test;
+  const entries=[];
+  for(const semester of ['a','b']){
+    const data=group[semester==='b'?'results_b':'results']?.[CUR.test]?.[studentIdx];
+    const attempts=recordedTestAttempts(data,CUR.test,student);
+    const selected=attempts.find(attempt=>attempt.id===data?._bestAttemptId)||attempts.find(attempt=>attempt.val===String(data?.a));
+    attempts.forEach(attempt=>entries.push({...attempt,semester,best:attempt===selected}));
+  }
+  entries.sort((a,b)=>(b.ts||0)-(a.ts||0)||(b.sequence||0)-(a.sequence||0));
+  const latest=entries.find(entry=>entry.source!=='legacy'&&entry.semester===CUR.semester);
+  let modal=document.getElementById('attempt-history-modal');
+  if(!modal){modal=document.createElement('div');modal.id='attempt-history-modal';modal.className='modal-bg';document.body.appendChild(modal);}
+  const rows=entries.map(entry=>'<tr><td>'+exportSafeHTML(entry.ts?new Date(entry.ts).toLocaleString('he-IL'):'תאריך לא נשמר')+'</td><td>'+
+    (entry.semester==='b'?'ב׳':'א׳')+'</td><td>'+exportSafeHTML(entry.val)+(entry.finish?.estimated?' (משוער)':'')+'</td><td>'+(entry.score??'—')+'</td><td>'+
+    (entry.best?'הביצוע הנבחר למחצית':'נשמר להיסטוריה')+(entry===latest?' • ניסיון אחרון':'')+(entry.source==='legacy'?' • נתון קודם':'')+'</td></tr>').join('');
+  modal.innerHTML='<div class="modal" style="max-width:800px;width:95%;" dir="rtl"><h2>היסטוריית ניסיונות — '+exportSafeHTML(student.name)+'</h2><p>'+exportSafeHTML(label)+
+    '</p><p>כל ניסיון שנשמר מופיע כאן. הציון מבוסס על הביצוע הטוב ביותר בכל מחצית. העמודה מציגה ציון במחוון, לפני בונוסים.</p><div style="overflow-x:auto;"><table style="width:100%;border-collapse:collapse;" class="attempt-history-table"><thead><tr><th>נשמר בתאריך</th><th>מחצית</th><th>ביצוע</th><th>ציון במחוון</th><th>סטטוס</th></tr></thead><tbody>'+rows+
+    '</tbody></table></div>'+(entries.length?'':'<p>אין עדיין ניסיונות שמורים למבחן זה.</p>')+'<p style="font-size:12px;">ניסיונות שלא נשמרו בגרסאות קודמות אינם ניתנים לשחזור.</p><button type="button" class="btn bs" onclick="closeModal(&quot;attempt-history-modal&quot;)">סגור</button></div>';
+  openModal('attempt-history-modal');
 }
 
 // ═══════════════════════════════════════════════════════════
@@ -11207,7 +11237,7 @@ function metroSplitNameChange(idx,val){
   }
   if(studentIdx===undefined)return;
   MTR.splits[idx].studentIdx=studentIdx;
-  writeResult(gid,'pushups_metro',studentIdx,MTR.splits[idx].rawVal,MTR.round);
+  writeResult(gid,'pushups_metro',studentIdx,MTR.splits[idx].rawVal,MTR.round,measurementAttemptMetadata('metro',MTR.splits[idx],MTR.splits[idx].rawVal));
   saveState();
   if(CUR.gid===gid&&CUR.test==='pushups_metro')renderTable();
 }
@@ -11266,7 +11296,7 @@ function metroSaveAll(silent){
     let idx=split.studentIdx;
     if(idx===undefined){const m=fuzzyFindStudent(name,students);if(m)idx=m.idx;}
     if(idx===undefined){missing++;return;}
-    writeResult(gid,'pushups_metro',idx,split.rawVal,MTR.round);
+    writeResult(gid,'pushups_metro',idx,split.rawVal,MTR.round,measurementAttemptMetadata('metro',split,split.rawVal));
     saved++;
   });
   saveState();
@@ -11617,7 +11647,7 @@ function metroSelectName(idx,name,studentIdx){
   document.getElementById('msac-'+idx).style.display='none';
   // Auto-save
   const gid=MTR.gid||CUR.gid;
-  writeResult(gid,'pushups_metro',studentIdx,MTR.splits[idx].rawVal,MTR.round);
+  writeResult(gid,'pushups_metro',studentIdx,MTR.splits[idx].rawVal,MTR.round,measurementAttemptMetadata('metro',MTR.splits[idx],MTR.splits[idx].rawVal));
   saveState();
   if(CUR.gid===gid&&CUR.test==='pushups_metro')renderTable();
 }
