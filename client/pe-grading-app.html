@@ -673,7 +673,13 @@ body.sb-pinned .sb-backdrop{display:none!important;}
 .mb16{margin-bottom:16px;}
 .card-plain{background:var(--bg2);border:1px solid var(--bd2);border-radius:var(--rs);padding:12px 14px;}
 
-.live-roster-focus .live-roster-tools{position:fixed;inset:0 0 auto;height:calc(132px + env(safe-area-inset-top,0px));background:#111520;z-index:10001;padding:calc(4px + env(safe-area-inset-top,0px)) 6px 4px;box-sizing:border-box;display:grid;grid-template-columns:minmax(0,1fr) minmax(110px,1fr);grid-template-rows:44px 72px;gap:6px;}
+/* The live modals are inside .app (its own stacking context), below the app header.
+   Reserve the header's space rather than trying to out-rank it with child z-index. */
+html:has(.live-roster-focus.open){overflow:hidden;overscroll-behavior:none;}
+body:has(.live-roster-focus.open){overflow:hidden;overscroll-behavior:none;--live-roster-header:calc(58px + env(safe-area-inset-top,0px));}
+body:has(.live-roster-focus.open)>header{position:fixed;inset:0 0 auto;height:var(--live-roster-header);padding-top:env(safe-area-inset-top,0px);}
+.live-roster-focus.open{overflow:hidden;overscroll-behavior:none;}
+.live-roster-focus .live-roster-tools{position:fixed;inset:var(--live-roster-header,58px) 0 auto;height:132px;background:#111520;z-index:10001;padding:4px 6px;box-sizing:border-box;display:grid;grid-template-columns:minmax(0,1fr) minmax(110px,1fr);grid-template-rows:44px 72px;gap:6px;overscroll-behavior:none;}
 .live-roster-focus .live-roster-density,.live-roster-focus .live-roster-order{display:none;}
 .live-roster-focus .live-roster-exit{background:#f8fafc;color:#111827;border:2px solid #94a3b8;font-size:15px;font-weight:900;width:100%;height:44px;}
 .live-roster-focus .live-roster-clock{text-align:center;}
@@ -682,7 +688,7 @@ body.sb-pinned .sb-backdrop{display:none!important;}
 .live-roster-focus .live-roster-split:disabled{opacity:.4;}
 .live-roster-focus .live-roster-place{display:flex;align-items:center;justify-content:center;flex-direction:column;color:#fbbf24;font-size:12px;line-height:1.1;}
 .live-roster-place strong{display:block;font-size:42px;font-variant-numeric:tabular-nums;}
-.live-roster-focus .bl-grid{position:fixed;inset:calc(136px + env(safe-area-inset-top,0px)) 4px 4px;background:#111520;z-index:10000;overflow:auto;grid-template-columns:repeat(4,minmax(0,1fr));grid-auto-rows:minmax(72px,1fr);gap:4px;}
+.live-roster-focus .bl-grid{position:fixed;inset:calc(var(--live-roster-header,58px) + 136px) 4px max(4px,env(safe-area-inset-bottom,0px));overscroll-behavior:contain;touch-action:pan-y;background:#111520;z-index:10000;overflow:auto;grid-template-columns:repeat(4,minmax(0,1fr));grid-auto-rows:minmax(72px,1fr);gap:4px;}
 .live-roster-focus .bl-grid .bl-card{height:auto;min-height:72px;padding:2px;}
 .live-roster-focus .bl-grid .bl-card-score,.live-roster-focus .bl-grid .bl-card-potential{display:none;}
 .live-roster-focus .bl-grid .bl-card-name{min-height:24px;font-size:12px;}

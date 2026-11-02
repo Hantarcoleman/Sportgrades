@@ -26,6 +26,15 @@ for(const type of ['lr','beep']){
  get(prefix+'-roster-tools').children[2].click();assert(!get(prefix+'-modal').classList.contains('live-roster-focus'));assert(e.running);
  assert.equal(e.startTime,started);assert.equal(rows.length,6);
 }
+// The app header belongs to a higher stacking context than the live modals.
+// Fullscreen must reserve header + toolbar space and prevent document scroll.
+const source=fs.readFileSync(require('path').join(__dirname,'../client/pe-grading-app.html'),'utf8');
+function cssRule(selector){const start=source.indexOf(selector+'{');assert(start>=0,selector);return source.slice(start,source.indexOf('}',start)+1);}
+assert(cssRule('html:has(.live-roster-focus.open)').includes('overflow:hidden'));
+assert(cssRule('body:has(.live-roster-focus.open)').includes('overflow:hidden'));
+const headerRule=cssRule('body:has(.live-roster-focus.open)>header');assert(headerRule.includes('position:fixed'));assert(headerRule.includes('inset:0 0 auto'));assert(headerRule.includes('height:var(--live-roster-header)'));
+const toolbarRule=cssRule('.live-roster-focus .live-roster-tools');assert(toolbarRule.includes('inset:var(--live-roster-header,58px) 0 auto'));assert(toolbarRule.includes('height:132px'));
+const gridRule=cssRule('.live-roster-focus .bl-grid');assert(gridRule.includes('var(--live-roster-header,58px) + 136px'));assert(gridRule.includes('overflow:auto'));assert(gridRule.includes('overscroll-behavior:contain'));assert(gridRule.includes('safe-area-inset-bottom'));
 load(['liveScreenWanted','liveSyncScreen']);
 vm.runInContext('var LIVE_SCREEN={lock:null,pending:false,retryAfter:0}',ctx);
 ctx.document.visibilityState='visible';let requests=0,releases=0,resolve;
