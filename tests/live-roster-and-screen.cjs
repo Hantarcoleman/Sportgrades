@@ -12,7 +12,19 @@ for(const type of ['lr','beep']){
  ctx.liveRosterLayout(type,true);
  const prefix=type==='lr'?'lr':'bl';
  get(prefix+'-roster-tools').children[2].click();assert(get(prefix+'-modal').classList.contains('live-roster-focus'));assert(e.running);
+ const started=e.startTime;
+ for(let n=0;n<5;n++)get(prefix+'-roster-split').click();
+ let rows=type==='lr'?e.finishers:e.eliminations;
+ assert.equal(rows.length,5);assert.equal(new Set(rows.map(r=>r.place)).size,5);
+ assert(rows.every(r=>r.studentArrIdx==null));assert.equal(get(prefix+'-roster-place').textContent,'#5');
+ assert.equal(e.startTime,started);assert(e.running);assert(get(prefix+'-modal').classList.contains('live-roster-focus'));
+ ctx.liveRecordSplit(type,1);assert.equal(get(prefix+'-roster-place').textContent,'#6');assert.equal(rows[5].studentArrIdx,1);
+ ctx.liveRosterLayout(type);assert.equal(get(prefix+'-roster-place').textContent,'#6');
+ e.running=false;ctx.liveUpdateSplitControl(type);assert(get(prefix+'-roster-split').disabled);
+ get(prefix+'-roster-split').click();assert.equal(rows.length,6);
+ e.running=true;ctx.liveUpdateSplitControl(type);assert(!get(prefix+'-roster-split').disabled);
  get(prefix+'-roster-tools').children[2].click();assert(!get(prefix+'-modal').classList.contains('live-roster-focus'));assert(e.running);
+ assert.equal(e.startTime,started);assert.equal(rows.length,6);
 }
 load(['liveScreenWanted','liveSyncScreen']);
 vm.runInContext('var LIVE_SCREEN={lock:null,pending:false,retryAfter:0}',ctx);
