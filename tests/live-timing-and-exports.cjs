@@ -53,7 +53,7 @@ Object.assign(ctx,{
  openTimer(){},_doCloseTimer(){},openSprintLive(){},_doSpClose(){},openSkipropeLive(){},_doSrlClose(){},
  lrRenderGrid(){},lrRenderFinishRow(){},liveRenderSplits(){},liveUpdateSplitControl(){},setLrRound(){},
 });
-for(const n of ['liveEngines','saveLiveState','restoreLiveState','timerStart','lrStart'])vm.runInContext(fn(n),ctx);
+for(const n of ['liveSnapshotCanAutoResume','renderStoredLiveSessionNotice','liveEngines','saveLiveState','restoreLiveState','timerStart','lrStart'])vm.runInContext(fn(n),ctx);
 function show(id){for(const [key,e] of elements)e.classList.contains=()=>key===id;el(id).classList.contains=()=>true;}
 ctx.S.groups[1]._sbId=42;ctx.TMR={running:true,startTime:1000,elapsed:0,gid:1,testId:'run1000',splits:[]};
 show('timer-modal');ctx.saveLiveState();const saved=storage.get('live');assert(saved);
@@ -61,11 +61,11 @@ now=121000;ctx.TMR.running=false;
 (async()=>{
  await ctx.restoreLiveState();assert.equal(ctx.TMR.elapsed,120000);assert(ctx.TMR.running);
  ctx.TMR.running=false;ctx.TMR.elapsed=5000;ctx.saveLiveState();now+=90000;
- await ctx.restoreLiveState();assert.equal(ctx.TMR.elapsed,5000);assert.equal(ctx.TMR.running,false);
+ await ctx.restoreLiveState(true);assert.equal(ctx.TMR.elapsed,5000);assert.equal(ctx.TMR.running,false);
  ctx.LR={running:true,startTime:1000,elapsed:0,gid:1,testId:'run1000',students:[],finishers:[],undoStack:[]};show('lr-modal');ctx.saveLiveState();
  now+=60000;await ctx.restoreLiveState();assert.equal(ctx.LR.elapsed,now-1000);assert(ctx.LR.running);
  ctx.LR.running=false;ctx.LR.elapsed=7000;ctx.saveLiveState();now+=60000;
- await ctx.restoreLiveState();assert.equal(ctx.LR.elapsed,7000);assert.equal(ctx.LR.running,false);
+ await ctx.restoreLiveState(true);assert.equal(ctx.LR.elapsed,7000);assert.equal(ctx.LR.running,false);
  const userSnapshot=storage.get('live');ctx.SG_USER.id='other';ctx.LR.elapsed=888;
  await ctx.restoreLiveState();assert.equal(ctx.LR.elapsed,888);assert.equal(storage.get('live'),userSnapshot);
  ctx.SG_USER.id='teacher';ctx.S.groups[1].students.reverse();await ctx.restoreLiveState();assert.equal(ctx.LR.elapsed,888);

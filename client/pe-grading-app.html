@@ -1167,6 +1167,7 @@ history.pushState(null,'',location.href);
 </script>
 </head>
 <body>
+<div id="stored-live-session-notice" hidden style="margin:10px;padding:10px;border:1px solid var(--bd);border-radius:10px;background:var(--bg2);color:var(--ink);"></div>
 <header>
   <button class="sb-toggle" onclick="openSidebar()" title="תפריט">☰</button>
 
@@ -1819,6 +1820,15 @@ history.pushState(null,'',location.href);
       <button class="metro-btn" onclick="closeMetronome()" style="background:rgba(255,80,80,.15);border:1px solid rgba(255,80,80,.3);color:#ff8080;">✕ סגור</button>
     </div>
     <div style="font-size:11px;color:rgba(255,255,255,.4);text-align:center;margin-top:4px;margin-bottom:4px;">💡 לחץ "התחל מבחן" כאשר גם התלמיד וגם הדמות יורדים למטה יחד</div>
+    <div style="background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.2);border-radius:12px;padding:12px;margin:10px 0;">
+      <label style="display:flex;align-items:center;gap:10px;min-height:44px;color:#fff;cursor:pointer;">
+        <input type="checkbox" id="metro-manual-count" onchange="metroSetManualCount(this.checked)" style="width:24px;height:24px;">
+        ספירה ידנית — כל לחיצה מוסיפה חזרה אחת
+      </label>
+      <p id="metro-manual-count-hint" style="font-size:12px;color:rgba(255,255,255,.7);margin:6px 0;">הספירה מתעדכנת אוטומטית לפי פעימות המטרונום.</p>
+      <button type="button" id="metro-manual-rep-btn" onclick="metroManualRep()" disabled
+        style="display:none;width:100%;min-height:76px;border:2px solid #c4b5fd;border-radius:12px;background:#6d28d9;color:#fff;font:800 28px 'Heebo',sans-serif;touch-action:manipulation;cursor:pointer;">+1 חזרה</button>
+    </div>
     <!-- ±½ rep adjustment -->
     <div style="display:flex;align-items:center;justify-content:center;gap:8px;margin-bottom:10px;">
       <button onclick="metroAdjust(-1)" style="background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.15);color:#fff;border-radius:8px;padding:6px 14px;cursor:pointer;font-family:'Heebo',sans-serif;font-size:13px;font-weight:700;">−½ חז׳</button>
@@ -3224,14 +3234,15 @@ function _parseRoute(){
   if(!p.gid)return null;
   return{gid:isNaN(+p.gid)?p.gid:+p.gid,test:p.test||'pushups',semester:p.sem==='b'?'b':'a'};
 }
-async function restoreRoute(){
+async function restoreRoute(manualLive=false){
   function _done(){document.documentElement.removeAttribute('data-restoring');}
+  renderStoredLiveSessionNotice();
   let r=_parseRoute();
   // A minimized test can outlive navigation to a different group/test.
   // Restore its own saved context, resolving cloud IDs before local indexes.
   try{
     const live=JSON.parse(localStorage.getItem('sg_live_v1')||'null');
-    if(live?.version===2&&live.user===SG_USER?.id){
+    if(live?.version===2&&live.user===SG_USER?.id&&(manualLive||liveSnapshotCanAutoResume(live))){
       const gid=live.sbId?Object.keys(S.groups).find(id=>S.groups[id]._sbId===live.sbId):live.gid;
       if(S.groups[gid])r={gid,test:live.test,semester:live.semester};
     }
@@ -3259,7 +3270,7 @@ async function restoreRoute(){
   if(typeof buildTabs==='function')buildTabs();
   if(typeof selectTest==='function')selectTest(r.test);
   showView('group');
-  await restoreLiveState();
+  await restoreLiveState(manualLive);
   _done();
 }
 
@@ -8578,6 +8589,30 @@ function encodeBeepResult(level,shuttle){
 // LIVE TEST STATE PERSISTENCE
 // ═══════════════════════════════════════════════════════════
 const LIVE_LS_KEY='sg_live_v1';
+function liveSnapshotCanAutoResume(snapshot){
+  return snapshot?.version===2&&!!snapshot.state&&['active','paused'].includes(snapshot.lifecycle);
+}
+function renderStoredLiveSessionNotice(){
+  const notice=document.getElementById('stored-live-session-notice');if(!notice)return;
+  let snapshot;try{snapshot=JSON.parse(localStorage.getItem(LIVE_LS_KEY)||'null');}catch(error){}
+  const valid=snapshot?.version===2&&snapshot.user===SG_USER?.id;
+  notice.hidden=!valid||liveSnapshotCanAutoResume(snapshot);if(notice.hidden)return;
+  const completed=snapshot.lifecycle==='completed';
+  notice.innerHTML='<details><summary style="min-height:44px;cursor:pointer;padding:10px;">'+
+    (completed?'נתוני מבחן שהסתיים שמורים במכשיר':'מבחן קודם שמור — שחזור ידני')+
+    '</summary><p>המבחן לא ייפתח אוטומטית. גם פיצולים ללא שיוך נשמרים במכשיר, והציונים וההיסטוריה נשארים כפי שנשמרו.</p>'+
+    '<button type="button" class="btn bs" onclick="restoreRoute(true)">פתח נתוני מבחן שמור</button></details>';
+}
+function finishStoredLiveSession(type){
+  const e=liveSplitEngine(type);
+  if(e.running)e.elapsed=Math.max(0,Date.now()-e.startTime);
+  e.running=false;e.paused=false;e._liveCompleted=true;e._liveClosed=false;
+  cancelAnimationFrame(e.raf);clearTimeout(e.beepTimeout);clearTimeout(e._introTimer);
+  e._introTimer=null;e._introRemainingMs=undefined;
+  if(type==='beep'&&typeof BL_AUDIO!=='undefined')BL_AUDIO.pause?.();
+  saveLiveState();liveUpdateSplitControl(type);
+  if(typeof _liveModalClose==='function')_liveModalClose();
+}
 function liveEngines(){
   return [
     ['beep',BL,'bl-modal',openBeepLive,_doCloseBeepLive],
@@ -8604,10 +8639,12 @@ function saveLiveState(){
     const controls=[...document.getElementById(id).querySelectorAll('input,select')]
       .filter(el=>el.id).map(el=>({id:el.id,value:el.value}));
     const gid=e.gid??CUR.gid;
-    const p={version:2,type,user:SG_USER.id,gid,sbId:S.groups[gid]?._sbId,
+    const lifecycle=e._liveCompleted?'completed':e._liveClosed?'closed':e.running||e._introTimer?'active':e.paused?'paused':'pending';
+    const p={version:2,lifecycle,type,user:SG_USER.id,gid,sbId:S.groups[gid]?._sbId,
       test:e.testId||(type==='beep'?'beep':CUR.test),semester:e._semester||CUR.semester,state,controls,
       roster:(S.groups[gid]?.students||[]).map(s=>s.idHash||s.id||s.name)};
     localStorage.setItem(LIVE_LS_KEY,JSON.stringify(p));
+    renderStoredLiveSessionNotice();
   }catch(e){console.warn('Live state could not be saved',e);}
 }
 window.addEventListener('pagehide',saveLiveState);
@@ -8619,9 +8656,10 @@ document.addEventListener('visibilitychange',()=>{
     if(SRL.running)srlTick();
   }
 });
-async function restoreLiveState(){
+async function restoreLiveState(manual=false){
   let p;try{p=JSON.parse(localStorage.getItem(LIVE_LS_KEY)||'null');}catch(e){return;}
-  if(!p||p.version!==2||p.user!==SG_USER?.id)return;
+  if(!p||p.version!==2||!p.state||p.user!==SG_USER?.id)return;
+  if(!manual&&!liveSnapshotCanAutoResume(p))return;
   const gid=p.sbId?Object.keys(S.groups).find(id=>S.groups[id]._sbId===p.sbId):p.gid;
   if(!S.groups[gid]||String(gid)!==String(CUR.gid)||p.test!==CUR.test||p.semester!==CUR.semester)return;
   if(JSON.stringify(p.roster)!==JSON.stringify(S.groups[gid].students.map(s=>s.idHash||s.id||s.name))){
@@ -8629,7 +8667,16 @@ async function restoreLiveState(){
   }
   const spec=liveEngines().find(([type])=>type===p.type);if(!spec)return;
   const [,e,id,open,close]=spec;
-  const state=p.state;const wasRunning=state.running;
+  const state=p.state;
+  if(manual){
+    // An old snapshot may say "running" even though Save already closed its view.
+    // Preserve its last recorded elapsed time instead of adding days of wall time.
+    if(state.running&&p.lifecycle==='active')state.elapsed=Math.max(0,Date.now()-state.startTime);
+    state.running=false;state.paused=p.type==='beep'||!!state.paused;
+    state._liveClosed=true; // Inspection is manual until the teacher explicitly resumes.
+    state._introDeadline=undefined;
+  }
+  const wasRunning=state.running;
   open();Object.assign(e,state,{raf:null,interval:null,beepTimeout:null,_introTimer:null});
   e.gid=CUR.gid;
   if(p.type==='timer'){
@@ -8708,6 +8755,7 @@ const BL={
 };
 
 function openBeepLive(){
+  BL._liveCompleted=false;BL._liveClosed=false;
   BL.historySessionId=null;
   BL._semester=CUR.semester;
   const students=(S.groups[CUR.gid]?.students||[]);
@@ -8735,6 +8783,7 @@ function openBeepLive(){
 
 function _doCloseBeepLive(){
   blStop();BL.paused=false;
+  BL._liveClosed=true;
   saveLiveState();
   _liveModalClose();
   document.getElementById('bl-modal').classList.remove('open');
@@ -8749,6 +8798,7 @@ const BL_INTRO_MS=12300; // הביפ הראשון בהקלטה המקורית מ
 
 // ── TIMING ENGINE ──────────────────────────────────────────
 function blStart(){
+  BL._liveCompleted=false;BL._liveClosed=false;
   startTestHistorySession(BL,'beep',false);
   document.getElementById('bl-start-btn').style.display='none';
   const pb=document.getElementById('bl-pause-btn');
@@ -8789,6 +8839,7 @@ function blPause(){
 }
 
 function blResume(){
+  BL._liveCompleted=false;BL._liveClosed=false;
   if(BL._introRemainingMs!==undefined){
     BL.paused=false;
     BL_AUDIO.play().catch(()=>{});
@@ -9482,16 +9533,20 @@ function blAdjustTiming(deltaMs){
 }
 
 function blEnd(){
-  // המבחן ממשיך לרוץ — רק מחליף מסך לתוצאות
+  // Explicit end: retain results for review without leaving the recording/clock active.
   document.getElementById('bl-screen-live').style.display='none';
   document.getElementById('bl-screen-results').style.display='block';
   blRenderResults();
   blSaveAll(true);
+  finishStoredLiveSession('beep');
 }
 
 function blBackToLive(){
   document.getElementById('bl-screen-results').style.display='none';
   document.getElementById('bl-screen-live').style.display='flex';
+  if(!BL.running){
+    const button=document.getElementById('bl-pause-btn');button.style.display='';button.disabled=false;button.textContent='▶ המשך';button.onclick=blResume;
+  }
 }
 
 function blCloseFromResults(){ _confirmExitLive(_doCloseBeepLive); }
@@ -9605,6 +9660,7 @@ function blSaveAll(silent){
   });
   saveState();
   if(CUR.gid===gid&&CUR.test==='beep')renderTable();
+  if(!silent)finishStoredLiveSession('beep');
   if(!silent)toast(`✓ ${saved} תוצאות ביפ נשמרו`);
 }
 
@@ -10961,6 +11017,7 @@ const LR={running:false,startTime:0,elapsed:0,raf:null,
   testId:null,gid:null,students:[],finishers:[],undoStack:[],round:'a'};
 
 function openLongRunLive(){
+  LR._liveCompleted=false;LR._liveClosed=false;
   LR.historySessionId=null;
   LR._semester=CUR.semester;
   const students=S.groups[CUR.gid]?.students||[];
@@ -10995,6 +11052,7 @@ function openLongRunLive(){
 function _doCloseLongRunLive(){
   if(LR.running)LR.elapsed=Math.max(0,Date.now()-LR.startTime);
   LR.running=false;cancelAnimationFrame(LR.raf);
+  LR._liveClosed=true;
   saveLiveState();
   _liveModalClose();
   document.getElementById('lr-modal').classList.remove('open');
@@ -11004,6 +11062,7 @@ function _doCloseLongRunLive(){
 function closeLongRunLive(){ _confirmExitLive(_doCloseLongRunLive); }
 
 function lrStart(){
+  LR._liveCompleted=false;LR._liveClosed=false;
   startTestHistorySession(LR,'lr',false);
   LR.running=true;LR.startTime=Date.now()-LR.elapsed;
   document.getElementById('lr-start-btn').style.display='none';
@@ -11145,6 +11204,7 @@ function lrSaveAll(silent){
   });
   saveState();
   if(CUR.gid===LR.gid&&CUR.test===LR.testId)renderTable();
+  if(!silent)finishStoredLiveSession('lr');
   if(!silent)toast(`✓ ${saved} תוצאות נשמרו`);
   if(!silent)document.getElementById('lr-modal').classList.remove('open');
 }
@@ -11153,6 +11213,7 @@ function lrSaveAll(silent){
 // METRONOME ENGINE
 // ═══════════════════════════════════════════════════════════
 const MTR={playing:false,testing:false,bpm:60,beat:0,reps:0,halfReps:0,
+  manualCount:false,
   audioCtx:null,nextBeatTime:0,raf:null,splits:[],round:'a',volume:0.5,muted:false,
   stoppedOnce:false,refGrade:'ט',refGender:'ז',gid:null};
 
@@ -11216,6 +11277,7 @@ function metroNewTest(){
   if(hint)hint.style.display='block';
   metroPlay();
   toast('מבחן חדש');
+  metroUpdateManualCountControls();
 }
 
 function setBpm(v){
@@ -11246,6 +11308,21 @@ function metroStop(){
   cancelAnimationFrame(MTR.raf);
 }
 
+function metroUpdateManualCountControls(){
+  const checkbox=document.getElementById('metro-manual-count');if(checkbox)checkbox.checked=!!MTR.manualCount;
+  const button=document.getElementById('metro-manual-rep-btn');
+  if(button){button.style.display=MTR.manualCount?'block':'none';button.disabled=!MTR.testing||!MTR.manualCount;}
+  const hint=document.getElementById('metro-manual-count-hint');
+  if(hint)hint.textContent=MTR.manualCount?'לאחר התחלת המבחן: כל לחיצה מוסיפה חזרה מלאה. המטרונום יכול לנגן, אך הפעימות אינן מוסיפות לספירה. מעבר מצב אינו מאפס את הספירה.':'הספירה מתעדכנת אוטומטית לפי פעימות המטרונום.';
+}
+function metroSetManualCount(enabled){
+  MTR.manualCount=!!enabled;
+  metroUpdateManualCountControls();
+}
+function metroManualRep(){
+  if(!MTR.testing||!MTR.manualCount)return;
+  metroAdjust(2); // The existing model stores half-repetitions; two halves are one rep.
+}
 function metroSchedule(){
   if(!MTR.playing)return;
   const ctx=getAudioCtx();
@@ -11261,7 +11338,7 @@ function metroSchedule(){
       document.getElementById('metro-beat-dot').className='metro-beat '+(isD?'down':'up');
       document.getElementById('metro-fig-down').style.opacity=isD?'1':'.3';
       document.getElementById('metro-fig-up').style.opacity=isD?'.3':'1';
-      if(MTR.testing){
+      if(MTR.testing&&!MTR.manualCount){
         // Each beat = half rep. Count halves, display as X or X.5
         MTR.halfReps++;
         MTR.reps=MTR.halfReps/2;
@@ -11290,8 +11367,8 @@ function metroStartTest(){
   startTestHistorySession(MTR,'metro',true);
   MTR.testing=true;MTR.reps=0;MTR.halfReps=0;MTR.splits=[];MTR.stoppedOnce=false;
   // Saeif 5: first click adds half-rep (student is at bottom = down position)
-  MTR.halfReps=1;MTR.reps=0.5;
-  document.getElementById('metro-reps').textContent='0.5';
+  MTR.halfReps=MTR.manualCount?0:1;MTR.reps=MTR.halfReps/2;
+  document.getElementById('metro-reps').textContent=String(MTR.reps);
   document.getElementById('metro-score').textContent='—';
   document.getElementById('metro-score').style.color='rgba(255,255,255,.3)';
   // Saeif 6: hide test-btn, show stop-btn
@@ -11304,6 +11381,7 @@ function metroStartTest(){
   document.getElementById('metro-save-row').style.display='none';
   const hint=document.getElementById('metro-start-hint');
   if(hint)hint.style.display='none';
+  metroUpdateManualCountControls();
 }
 
 function metroAdjust(delta){
@@ -11405,6 +11483,7 @@ function metroStopTest(){
     if(first){first.scrollIntoView({behavior:'smooth',block:'center'});first.focus();}
   },150);
   setTimeout(()=>metroSaveAll(true),200); // auto-save
+  metroUpdateManualCountControls();
 }
 
 function metroSaveAll(silent){
@@ -11473,6 +11552,7 @@ function openMetronome(){
   _liveModalOpen(_doCloseMetronome);
   // Auto-start metronome
   setTimeout(()=>metroPlay(),200);
+  metroUpdateManualCountControls();
 }
 
 function _doCloseMetronome(){
@@ -11741,6 +11821,7 @@ function blSaveAllFull(){
     saved++;
   });
   saveState();
+  finishStoredLiveSession('beep');
   if(CUR.gid===gid&&CUR.test==='beep')renderTable();
   toast(`✓ ${saved} תוצאות ביפ נשמרו`);
 }
@@ -11828,6 +11909,7 @@ function lrSaveAllFull(){
     saved++;
   });
   saveState();
+  finishStoredLiveSession('lr');
   if(CUR.gid===LR.gid&&CUR.test===LR.testId)renderTable();
   toast(`✓ ${saved} תוצאות נשמרו`);
   document.getElementById('lr-modal').classList.remove('open');
@@ -12085,6 +12167,7 @@ const RG={active:false,testId:'beep'};
 
 // ── Random Beep: reuse BL engine with fake "random" group ──────
 function rgOpenBeep(){
+  BL._liveCompleted=false;BL._liveClosed=false;
   BL.historySessionId=null;
   // Create a temporary empty group so BL works
   BL.gid = '__random__';
@@ -12147,6 +12230,7 @@ function blSaveAllRG(silent){
     const val=String(encodeBeepResult(elim.level,elim.shuttle));
     rgAddResult(s.name,'beep',val,s.gender,s.grade,liveFinishMetadata('beep',elim));
   });
+  if(!silent)finishStoredLiveSession('beep');
   if(!silent)toast('✓ תוצאות ביפ נשמרו לקבוצה האקראית');
 }
 
@@ -12159,6 +12243,7 @@ blSaveAll = function(silent){
 
 // ── Random Long Run: reuse LR engine ──────────────────────────
 function rgOpenLongRun(testId){
+  LR._liveCompleted=false;LR._liveClosed=false;
   LR.historySessionId=null;
   LR.testId=testId;
   LR.gid='__random__';
@@ -12217,6 +12302,7 @@ lrSaveAll = function(silent){
       if(!s||s.state==='absent')return;
       rgAddResult(s.name,LR.testId,f.rawVal,s.gender,s.grade,liveFinishMetadata('lr',f));
     });
+    if(!silent)finishStoredLiveSession('lr');
     if(!silent)toast('✓ תוצאות ריצה נשמרו לקבוצה האקראית');
     if(!silent)document.getElementById('lr-modal').classList.remove('open');
     document.getElementById('rg-lr-add-btn')?.remove();
