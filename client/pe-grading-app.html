@@ -672,6 +672,34 @@ body.sb-pinned .sb-backdrop{display:none!important;}
 .mb12{margin-bottom:12px;}
 .mb16{margin-bottom:16px;}
 .card-plain{background:var(--bg2);border:1px solid var(--bd2);border-radius:var(--rs);padding:12px 14px;}
+
+.live-roster-focus .live-roster-tools{position:fixed;inset:0 0 auto;min-height:58px;background:#111520;z-index:10001;padding:4px;box-sizing:border-box;flex-wrap:wrap;}
+.live-roster-focus .bl-grid{position:fixed;inset:70px 4px 4px;background:#111520;z-index:10000;overflow:auto;grid-template-columns:repeat(4,minmax(0,1fr));grid-auto-rows:minmax(72px,1fr);gap:4px;}
+.live-roster-focus .bl-grid .bl-card{height:auto;min-height:72px;padding:2px;}
+.live-roster-focus .bl-grid .bl-card-score,.live-roster-focus .bl-grid .bl-card-potential{display:none;}
+.live-roster-focus .bl-grid .bl-card-name{min-height:24px;font-size:12px;}
+.live-roster-clock{direction:ltr;font:700 17px monospace;font-variant-numeric:tabular-nums;}
+/* Stable live timing and an optional dense, alphabetic roster. */
+.lr-timer-row{display:grid!important;grid-template-columns:minmax(145px,180px) minmax(0,1fr);gap:8px!important;min-height:100px;box-sizing:border-box;}
+.lr-timer-row>div:last-child{grid-column:1/-1;margin:0!important;}
+#lr-clock{font-family:monospace!important;font-variant-numeric:tabular-nums;white-space:nowrap;direction:ltr;font-size:clamp(32px,8vw,48px)!important;width:100%;}
+#lr-potential-score{height:55px;width:100%;font-variant-numeric:tabular-nums;}
+#lr-potential-score>div{min-height:28px;max-width:100%;}
+.lr-timer-row>div:nth-child(2){min-width:0!important;width:100%;}
+.bl-proto{min-height:75px;box-sizing:border-box;}
+.bl-stat{flex:0 0 58px;font-variant-numeric:tabular-nums;}
+.bl-level-badge,.bl-shuttle-badge{font-variant-numeric:tabular-nums;min-width:65px;}
+.live-roster-tools{display:flex;align-items:center;gap:8px;color:#cbd5e1;font-size:11px;margin-bottom:6px;}
+.live-roster-tools button{min-height:44px;padding:6px 12px;background:#303746;color:white;border:1px solid #64748b;border-radius:8px;font:inherit;touch-action:manipulation;}
+.live-compact .bl-grid{grid-template-columns:repeat(auto-fill,minmax(90px,1fr));gap:4px;}
+.live-compact .bl-grid .bl-card{padding:4px;min-height:0;height:96px;box-sizing:border-box;justify-content:space-between;border-radius:7px;overflow:hidden;}
+.live-compact .bl-grid .bl-card-name{font-size:12px;line-height:1.15;min-height:28px;width:100%;overflow-wrap:anywhere;}
+.live-compact .bl-grid .bl-card-score{font-size:14px;line-height:16px;}
+.live-compact .bl-grid .bl-card-potential{display:none;}
+.live-compact .bl-grid .live-participation-btn{margin:0;padding:0 2px;min-height:44px;font-size:10px;width:100%;}
+.live-compact .bl-body{padding:4px 6px;gap:6px;}
+@media(min-width:360px) and (max-width:600px){.live-compact .bl-grid{grid-template-columns:repeat(4,minmax(0,1fr));}}
+
 </style>
 
 <!-- ══ SUPABASE SYNC LAYER ══════════════════════════════════ -->
@@ -1697,7 +1725,7 @@ history.pushState(null,'',location.href);
       </div>
     </div>
     <!-- Timer display -->
-    <div style="background:#161925;padding:10px 20px;border-bottom:1px solid rgba(255,255,255,.06);display:flex;align-items:center;gap:20px;flex-shrink:0;flex-wrap:wrap;">
+    <div class="lr-timer-row" style="background:#161925;padding:10px 20px;border-bottom:1px solid rgba(255,255,255,.06);display:flex;align-items:center;gap:20px;flex-shrink:0;flex-wrap:wrap;">
       <div style="font-family:'DM Serif Display',serif;font-size:48px;color:#fff;" id="lr-clock">00:00<span style="font-size:24px;color:rgba(255,255,255,.5);">.00</span></div>
       <div style="display:flex;flex-direction:column;align-items:center;min-width:60px;">
         <div id="lr-potential-score" style="font-size:28px;font-weight:900;color:#60a5fa;line-height:1;min-height:34px;"></div>
@@ -9199,6 +9227,7 @@ function liveUpdateSplitControl(type){
   const button=document.getElementById(prefix+'-split-btn');if(button)button.disabled=!e.running;
   const last=document.getElementById(prefix+'-split-last');if(last)last.textContent=e.lastPlace?'#'+e.lastPlace:'';
   liveRenderSmartFinish(type);
+  const rosterClock=document.getElementById(prefix+'-roster-clock');if(rosterClock)rosterClock.textContent=liveSplitTime(e.running?Math.max(0,Date.now()-e.startTime):e.elapsed||0);
 }
 function liveSetSplitStudent(type,row,idx){
   const e=liveSplitEngine(type);
@@ -9362,10 +9391,23 @@ function liveParticipationButton(type,idx){
   return button;
 }
 
+function liveRosterEntries(students){
+  return students.map((s,i)=>({s,i})).sort((a,b)=>(a.s.name||'').localeCompare(b.s.name||'','he')||a.i-b.i);
+}
+function liveRosterLayout(type,toggle=false){
+  const prefix=type==='beep'?'bl':'lr',modal=document.getElementById(prefix+'-modal'),grid=document.getElementById(prefix+'-active-grid');
+  let compact=true;try{compact=localStorage.getItem('sg_compact_roster')!=='false';if(toggle){compact=!compact;localStorage.setItem('sg_compact_roster',String(compact));}}catch(_){}
+  modal?.classList.toggle('live-compact',compact);
+  let tools=document.getElementById(prefix+'-roster-tools');
+  if(!tools&&grid){tools=document.createElement('div');tools.id=prefix+'-roster-tools';tools.className='live-roster-tools';grid.parentNode?.insertBefore(tools,grid);}
+  if(tools){tools.innerHTML='';const button=document.createElement('button');button.type='button';button.setAttribute('aria-pressed',String(compact));button.textContent=compact?'תצוגה מרווחת':'תצוגה צפופה';button.onclick=()=>liveRosterLayout(type,true);tools.appendChild(button);const label=document.createElement('span');label.textContent='שמות לפי א״ב';tools.appendChild(label);const focus=document.createElement('button');focus.type='button';focus.textContent=modal.classList.contains('live-roster-focus')?'חזור למבחן':'שמות במסך מלא';focus.onclick=()=>{modal.classList.toggle('live-roster-focus',!modal.classList.contains('live-roster-focus'));liveRosterLayout(type);};tools.appendChild(focus);const clock=document.createElement('span');clock.id=prefix+'-roster-clock';clock.className='live-roster-clock';tools.appendChild(clock);}
+}
+
 function blRenderActiveGrid(){
+  liveRosterLayout('beep');
   const grid=document.getElementById('bl-active-grid');
   grid.innerHTML='';
-  BL.students.forEach((s,i)=>{
+  liveRosterEntries(BL.students).forEach(({s,i})=>{
     if(s.state!=='active')return;
     const score=s.state==='absent'?null:blCurrentScoreFor(s);
     const scCls=blScoreClass(score);
@@ -11144,8 +11186,9 @@ function lrRestore(idx){
 function lrUndo(){liveUndoSplitAssignment('lr');}
 
 function lrRenderGrid(){
+  liveRosterLayout('lr');
   const grid=document.getElementById('lr-active-grid');grid.innerHTML='';
-  LR.students.forEach((s,i)=>{
+  liveRosterEntries(LR.students).forEach(({s,i})=>{
     if(s.state!=='active')return;
     const div=document.createElement('div');
     div.className='bl-card'+(s.state==='absent'?' absent':'');div.id='lrc-'+i;
@@ -16480,6 +16523,31 @@ body::after{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;
 </div>
 
 <script>
+
+
+// Screen wake lock is a foreground-only enhancement; it never controls exam timing.
+const LIVE_SCREEN={lock:null,pending:false,retryAfter:0};
+function liveScreenWanted(){
+  return document.visibilityState==='visible'&&[LR,BL].some(e=>e.running&&!e._liveCompleted&&!e._liveClosed);
+}
+async function liveSyncScreen(){
+  if(!liveScreenWanted()){
+    if(LIVE_SCREEN.lock){const lock=LIVE_SCREEN.lock;LIVE_SCREEN.lock=null;try{await lock.release();}catch(_){}}
+    return;
+  }
+  if(!navigator.wakeLock||LIVE_SCREEN.lock||LIVE_SCREEN.pending||Date.now()<LIVE_SCREEN.retryAfter)return;
+  LIVE_SCREEN.pending=true;
+  try{
+    const lock=await navigator.wakeLock.request('screen');
+    if(!liveScreenWanted()){await lock.release();return;}
+    LIVE_SCREEN.lock=lock;
+    lock.addEventListener('release',()=>{if(LIVE_SCREEN.lock===lock)LIVE_SCREEN.lock=null;LIVE_SCREEN.retryAfter=Date.now()+1000;});
+  }catch(_){LIVE_SCREEN.retryAfter=Date.now()+5000;}
+  finally{LIVE_SCREEN.pending=false;}
+}
+document.addEventListener('visibilitychange',liveSyncScreen);
+document.addEventListener('click',liveSyncScreen);
+setInterval(liveSyncScreen,1000);
 
 // Persist after live-test actions and edits; pagehide/visibilitychange cover backgrounding.
 for(const name of ['timerStart','timerStop','timerReset','timerSplit','lrStart','lrStop','lrTapStudent','lrRestore','lrUndo','lrConfirmReset','blStart','blPause','blResume','blStop','blTapStudent','blRestoreElim','blUndo','blRedo','blAdjustTiming','spStart','spSplit','spFinish','srlTap','srlMinus','srlTogglePause','srlEnd','srlReset','_doCloseTimer','_doCloseLongRunLive','_doCloseBeepLive','_doSpClose','_doSrlClose']){
